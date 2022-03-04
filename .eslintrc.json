@@ -1,0 +1,16 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["prettier", "@typescript-eslint"],
+  "rules": {
+    "prettier/prettier": "error",
+    "max-len": ["error", { "code": 120 }]
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+  ]
+}

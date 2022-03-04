@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Starter Snowpack App" />
+    <title>Starter Snowpack App</title>
+    <style>
+      html {
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: black;
+        color: white;
+        margin: 0;
+      }
+
+      #canvas-container {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #game-canvas {
+        width: min(100vw, 160vh);
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container">
+      <canvas id="game-canvas" width="320" height="200"></canvas>
+    </div>
+    <script type="module" src="/index.js"></script>
+  </body>
+</html>
