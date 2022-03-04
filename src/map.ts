@@ -1,6 +1,6 @@
 import { loadJson } from "./assets";
 
-export enum TerrainType {
+export enum Terrain {
   Void = 0,
   Ocean = 1,
   Forest = 2,
@@ -17,16 +17,17 @@ export enum TerrainType {
 }
 
 export type MapTile = {
-  terrain: TerrainType;
+  terrain: Terrain;
   hasRailroad?: boolean;
   hasRoad?: boolean;
   hasIrrigation?: boolean;
+  hidden?: boolean;
 };
 
 export type MapTemplate = {
   width: number;
   height: number;
-  data: TerrainType[];
+  data: Terrain[];
 };
 
 export type GameMap = {
@@ -42,7 +43,7 @@ export enum MapDirectionBit {
   West = 0b1000,
 }
 
-const voidTile = { terrain: TerrainType.Void };
+const voidTile = { terrain: Terrain.Void };
 
 export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   if (y < 0 || y >= map.height) {
@@ -52,7 +53,7 @@ export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   return map.tiles[x + y * map.width];
 };
 
-const terrainBit = (map: GameMap, x: number, y: number, terrain: TerrainType) => {
+const terrainBit = (map: GameMap, x: number, y: number, terrain: Terrain) => {
   return getTileAt(map, x, y).terrain === terrain ? 1 : 0;
 };
 
@@ -95,6 +96,14 @@ export const getTerrainMaskSouthWest = (map: GameMap, x: number, y: number, mask
     (terrainBit(map, x - 1, y + 1, mask) << 1) |
     (terrainBit(map, x - 1, y, mask) << 2)
   );
+};
+
+export const hasExtraShield = (x: number, y: number): boolean => {
+  return !!((x * 7 + (y - 2) * 11) & 0x02);
+};
+
+export const hasSpecialResource = (x: number, y: number, seed: number): boolean => {
+  return (x % 4) * 4 + (y % 4) == ((x / 4) * 13 + (y / 4) * 11 + seed) % 16;
 };
 
 export const generateMapFromTemplate = async (templateName: string) => {
