@@ -7,6 +7,8 @@ export enum GameAction {
   MoveUnitSouthWest = "MoveUnitSouthWest",
   MoveUnitWest = "MoveUnitWest",
   MoveUnitNorthWest = "MoveUnitNorthWest",
+  EndTurn = "EndTurn",
+  Center = "Center",
 }
 
 export const keyboardMapping: Record<string, GameAction | undefined> = {
@@ -22,4 +24,7 @@ export const keyboardMapping: Record<string, GameAction | undefined> = {
   Numpad1: GameAction.MoveUnitSouthWest,
   Numpad4: GameAction.MoveUnitWest,
   Numpad7: GameAction.MoveUnitNorthWest,
+  NumpadEnter: GameAction.EndTurn,
+  Enter: GameAction.EndTurn,
+  KeyC: GameAction.Center,
 };

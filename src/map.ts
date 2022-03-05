@@ -16,6 +16,52 @@ export enum Terrain {
   Arctic = 12,
 }
 
+export type TerrainValues = {
+  movementCost: number;
+};
+
+export const terrainValueMap: Record<Terrain, TerrainValues> = {
+  [Terrain.Void]: {
+    movementCost: 0,
+  },
+  [Terrain.Ocean]: {
+    movementCost: 1,
+  },
+  [Terrain.Forest]: {
+    movementCost: 2,
+  },
+  [Terrain.Swamp]: {
+    movementCost: 2,
+  },
+  [Terrain.Plains]: {
+    movementCost: 1,
+  },
+  [Terrain.Tundra]: {
+    movementCost: 1,
+  },
+  [Terrain.River]: {
+    movementCost: 1,
+  },
+  [Terrain.Grassland]: {
+    movementCost: 1,
+  },
+  [Terrain.Jungle]: {
+    movementCost: 2,
+  },
+  [Terrain.Hills]: {
+    movementCost: 2,
+  },
+  [Terrain.Mountains]: {
+    movementCost: 3,
+  },
+  [Terrain.Desert]: {
+    movementCost: 1,
+  },
+  [Terrain.Arctic]: {
+    movementCost: 2,
+  },
+};
+
 export type MapTile = {
   terrain: Terrain;
   hasRailroad?: boolean;

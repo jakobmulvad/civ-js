@@ -1,5 +1,5 @@
 import { GameMap } from "./map";
-import { UnitState } from "./unit";
+import { Unit } from "./unit";
 
 export enum PlayerType {
   Human = 0,
@@ -10,7 +10,7 @@ export type PlayerState = {
   color: string;
   name: string;
   map: GameMap;
-  units: UnitState[];
+  units: Unit[];
   type: PlayerType;
   selectedUnit: number | undefined;
 };
