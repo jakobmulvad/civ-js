@@ -22,6 +22,7 @@ export type MapTile = {
   hasRoad?: boolean;
   hasIrrigation?: boolean;
   hidden?: boolean;
+  specialResource?: boolean;
 };
 
 export type MapTemplate = {
@@ -51,6 +52,12 @@ export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   }
   x = (x + map.width) % map.width; // wrap-around on x-axis
   return map.tiles[x + y * map.width];
+};
+
+export const getTileIndex = (map: GameMap, x: number, y: number): number => {
+  y = Math.min(map.height - 1, Math.max(0, y)); // clamp y-axis
+  x = (x + map.width) % map.width; // wrap-around on x-axis
+  return x + y * map.width;
 };
 
 const terrainBit = (map: GameMap, x: number, y: number, terrain: Terrain) => {
@@ -96,14 +103,6 @@ export const getTerrainMaskSouthWest = (map: GameMap, x: number, y: number, mask
     (terrainBit(map, x - 1, y + 1, mask) << 1) |
     (terrainBit(map, x - 1, y, mask) << 2)
   );
-};
-
-export const hasExtraShield = (x: number, y: number): boolean => {
-  return !!((x * 7 + (y - 2) * 11) & 0x02);
-};
-
-export const hasSpecialResource = (x: number, y: number, seed: number): boolean => {
-  return (x % 4) * 4 + (y % 4) == ((x / 4) * 13 + (y / 4) * 11 + seed) % 16;
 };
 
 export const generateMapFromTemplate = async (templateName: string) => {

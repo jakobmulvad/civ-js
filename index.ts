@@ -1,3 +1,4 @@
-import { renderEarth } from "./src/renderer";
+import { loadAllAssets } from "./src/assets";
+import { newGame } from "./src/game-controller";
 
-renderEarth();
+loadAllAssets().then(newGame, (err) => console.error(err));

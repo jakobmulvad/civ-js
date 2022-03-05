@@ -1,15 +1,13 @@
-import { loadImage } from "./assets";
+import { assets } from "./assets";
+import { GameState, PlayerState } from "./game-state";
 import {
   GameMap,
-  generateMapFromTemplate,
   getTerrainMaskCross,
   getTerrainMaskNorthEast,
   getTerrainMaskNorthWest,
   getTerrainMaskSouthEast,
   getTerrainMaskSouthWest,
   getTileAt,
-  hasExtraShield,
-  hasSpecialResource,
   Terrain,
 } from "./map";
 
@@ -29,26 +27,17 @@ const terrainSpriteMapIndex = {
 const canvas: HTMLCanvasElement = document.querySelector("#game-canvas");
 const context2d = canvas.getContext("2d");
 
-canvas.addEventListener("mouseup", (evt) => {
+/*canvas.addEventListener("mouseup", (evt) => {
   const canvasBounds = canvas.getBoundingClientRect();
   const relX = evt.offsetX / canvasBounds.width - 0.5;
   const relY = evt.offsetY / canvasBounds.height - 0.5;
   context2d.translate(Math.floor(-relX * canvas.width), Math.floor(-relY * canvas.height));
   renderEarth().catch((err) => console.error(err));
-});
+});*/
 
-const earthMapPromise = generateMapFromTemplate("/assets/earth.json");
-const ter257Promise = loadImage("/assets/ter257.pic.gif");
-const sp257Promise = loadImage("/assets/sp257.pic.gif");
-
-export const renderEarth = async () => {
-  const earthMap = await earthMapPromise;
-  await renderMap(earthMap);
-};
-
-export const renderMap = async (map: GameMap) => {
-  const ter257 = await ter257Promise;
-  const sp257 = await sp257Promise;
+export const renderMap = (map: GameMap) => {
+  const ter257 = assets["/assets/ter257.pic.gif"] as HTMLImageElement;
+  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
 
   for (let x = 0; x < map.width; x++) {
     for (let y = 0; y < map.height; y++) {
@@ -98,7 +87,7 @@ export const renderMap = async (map: GameMap) => {
             context2d.drawImage(ter257, 11 * 16, 11 * 16, 16, 16, x * 16, y * 16, 16, 16);
           }
 
-          if (hasSpecialResource(x, y, 0)) {
+          if (tile.specialResource) {
             context2d.drawImage(sp257, 10 * 16 + 1, 7 * 16 + 1, 15, 15, x * 16, y * 16, 15, 15);
           }
           break;
@@ -116,12 +105,12 @@ export const renderMap = async (map: GameMap) => {
           const terrainOffset = terrainSpriteMapIndex[tile.terrain];
           context2d.drawImage(ter257, terrainMask * 16, terrainOffset * 16, 16, 16, x * 16, y * 16, 16, 16);
 
-          if (tile.terrain === Terrain.Grassland && hasExtraShield(x, y)) {
-            context2d.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, x * 16 + 4, y * 16 + 4, 7, 7);
-          }
-
-          if (hasSpecialResource(x, y, 0)) {
-            context2d.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, x * 16, y * 16, 15, 15);
+          if (tile.specialResource) {
+            if (tile.terrain === Terrain.Grassland) {
+              context2d.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, x * 16 + 4, y * 16 + 4, 7, 7);
+            } else {
+              context2d.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, x * 16, y * 16, 15, 15);
+            }
           }
           break;
         }
@@ -141,5 +130,23 @@ export const renderMap = async (map: GameMap) => {
         context2d.drawImage(sp257, 8 * 16, 8 * 16, 16, 16, x * 16, y * 16, 16, 16);
       }
     }
+  }
+};
+
+export const renderPlayer = (player: PlayerState, time: number) => {
+  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
+
+  const selectedUnit = player.units[player.selectedUnit];
+  for (const unit of player.units) {
+    if (unit !== selectedUnit || (time * 0.006) % 2 < 1) {
+      context2d.drawImage(sp257, unit.prototype * 16, 10 * 16 + 1, 16, 15, unit.x * 16, unit.y * 16, 16, 15);
+    }
+  }
+};
+
+export const renderState = (state: GameState, time: number) => {
+  renderMap(state.players[0].map);
+  for (const player of state.players) {
+    renderPlayer(player, time);
   }
 };
