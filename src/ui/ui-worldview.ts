@@ -1,10 +1,11 @@
-import { Action, pushAction } from "../action";
-import { isAnimating } from "../animation";
-import { GameState } from "../game-state";
-import { inputMapping, UiInput } from "../input";
-import { renderWorld } from "../renderer";
-import { RenderViewport } from "../types";
-import { UiScreen } from "./ui-controller";
+import { Action, pushAction } from '../action';
+import { isAnimating } from '../animation';
+import { fonts } from '../fonts';
+import { GameState } from '../game-state';
+import { inputMapping, UiInput } from '../input';
+import { renderText, renderWorld } from '../renderer';
+import { RenderViewport } from '../types';
+import { UiScreen } from './ui-controller';
 
 let state: GameState;
 
@@ -22,37 +23,37 @@ const inputToAction = (input: UiInput): Action | undefined => {
 
   switch (input) {
     case UiInput.UnitMoveNorth:
-      return { type: "UnitMove", dx: 0, dy: -1, player };
+      return { type: 'UnitMove', dx: 0, dy: -1, player };
 
     case UiInput.UnitMoveNorthEast:
-      return { type: "UnitMove", dx: 1, dy: -1, player };
+      return { type: 'UnitMove', dx: 1, dy: -1, player };
 
     case UiInput.UnitMoveEast:
-      return { type: "UnitMove", dx: 1, dy: 0, player };
+      return { type: 'UnitMove', dx: 1, dy: 0, player };
 
     case UiInput.UnitMoveSouthEast:
-      return { type: "UnitMove", dx: 1, dy: 1, player };
+      return { type: 'UnitMove', dx: 1, dy: 1, player };
 
     case UiInput.UnitMoveSouth:
-      return { type: "UnitMove", dx: 0, dy: 1, player };
+      return { type: 'UnitMove', dx: 0, dy: 1, player };
 
     case UiInput.UnitMoveSouthWest:
-      return { type: "UnitMove", dx: -1, dy: 1, player };
+      return { type: 'UnitMove', dx: -1, dy: 1, player };
 
     case UiInput.UnitMoveWest:
-      return { type: "UnitMove", dx: -1, dy: 0, player };
+      return { type: 'UnitMove', dx: -1, dy: 0, player };
 
     case UiInput.UnitMoveNorthWest:
-      return { type: "UnitMove", dx: -1, dy: -1, player };
+      return { type: 'UnitMove', dx: -1, dy: -1, player };
 
     case UiInput.UnitWait:
-      return { type: "UnitWait", player };
+      return { type: 'UnitWait', player };
 
     case UiInput.UnitNoOrders:
-      return { type: "UnitNoOrders", player };
+      return { type: 'UnitNoOrders', player };
 
     case UiInput.EndTurn:
-      return { type: "EndTurn", player };
+      return { type: 'EndTurn', player };
 
     default:
       return undefined;
@@ -79,7 +80,7 @@ const handleInput = (input: UiInput) => {
   // push to action queue
   const action = inputToAction(input);
   if (action) {
-    console.log("action pushed");
+    console.log('action pushed');
     pushAction(action);
     return;
   }
@@ -110,6 +111,7 @@ export const setWorldUiGameState = (gameState: GameState) => (state = gameState)
 export const uiWorldView: UiScreen = {
   onRender: (time: number) => {
     renderWorld(state, viewport, isAnimating() || Math.floor(time * 0.006) % 2 === 0);
+    renderText(fonts.leaderEastern, 'What shall we build in Moscow?', 10, 50, [255, 255, 255]);
   },
   onKey: (keyCode: string) => {
     if (!state) {

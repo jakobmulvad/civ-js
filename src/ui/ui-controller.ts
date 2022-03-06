@@ -30,15 +30,15 @@ export const uiRender = (time: number) => {
   }
 };
 
-document.addEventListener("keydown", (evt) => {
-  console.log("keydown", evt.code);
+document.addEventListener('keydown', (evt) => {
+  console.log('keydown', evt.code);
   const screen = uiTopScreen();
   screen?.onKey?.(evt.code);
 });
 
-const canvas: HTMLCanvasElement = document.querySelector("#game-canvas");
+const canvas: HTMLCanvasElement = document.querySelector('#game-canvas');
 
-canvas.addEventListener("mousedown", (evt) => {
+canvas.addEventListener('mousedown', (evt) => {
   const canvasBounds = canvas.getBoundingClientRect();
   const screenX = Math.floor((evt.offsetX * 320) / canvasBounds.width);
   const screenY = Math.floor((evt.offsetY * 200) / canvasBounds.height);

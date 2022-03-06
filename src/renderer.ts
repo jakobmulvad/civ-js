@@ -1,5 +1,6 @@
-import { assets } from "./assets";
-import { GameState } from "./game-state";
+import { getImageAsset } from './assets';
+import { Font, fonts } from './fonts';
+import { GameState } from './game-state';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -9,8 +10,8 @@ import {
   getTerrainMaskSouthWest,
   getTileAt,
   Terrain,
-} from "./map";
-import { RenderViewport } from "./types";
+} from './map';
+import { RenderViewport } from './types';
 
 const terrainSpriteMapIndex = {
   [Terrain.Desert]: 0,
@@ -25,27 +26,30 @@ const terrainSpriteMapIndex = {
   [Terrain.Jungle]: 9,
 };
 
-const canvas: HTMLCanvasElement = document.querySelector("#game-canvas");
-const context2d = canvas.getContext("2d");
-const unitSpriteSheet = document.createElement("canvas");
+const canvas: HTMLCanvasElement = document.querySelector('#game-canvas');
+const context2d = canvas.getContext('2d');
+const unitSpriteSheet = document.createElement('canvas').getContext('2d');
+const fontsSpriteSheet = document.createElement('canvas').getContext('2d');
+
+fontsSpriteSheet.canvas.width = 512;
+fontsSpriteSheet.canvas.height = 309;
+
+//canvas.parentNode.append(fontsSpriteSheet.canvas);
 
 export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
-  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
+  const sp257 = getImageAsset('sp257.pic.gif');
 
   // Dimensions of the units block in sp257.pic
   const bWidth = 20 * 16;
   const bHeight = 2 * 16;
 
-  unitSpriteSheet.width = bWidth;
-  unitSpriteSheet.height = bHeight * colors.length;
-
-  const ctx = unitSpriteSheet.getContext("2d");
+  unitSpriteSheet.canvas.width = bWidth;
+  unitSpriteSheet.canvas.height = bHeight * colors.length;
 
   colors.forEach((color, index) => {
-    console.log(color);
-    ctx.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
+    unitSpriteSheet.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
 
-    const imageData = ctx.getImageData(0, index * bHeight, bWidth, bHeight);
+    const imageData = unitSpriteSheet.getImageData(0, index * bHeight, bWidth, bHeight);
     const { data } = imageData;
 
     for (let x = 0; x < bWidth; x++) {
@@ -80,13 +84,46 @@ export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
       }
     }
 
-    ctx.putImageData(imageData, 0, index * bHeight);
+    unitSpriteSheet.putImageData(imageData, 0, index * bHeight);
   });
+
+  const fontsCv = getImageAsset('fonts.cv.png');
+  const { width, height, offset } = fonts.leaderEastern;
+
+  // copy font from file so we can manipulate color
+  fontsSpriteSheet.drawImage(fontsCv, 0, offset, 32 * width, 3 * height, 0, offset, 32 * width, 3 * height);
+  const fontImageData = fontsSpriteSheet.getImageData(0, offset, 32 * width, 3 * height);
+
+  const measureChar = (code: number) => {
+    const offsetX = (code % 32) * width;
+    const offsetY = ((code >> 5) - 1) * height;
+
+    let foundPixels = false;
+    for (let x = 0; x < width; x++) {
+      let columnHasPixels = false;
+      for (let y = 0; y < height; y++) {
+        const data = fontImageData.data[(offsetX + x + (offsetY + y) * fontImageData.width) * 4 + 3];
+        columnHasPixels ||= !!data;
+      }
+      foundPixels ||= columnHasPixels;
+      if (foundPixels && !columnHasPixels) {
+        return x;
+      }
+    }
+    return width;
+  };
+
+  const widths = [];
+  for (let code = 33; code < 33 + 32 * 3; code++) {
+    widths.push(measureChar(code));
+  }
+
+  console.log(widths);
 };
 
 export const renderMap = (map: GameMap, viewport: RenderViewport) => {
-  const ter257 = assets["/assets/ter257.pic.gif"] as HTMLImageElement;
-  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
+  const ter257 = getImageAsset('ter257.pic.gif');
+  const sp257 = getImageAsset('sp257.pic.gif');
 
   for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
     for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
@@ -196,7 +233,7 @@ export const renderWorld = (state: GameState, viewport: RenderViewport, renderSe
     for (const unit of player.units) {
       if (unit !== selectedUnit || renderSelected) {
         context2d.drawImage(
-          unitSpriteSheet,
+          unitSpriteSheet.canvas,
           unit.prototypeId * 16,
           pi * 16 * 2,
           16,
@@ -210,5 +247,41 @@ export const renderWorld = (state: GameState, viewport: RenderViewport, renderSe
         );
       }
     }
+  }
+};
+
+export const renderText = (font: Font, text: string, x: number, y: number, color: [number, number, number]) => {
+  const fontsCv = getImageAsset('fonts.cv.png');
+  const { width, height, kerning, offset } = font;
+
+  // copy font from file so we can manipulate color
+  fontsSpriteSheet.drawImage(
+    fontsCv,
+    0,
+    offset,
+    32 * font.width,
+    3 * font.height,
+    0,
+    offset,
+    32 * font.width,
+    3 * font.height
+  );
+
+  const fontImageData = fontsSpriteSheet.getImageData(0, offset, 32 * font.width, 3 * font.height);
+
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    context2d.drawImage(
+      fontsCv,
+      (code % 32) * width,
+      offset + ((code >> 5) - 1) * height,
+      width,
+      height,
+      x,
+      y,
+      width,
+      height
+    );
+    x += kerning[code - 32] + 1;
   }
 };

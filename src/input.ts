@@ -1,16 +1,16 @@
 export enum UiInput {
-  UnitMoveNorth = "UnitMoveNorth",
-  UnitMoveNorthEast = "UnitMoveNorthEast",
-  UnitMoveEast = "UnitMoveEast",
-  UnitMoveSouthEast = "UnitMoveSouthEast",
-  UnitMoveSouth = "UnitMoveSouth",
-  UnitMoveSouthWest = "UnitMoveSouthWest",
-  UnitMoveWest = "UnitMoveWest",
-  UnitMoveNorthWest = "UnitMoveNorthWest",
-  UnitNoOrders = "UnitNoOrders",
-  UnitWait = "UnitWait",
-  UnitCenter = "UnitCenter",
-  EndTurn = "EndTurn",
+  UnitMoveNorth = 'UnitMoveNorth',
+  UnitMoveNorthEast = 'UnitMoveNorthEast',
+  UnitMoveEast = 'UnitMoveEast',
+  UnitMoveSouthEast = 'UnitMoveSouthEast',
+  UnitMoveSouth = 'UnitMoveSouth',
+  UnitMoveSouthWest = 'UnitMoveSouthWest',
+  UnitMoveWest = 'UnitMoveWest',
+  UnitMoveNorthWest = 'UnitMoveNorthWest',
+  UnitNoOrders = 'UnitNoOrders',
+  UnitWait = 'UnitWait',
+  UnitCenter = 'UnitCenter',
+  EndTurn = 'EndTurn',
 }
 
 export const inputMapping: Record<string, UiInput | undefined> = {

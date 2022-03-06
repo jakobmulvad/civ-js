@@ -1,5 +1,5 @@
-import { GameMap } from "./map";
-import { Unit } from "./unit";
+import { GameMap } from './map';
+import { Unit } from './unit';
 
 export enum PlayerType {
   Human = 0,

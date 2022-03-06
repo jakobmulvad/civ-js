@@ -13,7 +13,7 @@ export const isAnimating = (): boolean => !!animateCallback;
 export const animate = (callback: (time: number) => boolean): Promise<void> => {
   return new Promise((res, rej) => {
     if (isAnimating()) {
-      rej(new Error("Already animating"));
+      rej(new Error('Already animating'));
       return;
     }
 

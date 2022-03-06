@@ -1,11 +1,11 @@
-import { Action, ActionUnitMove, popAction } from "./action";
-import { animate, isAnimating } from "./animation";
-import { GameState, PlayerState, PlayerType } from "./game-state";
-import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from "./map";
-import { generateUnitSpriteSheet } from "./renderer";
-import { uiClear, uiPushScreen, uiRender } from "./ui/ui-controller";
-import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from "./ui/ui-worldview";
-import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from "./unit";
+import { Action, ActionUnitMove, popAction } from './action';
+import { animate } from './animation';
+import { GameState, PlayerState, PlayerType } from './game-state';
+import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from './map';
+import { generateUnitSpriteSheet } from './renderer';
+import { uiClear, uiPushScreen } from './ui/ui-controller';
+import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from './ui/ui-worldview';
+import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from './unit';
 
 let state: GameState;
 
@@ -72,7 +72,7 @@ export const newPlayer = (
 
 export const newGame = async () => {
   const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-  const newMap = await generateMapFromTemplate("/assets/earth.json");
+  const newMap = await generateMapFromTemplate('/assets/earth.json');
 
   // Assign special resources based on seed
   for (let x = 0; x < newMap.width; x++) {
@@ -88,8 +88,8 @@ export const newGame = async () => {
     seed,
     playerInTurn: 0,
     players: [
-      newPlayer(newMap, "Weevil", [234, 123, 34], PlayerType.Human),
-      newPlayer(newMap, "Evil", [210, 115, 255], PlayerType.Computer),
+      newPlayer(newMap, 'Weevil', [234, 123, 34], PlayerType.Human),
+      newPlayer(newMap, 'Evil', [210, 115, 255], PlayerType.Computer),
     ],
     masterMap: newMap,
     turn: 0,
@@ -193,16 +193,16 @@ export const handleNoOrder = () => {
 
 export const handleAction = async (action: Action): Promise<void> => {
   switch (action.type) {
-    case "UnitMove":
+    case 'UnitMove':
       return handleMoveUnit(action);
 
-    case "UnitWait":
+    case 'UnitWait':
       return selectNextUnit();
 
-    case "UnitNoOrders":
+    case 'UnitNoOrders':
       return handleNoOrder();
 
-    case "EndTurn":
+    case 'EndTurn':
       return endTurn();
   }
 };

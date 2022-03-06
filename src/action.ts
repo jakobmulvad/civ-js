@@ -1,27 +1,27 @@
 export type ActionUnitMove = {
-  type: "UnitMove";
+  type: 'UnitMove';
   player: number;
   dx: number;
   dy: number;
 };
 
 export type ActionUnitWait = {
-  type: "UnitWait";
+  type: 'UnitWait';
   player: number;
 };
 
 export type ActionUnitNoOrders = {
-  type: "UnitNoOrders";
+  type: 'UnitNoOrders';
   player: number;
 };
 
 export type ActionUnitCenter = {
-  type: "UnitCenter";
+  type: 'UnitCenter';
   player: number;
 };
 
 export type ActionEndTurn = {
-  type: "EndTurn";
+  type: 'EndTurn';
   player: number;
 };
 

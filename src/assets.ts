@@ -1,13 +1,21 @@
-export const assets = {};
+const imageAssets = ['ter257.pic.gif', 'sp257.pic.gif', 'fonts.cv.png'] as const;
+
+export type ImageAssetKey = typeof imageAssets[number];
+
+const imageCache: { [key: string]: HTMLImageElement } = {};
 
 export const loadImage = async (src: string): Promise<void> => {
   const image = new Image();
-  image.src = src;
+  image.src = `/assets/${src}`;
   await new Promise((res, rej) => {
     image.onload = res;
     image.onerror = rej;
   });
-  assets[src] = image;
+  imageCache[src] = image;
+};
+
+export const getImageAsset = (assetKey: ImageAssetKey): HTMLImageElement => {
+  return imageCache[assetKey];
 };
 
 export const loadJson = async <T>(url: string): Promise<T> => {
@@ -17,7 +25,7 @@ export const loadJson = async <T>(url: string): Promise<T> => {
 };
 
 export const loadAllAssets = async () => {
-  await loadImage("/assets/ter257.pic.gif");
-  await loadImage("/assets/sp257.pic.gif");
-  console.log("Done loading assets");
+  const promises = imageAssets.map(loadImage);
+  await Promise.all(promises);
+  console.log('Done loading assets');
 };

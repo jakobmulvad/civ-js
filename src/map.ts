@@ -1,4 +1,4 @@
-import { loadJson } from "./assets";
+import { loadJson } from './assets';
 
 export enum Terrain {
   Void = 0,
