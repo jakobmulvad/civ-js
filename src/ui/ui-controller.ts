@@ -24,6 +24,12 @@ export const uiTopScreen = (): UiScreen | undefined => {
   return uiStack[uiStack.length - 1];
 };
 
+export const uiRender = (time: number) => {
+  for (const screen of uiStack) {
+    screen.onRender?.(time);
+  }
+};
+
 document.addEventListener("keydown", (evt) => {
   console.log("keydown", evt.code);
   const screen = uiTopScreen();
@@ -40,12 +46,3 @@ canvas.addEventListener("mousedown", (evt) => {
   const screen = uiTopScreen();
   screen?.onClick?.(screenX, screenY);
 });
-
-const frameHandler = (time: number) => {
-  requestAnimationFrame(frameHandler);
-
-  for (const screen of uiStack) {
-    screen.onRender?.(time);
-  }
-};
-requestAnimationFrame(frameHandler);

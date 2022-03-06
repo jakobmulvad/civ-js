@@ -1,14 +1,16 @@
+import { Action, ActionUnitMove, popAction } from "./action";
 import { animate, isAnimating } from "./animation";
 import { GameState, PlayerState, PlayerType } from "./game-state";
-import { GameAction, keyboardMapping } from "./keyboard";
 import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from "./map";
 import { generateUnitSpriteSheet, renderWorld } from "./renderer";
 import { RenderViewport } from "./types";
-import { uiClear, uiPushScreen } from "./ui/ui-controller";
+import { uiClear, uiPushScreen, uiRender } from "./ui/ui-controller";
 import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from "./ui/ui-worldview";
 import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from "./unit";
 
 let state: GameState;
+
+export const playerInTurn = () => state.players[state.playerInTurn];
 
 export const discoverMap = (player: number, x: number, y: number) => {
   const idx = getTileIndex(state.masterMap, x, y);
@@ -124,15 +126,13 @@ export const selectNextUnit = () => {
   centerViewportIfNeeded(newSelected.x, newSelected.y);
 };
 
-export const handleMoveUnit = async (dx: number, dy: number) => {
-  const player = state.players[state.playerInTurn];
-
-  if (player.selectedUnit === -1) {
-    return;
+export const handleMoveUnit = async (action: ActionUnitMove) => {
+  if (action.player !== state.playerInTurn) {
+    throw new Error(`Player ${action.player} cannot move out of turn`);
   }
 
-  const unitIdx = player.selectedUnit;
-  const unit = player.units[unitIdx];
+  const player = state.players[action.player];
+  const unit = player.units[action.unit];
 
   if (unit.movesLeft === 0) {
     return;
@@ -141,12 +141,12 @@ export const handleMoveUnit = async (dx: number, dy: number) => {
   centerViewportIfNeeded(unit.x, unit.y);
 
   // Is unit trying to move out of bounds on y-axis?
-  if ((dy < 0 && unit.y === 0) || (dy > 0 && unit.y === state.masterMap.height - 1)) {
+  if ((action.dy < 0 && unit.y === 0) || (action.dy > 0 && unit.y === state.masterMap.height - 1)) {
     return;
   }
 
-  const newX = (unit.x + dx + state.masterMap.width) % state.masterMap.width; // wrap-around on x-axis
-  const newY = unit.y + dy;
+  const newX = (unit.x + action.dx + state.masterMap.width) % state.masterMap.width; // wrap-around on x-axis
+  const newY = unit.y + action.dy;
   const targetTile = getTileAt(state.masterMap, newX, newY);
   const prototype = unitPrototypeMap[unit.prototypeId];
 
@@ -158,11 +158,11 @@ export const handleMoveUnit = async (dx: number, dy: number) => {
   player.selectedUnit = -1; // disable blinking
   await animate((time) => {
     const progress = Math.floor(time * 0.06);
-    unit.screenOffsetX = dx * progress;
-    unit.screenOffsetY = dy * progress;
+    unit.screenOffsetX = action.dx * progress;
+    unit.screenOffsetY = action.dy * progress;
     return progress === 16;
   });
-  player.selectedUnit = unitIdx;
+  player.selectedUnit = action.unit;
 
   unit.screenOffsetX = 0;
   unit.screenOffsetY = 0;
@@ -188,4 +188,30 @@ export const handleNoOrder = () => {
   const unit = player.units[player.selectedUnit];
   unit.movesLeft = 0;
   selectNextUnit();
+};
+
+export const handleAction = async (action: Action): Promise<void> => {
+  switch (action.type) {
+    case "UnitMove":
+      return handleMoveUnit(action);
+
+    case "UnitWait":
+      return selectNextUnit();
+
+    case "UnitNoOrders":
+      return handleNoOrder();
+
+    case "EndTurn":
+      return endTurn();
+  }
+};
+
+export const onFrame = (time: number) => {
+  const action = popAction();
+
+  if (action) {
+    handleAction(action).catch((err) => console.error(`Failed to process action ${action.type}: ${err as string}`));
+  }
+
+  uiRender(time);
 };
