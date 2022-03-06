@@ -69,6 +69,7 @@ export type MapTile = {
   hasIrrigation?: boolean;
   hidden?: boolean;
   specialResource?: boolean;
+  extraShield?: boolean;
 };
 
 export type MapTemplate = {

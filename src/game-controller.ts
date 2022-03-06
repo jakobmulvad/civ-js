@@ -82,11 +82,8 @@ export const newGame = async () => {
     for (let y = 0; y < newMap.height; y++) {
       const idx = getTileIndex(newMap, x, y);
       const tile = newMap.tiles[idx];
-      if (tile.terrain === Terrain.Grassland) {
-        tile.specialResource = !!((x * 7 + (y - 2) * 11) & 0x02);
-      } else {
-        tile.specialResource = (x % 4) * 4 + (y % 4) === ((x / 4) * 13 + (y / 4) * 11 + seed) % 16;
-      }
+      tile.extraShield = !!((x * 7 + (y - 2) * 11) & 0x02);
+      tile.specialResource = (x % 4) * 4 + (y % 4) === ((x >> 2) * 13 + (y >> 2) * 11 + seed) % 16;
     }
   }
 
@@ -111,8 +108,8 @@ export const newGame = async () => {
     turn: 0,
   };
 
-  spawnUnitForPlayer(0, UnitPrototypeId.Settlers, 8, 8);
-  spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 10, 9);
+  spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 43, 12);
+  spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 6, 9);
   startTurn();
 };
 
@@ -182,6 +179,18 @@ const handleMoveUnit = async (dx: number, dy: number) => {
   }
 };
 
+const handleNoOrder = () => {
+  const player = state.players[state.playerInTurn];
+
+  if (player.selectedUnit === -1) {
+    return;
+  }
+
+  const unit = player.units[player.selectedUnit];
+  unit.movesLeft = 0;
+  selectNextUnit();
+};
+
 const handleAction = async (action: GameAction, player: number): Promise<void> => {
   if (isAnimating()) {
     return;
@@ -193,22 +202,24 @@ const handleAction = async (action: GameAction, player: number): Promise<void> =
   }
 
   switch (action) {
-    case GameAction.MoveUnitNorth:
+    case GameAction.UnitMoveNorth:
       return handleMoveUnit(0, -1);
-    case GameAction.MoveUnitNorthEast:
+    case GameAction.UnitMoveNorthEast:
       return handleMoveUnit(1, -1);
-    case GameAction.MoveUnitEast:
+    case GameAction.UnitMoveEast:
       return handleMoveUnit(1, 0);
-    case GameAction.MoveUnitSouthEast:
+    case GameAction.UnitMoveSouthEast:
       return handleMoveUnit(1, 1);
-    case GameAction.MoveUnitSouth:
+    case GameAction.UnitMoveSouth:
       return handleMoveUnit(0, 1);
-    case GameAction.MoveUnitSouthWest:
+    case GameAction.UnitMoveSouthWest:
       return handleMoveUnit(-1, 1);
-    case GameAction.MoveUnitWest:
+    case GameAction.UnitMoveWest:
       return handleMoveUnit(-1, 0);
-    case GameAction.MoveUnitNorthWest:
+    case GameAction.UnitMoveNorthWest:
       return handleMoveUnit(-1, -1);
+    case GameAction.UnitNoOrders:
+      return handleNoOrder();
     case GameAction.EndTurn:
       return endTurn();
     case GameAction.Center: {

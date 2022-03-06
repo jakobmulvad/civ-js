@@ -108,12 +108,10 @@ export const renderMap = (map: GameMap, viewport: RenderViewport) => {
           const terrainOffset = terrainSpriteMapIndex[tile.terrain];
           context2d.drawImage(ter257, terrainMask * 16, terrainOffset * 16, 16, 16, screenX, screenY, 16, 16);
 
-          if (tile.specialResource) {
-            if (tile.terrain === Terrain.Grassland) {
-              context2d.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, screenX + 4, screenY + 4, 7, 7);
-            } else {
-              context2d.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
-            }
+          if (tile.terrain === Terrain.Grassland && tile.extraShield) {
+            context2d.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, screenX + 4, screenY + 4, 7, 7);
+          } else if (tile.specialResource) {
+            context2d.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
           }
           break;
         }
@@ -141,8 +139,7 @@ export const renderWorld = (state: GameState, time: number, viewport: RenderView
 
   renderMap(state.players[0].map, viewport);
 
-  // 1 if viewport i near right edge of map so sprites on left edge needs to be rendered
-  const wraparound = Math.round(viewport.x / state.masterMap.width);
+  const mapWidth = state.masterMap.width;
 
   // Render players
   for (const player of state.players) {
@@ -157,7 +154,9 @@ export const renderWorld = (state: GameState, time: number, viewport: RenderView
           10 * 16 + 1,
           16,
           15,
-          viewport.screenX + unit.screenOffsetX + (unit.x + wraparound * state.masterMap.width - viewport.x) * 16,
+          viewport.screenX +
+            unit.screenOffsetX +
+            Math.max(unit.x - viewport.x, (unit.x - viewport.x + mapWidth) % mapWidth) * 16,
           viewport.screenY + unit.screenOffsetY + (unit.y - viewport.y) * 16,
           16,
           15
