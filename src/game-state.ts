@@ -7,7 +7,7 @@ export enum PlayerType {
 }
 
 export type PlayerState = {
-  color: string;
+  color: [number, number, number];
   name: string;
   map: GameMap;
   units: Unit[];

@@ -27,6 +27,7 @@ const terrainSpriteMapIndex = {
 
 const canvas: HTMLCanvasElement = document.querySelector("#game-canvas");
 const context2d = canvas.getContext("2d");
+const unitSpriteSheet = document.createElement("canvas");
 
 /*canvas.addEventListener("mouseup", (evt) => {
   const canvasBounds = canvas.getBoundingClientRect();
@@ -35,6 +36,61 @@ const context2d = canvas.getContext("2d");
   context2d.translate(Math.floor(-relX * canvas.width), Math.floor(-relY * canvas.height));
   renderEarth().catch((err) => console.error(err));
 });*/
+
+export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
+  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
+
+  // Dimensions of the units block in sp257.pic
+  const bWidth = 20 * 16;
+  const bHeight = 2 * 16;
+
+  unitSpriteSheet.width = bWidth;
+  unitSpriteSheet.height = bHeight * colors.length;
+
+  const ctx = unitSpriteSheet.getContext("2d");
+
+  colors.forEach((color, index) => {
+    console.log(color);
+    ctx.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
+
+    const imageData = ctx.getImageData(0, index * bHeight, bWidth, bHeight);
+    const { data } = imageData;
+
+    for (let x = 0; x < bWidth; x++) {
+      for (let y = 0; y < bHeight; y++) {
+        const i = x * 4 + y * bWidth * 4;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Remove border
+        if (r === 0 && g === 170 && b === 170 && (y % 16 === 0 || x % 16 === 0)) {
+          data[i] = 0;
+          data[i + 1] = 0;
+          data[i + 2] = 0;
+          data[i + 3] = 0;
+          continue;
+        }
+
+        // Replace primary color
+        if (r === 97 && g === 227 && b === 101) {
+          data[i] = color[0];
+          data[i + 1] = color[1];
+          data[i + 2] = color[2];
+        }
+
+        // Replace secondary color
+        if (r === 44 && g === 121 && b === 0) {
+          data[i] = color[0] >> 1;
+          data[i + 1] = color[1] >> 1;
+          data[i + 2] = color[2] >> 1;
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, index * bHeight);
+  });
+};
 
 export const renderMap = (map: GameMap, viewport: RenderViewport) => {
   const ter257 = assets["/assets/ter257.pic.gif"] as HTMLImageElement;
@@ -135,31 +191,30 @@ export const renderMap = (map: GameMap, viewport: RenderViewport) => {
 };
 
 export const renderWorld = (state: GameState, time: number, viewport: RenderViewport) => {
-  const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
-
   renderMap(state.players[0].map, viewport);
 
   const mapWidth = state.masterMap.width;
 
   // Render players
-  for (const player of state.players) {
+  for (let pi = 0; pi < state.players.length; pi++) {
+    const player = state.players[pi];
     const selectedUnit = player.units[player.selectedUnit];
 
     // Render units
     for (const unit of player.units) {
       if (unit !== selectedUnit || (time * 0.006) % 2 < 1) {
         context2d.drawImage(
-          sp257,
+          unitSpriteSheet,
           unit.prototypeId * 16,
-          10 * 16 + 1,
+          pi * 16 * 2,
           16,
-          15,
+          16,
           viewport.screenX +
             unit.screenOffsetX +
             Math.max(unit.x - viewport.x, (unit.x - viewport.x + mapWidth) % mapWidth) * 16,
           viewport.screenY + unit.screenOffsetY + (unit.y - viewport.y) * 16,
           16,
-          15
+          16
         );
       }
     }

@@ -1,8 +1,8 @@
 import { animate, isAnimating } from "./animation";
-import { GameState, PlayerType } from "./game-state";
+import { GameState, PlayerState, PlayerType } from "./game-state";
 import { GameAction, keyboardMapping } from "./keyboard";
-import { generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from "./map";
-import { renderWorld } from "./renderer";
+import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from "./map";
+import { generateUnitSpriteSheet, renderWorld } from "./renderer";
 import { RenderViewport } from "./types";
 import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from "./unit";
 
@@ -73,6 +73,25 @@ export const endTurn = () => {
   startTurn();
 };
 
+export const newPlayer = (
+  map: GameMap,
+  name: string,
+  color: [number, number, number],
+  type: PlayerType
+): PlayerState => {
+  return {
+    color,
+    name,
+    map: {
+      ...map,
+      tiles: map.tiles.map((tile) => ({ ...tile, hidden: true })),
+    },
+    units: [],
+    type,
+    selectedUnit: -1,
+  };
+};
+
 export const newGame = async () => {
   const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
   const newMap = await generateMapFromTemplate("/assets/earth.json");
@@ -91,38 +110,36 @@ export const newGame = async () => {
     seed,
     playerInTurn: 0,
     players: [
-      {
-        color: "#FF00FF",
-        name: "Weevil",
-        map: {
-          width: newMap.width,
-          height: newMap.height,
-          tiles: newMap.tiles.map((tile) => ({ ...tile, hidden: false })),
-        },
-        units: [],
-        type: PlayerType.Computer,
-        selectedUnit: 0,
-      },
+      newPlayer(newMap, "Weevil", [234, 123, 34], PlayerType.Human),
+      newPlayer(newMap, "Evil", [210, 115, 255], PlayerType.Computer),
     ],
     masterMap: newMap,
     turn: 0,
   };
 
+  generateUnitSpriteSheet(state.players.map((pl) => pl.color));
+
   spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 43, 12);
   spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 6, 9);
+  spawnUnitForPlayer(1, UnitPrototypeId.Cavalry, 5, 10);
   startTurn();
 };
 
 const selectNextUnit = () => {
   const player = state.players[state.playerInTurn];
-  player.selectedUnit = player.units.findIndex((unit) => unit.movesLeft > 0);
+  const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0);
 
-  if (player.selectedUnit === -1) {
+  if (unitsWithMoves.length === 0) {
+    player.selectedUnit = -1;
     return;
   }
 
-  const unit = player.units[player.selectedUnit];
-  centerViewportIfNeeded(unit.x, unit.y);
+  const currentIndex = unitsWithMoves.findIndex((unit) => unit === player.units[player.selectedUnit]);
+  const newIndex = (currentIndex + 1) % unitsWithMoves.length;
+  const newSelected = unitsWithMoves[newIndex];
+  player.selectedUnit = player.units.findIndex((unit) => unit === newSelected);
+
+  centerViewportIfNeeded(newSelected.x, newSelected.y);
 };
 
 const handleMoveUnit = async (dx: number, dy: number) => {
@@ -222,7 +239,7 @@ const handleAction = async (action: GameAction, player: number): Promise<void> =
       return handleNoOrder();
     case GameAction.EndTurn:
       return endTurn();
-    case GameAction.Center: {
+    case GameAction.UnitCenter: {
       const player = state.players[state.playerInTurn];
 
       if (player.selectedUnit === -1) {
@@ -231,6 +248,9 @@ const handleAction = async (action: GameAction, player: number): Promise<void> =
 
       const unit = player.units[player.selectedUnit];
       return centerViewport(unit.x, unit.y);
+    }
+    case GameAction.UnitWait: {
+      return selectNextUnit();
     }
 
     default:
