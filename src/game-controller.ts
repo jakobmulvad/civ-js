@@ -2,8 +2,7 @@ import { Action, ActionUnitMove, popAction } from "./action";
 import { animate, isAnimating } from "./animation";
 import { GameState, PlayerState, PlayerType } from "./game-state";
 import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from "./map";
-import { generateUnitSpriteSheet, renderWorld } from "./renderer";
-import { RenderViewport } from "./types";
+import { generateUnitSpriteSheet } from "./renderer";
 import { uiClear, uiPushScreen, uiRender } from "./ui/ui-controller";
 import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from "./ui/ui-worldview";
 import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from "./unit";
@@ -132,7 +131,11 @@ export const handleMoveUnit = async (action: ActionUnitMove) => {
   }
 
   const player = state.players[action.player];
-  const unit = player.units[action.unit];
+  if (player.selectedUnit === -1) {
+    throw new Error(`Player ${action.player} has no units to move`);
+  }
+
+  const unit = player.units[player.selectedUnit];
 
   if (unit.movesLeft === 0) {
     return;
@@ -155,14 +158,12 @@ export const handleMoveUnit = async (action: ActionUnitMove) => {
     return;
   }
 
-  player.selectedUnit = -1; // disable blinking
   await animate((time) => {
     const progress = Math.floor(time * 0.06);
     unit.screenOffsetX = action.dx * progress;
     unit.screenOffsetY = action.dy * progress;
     return progress === 16;
   });
-  player.selectedUnit = action.unit;
 
   unit.screenOffsetX = 0;
   unit.screenOffsetY = 0;
@@ -206,12 +207,18 @@ export const handleAction = async (action: Action): Promise<void> => {
   }
 };
 
-export const onFrame = (time: number) => {
+const logicFrame = () => {
   const action = popAction();
 
   if (action) {
-    handleAction(action).catch((err) => console.error(`Failed to process action ${action.type}: ${err as string}`));
+    handleAction(action)
+      .then(() => requestAnimationFrame(logicFrame))
+      .catch((err) => {
+        console.error(`Failed to process action ${action.type}: ${err as string}`);
+        requestAnimationFrame(logicFrame);
+      });
+    return;
   }
-
-  uiRender(time);
+  requestAnimationFrame(logicFrame);
 };
+requestAnimationFrame(logicFrame);

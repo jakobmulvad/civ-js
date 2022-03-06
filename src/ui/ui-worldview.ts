@@ -19,38 +19,37 @@ const viewport: RenderViewport = {
 
 const inputToAction = (input: UiInput): Action | undefined => {
   const player = 0; // for now assume local player is index zero
-  const unit = state.players[0].selectedUnit; // player always operates on selected unit
 
   switch (input) {
     case UiInput.UnitMoveNorth:
-      return { type: "UnitMove", dx: 0, dy: -1, player, unit };
+      return { type: "UnitMove", dx: 0, dy: -1, player };
 
     case UiInput.UnitMoveNorthEast:
-      return { type: "UnitMove", dx: 1, dy: -1, player, unit };
+      return { type: "UnitMove", dx: 1, dy: -1, player };
 
     case UiInput.UnitMoveEast:
-      return { type: "UnitMove", dx: 1, dy: 0, player, unit };
+      return { type: "UnitMove", dx: 1, dy: 0, player };
 
     case UiInput.UnitMoveSouthEast:
-      return { type: "UnitMove", dx: 1, dy: 1, player, unit };
+      return { type: "UnitMove", dx: 1, dy: 1, player };
 
     case UiInput.UnitMoveSouth:
-      return { type: "UnitMove", dx: 0, dy: 1, player, unit };
+      return { type: "UnitMove", dx: 0, dy: 1, player };
 
     case UiInput.UnitMoveSouthWest:
-      return { type: "UnitMove", dx: -1, dy: 1, player, unit };
+      return { type: "UnitMove", dx: -1, dy: 1, player };
 
     case UiInput.UnitMoveWest:
-      return { type: "UnitMove", dx: -1, dy: 0, player, unit };
+      return { type: "UnitMove", dx: -1, dy: 0, player };
 
     case UiInput.UnitMoveNorthWest:
-      return { type: "UnitMove", dx: -1, dy: -1, player, unit };
+      return { type: "UnitMove", dx: -1, dy: -1, player };
 
     case UiInput.UnitWait:
-      return { type: "UnitWait", player, unit };
+      return { type: "UnitWait", player };
 
     case UiInput.UnitNoOrders:
-      return { type: "UnitNoOrders", player, unit };
+      return { type: "UnitNoOrders", player };
 
     case UiInput.EndTurn:
       return { type: "EndTurn", player };
@@ -80,6 +79,7 @@ const handleInput = (input: UiInput) => {
   // push to action queue
   const action = inputToAction(input);
   if (action) {
+    console.log("action pushed");
     pushAction(action);
     return;
   }
@@ -103,53 +103,13 @@ const handleInput = (input: UiInput) => {
       return centerViewport(unit.x, unit.y);
     }
   }
-
-  /*switch (input) {
-    case UiInput.UnitMoveNorth:
-      
-      return handleMoveUnit(0, -1);
-    case UiInput.UnitMoveNorthEast:
-      return handleMoveUnit(1, -1);
-    case UiInput.UnitMoveEast:
-      return handleMoveUnit(1, 0);
-    case UiInput.UnitMoveSouthEast:
-      return handleMoveUnit(1, 1);
-    case UiInput.UnitMoveSouth:
-      return handleMoveUnit(0, 1);
-    case UiInput.UnitMoveSouthWest:
-      return handleMoveUnit(-1, 1);
-    case UiInput.UnitMoveWest:
-      return handleMoveUnit(-1, 0);
-    case UiInput.UnitMoveNorthWest:
-      return handleMoveUnit(-1, -1);
-    case UiInput.UnitNoOrders:
-      return handleNoOrder();
-    case UiInput.EndTurn:
-      return endTurn();
-    case UiInput.UnitCenter: {
-      const player = state.players[state.playerInTurn];
-
-      if (player.selectedUnit === -1) {
-        return;
-      }
-
-      const unit = player.units[player.selectedUnit];
-      return centerViewport(unit.x, unit.y);
-    }
-    case UiInput.UnitWait: {
-      //return selectNextUnit();
-    }
-
-    default:
-      console.log("Unhandled game input: ", input);
-  }*/
 };
 
 export const setWorldUiGameState = (gameState: GameState) => (state = gameState);
 
 export const uiWorldView: UiScreen = {
   onRender: (time: number) => {
-    renderWorld(state, time, viewport);
+    renderWorld(state, viewport, isAnimating() || Math.floor(time * 0.006) % 2 === 0);
   },
   onKey: (keyCode: string) => {
     if (!state) {

@@ -1,5 +1,5 @@
 import { assets } from "./assets";
-import { GameState, PlayerState } from "./game-state";
+import { GameState } from "./game-state";
 import {
   GameMap,
   getTerrainMaskCross,
@@ -182,7 +182,7 @@ export const renderMap = (map: GameMap, viewport: RenderViewport) => {
   }
 };
 
-export const renderWorld = (state: GameState, time: number, viewport: RenderViewport) => {
+export const renderWorld = (state: GameState, viewport: RenderViewport, renderSelected: boolean) => {
   renderMap(state.players[0].map, viewport);
 
   const mapWidth = state.masterMap.width;
@@ -194,7 +194,7 @@ export const renderWorld = (state: GameState, time: number, viewport: RenderView
 
     // Render units
     for (const unit of player.units) {
-      if (unit !== selectedUnit || (time * 0.006) % 2 < 1) {
+      if (unit !== selectedUnit || renderSelected) {
         context2d.drawImage(
           unitSpriteSheet,
           unit.prototypeId * 16,

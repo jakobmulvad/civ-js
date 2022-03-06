@@ -1,7 +1,6 @@
 export type ActionUnitMove = {
   type: "UnitMove";
   player: number;
-  unit: number;
   dx: number;
   dy: number;
 };
@@ -9,19 +8,16 @@ export type ActionUnitMove = {
 export type ActionUnitWait = {
   type: "UnitWait";
   player: number;
-  unit: number;
 };
 
 export type ActionUnitNoOrders = {
   type: "UnitNoOrders";
   player: number;
-  unit: number;
 };
 
 export type ActionUnitCenter = {
   type: "UnitCenter";
   player: number;
-  unit: number;
 };
 
 export type ActionEndTurn = {

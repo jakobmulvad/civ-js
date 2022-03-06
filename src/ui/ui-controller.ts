@@ -46,3 +46,9 @@ canvas.addEventListener("mousedown", (evt) => {
   const screen = uiTopScreen();
   screen?.onClick?.(screenX, screenY);
 });
+
+const frameHandler = (time: number) => {
+  requestAnimationFrame(frameHandler);
+  uiRender(time);
+};
+requestAnimationFrame(frameHandler);
