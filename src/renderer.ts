@@ -29,14 +29,6 @@ const canvas: HTMLCanvasElement = document.querySelector("#game-canvas");
 const context2d = canvas.getContext("2d");
 const unitSpriteSheet = document.createElement("canvas");
 
-/*canvas.addEventListener("mouseup", (evt) => {
-  const canvasBounds = canvas.getBoundingClientRect();
-  const relX = evt.offsetX / canvasBounds.width - 0.5;
-  const relY = evt.offsetY / canvasBounds.height - 0.5;
-  context2d.translate(Math.floor(-relX * canvas.width), Math.floor(-relY * canvas.height));
-  renderEarth().catch((err) => console.error(err));
-});*/
-
 export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
   const sp257 = assets["/assets/sp257.pic.gif"] as HTMLImageElement;
 
