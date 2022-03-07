@@ -1,4 +1,4 @@
-const imageAssets = ['ter257.pic.gif', 'sp257.pic.gif', 'fonts.cv.png'] as const;
+const imageAssets = ['ter257.pic.gif', 'sp257.pic.gif', 'sp299.pic.png', 'fonts.cv.png'] as const;
 
 export type ImageAssetKey = typeof imageAssets[number];
 

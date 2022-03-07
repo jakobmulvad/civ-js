@@ -1,4 +1,4 @@
-import { getImageAsset } from './assets';
+import { getImageAsset, ImageAssetKey } from './assets';
 import { Font, fonts } from './fonts';
 import { GameState } from './game-state';
 import {
@@ -83,6 +83,19 @@ export const generateSpriteSheets = (playerColors: [number, number, number][]) =
 
     unitSpriteSheet.putImageData(imageData, 0, index * bHeight);
   });
+};
+
+export const renderSprite = (
+  asset: ImageAssetKey,
+  sx: number,
+  sy: number,
+  dx: number,
+  dy: number,
+  width: number,
+  height: number
+) => {
+  const spriteContext = getImageAsset(asset);
+  screenCtx.drawImage(spriteContext.canvas, sx, sy, width, height, dx, dy, width, height);
 };
 
 export const renderMap = (map: GameMap, viewport: RenderViewport) => {
@@ -229,7 +242,7 @@ export const setFontColor = (font: Font, color: [number, number, number]) => {
   fontsCv.putImageData(fontImageData, 0, offset);
 };
 
-export const renderText = (font: Font, text: string, x: number, y: number) => {
+export const renderText = (font: Font, text: string, x: number, y: number): number => {
   const fontsCv = getImageAsset('fonts.cv.png');
   const { width, height, offset, kerning } = font;
 
@@ -248,6 +261,7 @@ export const renderText = (font: Font, text: string, x: number, y: number) => {
     );
     x += kerning[code - 32] + 1;
   }
+  return x;
 };
 
 const renderBorder = (destination: ImageData) => {

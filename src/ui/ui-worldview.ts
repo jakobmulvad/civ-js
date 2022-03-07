@@ -5,7 +5,7 @@ import { GameState, getPrototype, getTileAtUnit } from '../game-state';
 import { inputMapping, UiInput } from '../input';
 import { terrainValueMap } from '../map';
 import { palette } from '../palette';
-import { renderGrayBox, renderText, renderWindow, renderWorld, setFontColor } from '../renderer';
+import { renderGrayBox, renderSprite, renderText, renderWindow, renderWorld, setFontColor } from '../renderer';
 import { RenderViewport } from '../types';
 import { UiScreen } from './ui-controller';
 
@@ -124,11 +124,12 @@ export const renderEmprireInfoBox = () => {
 
   renderGrayBox(0, 58, 80, 39);
   renderText(fonts.main, '40,000#', 2, 73); // todo: add turn counter and year calculation
-  renderText(fonts.main, '3520 BC', 2, 81); // todo: add turn counter and year calculation
+  const textOffset = renderText(fonts.main, '3520 BC', 2, 81); // todo: add turn counter and year calculation
+  renderSprite('sp299.pic.png', 20 * 8, 15 * 8, textOffset + 2, 80, 8, 8);
   renderText(fonts.main, `${player.gold}$ 0.5.5`, 2, 89); // todo: add gold and tax rates
 };
 
-export const renderUnitInfoBox = (time: number) => {
+export const renderUnitInfoBox = () => {
   renderGrayBox(0, 97, 80, 103);
 
   const player = state.players[0];
@@ -153,6 +154,10 @@ export const renderUnitInfoBox = (time: number) => {
 
 export const uiWorldView: UiScreen = {
   isDirty: (time: number) => {
+    if (isDirty) {
+      return true;
+    }
+
     const newBlinkingState = Math.floor(time * 0.007) % 2 === 0;
     if (isBlinking === newBlinkingState) {
       return false;
@@ -170,7 +175,7 @@ export const uiWorldView: UiScreen = {
     setFontColor(fonts.main, palette.black);
     renderWindow(0, 8, 80, 50, palette.black);
     renderEmprireInfoBox();
-    renderUnitInfoBox(time);
+    renderUnitInfoBox();
     isDirty = false;
   },
   onKey: (keyCode: string) => {
