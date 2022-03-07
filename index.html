@@ -25,10 +25,16 @@
       }
 
       #game-canvas {
-        width: min(100vw, 160vh);
         image-rendering: pixelated;
         border: 1px gray solid
       }
+
+      /* Make sure scaling is a factor of screen dimensions so pixels are evenly scaled */
+      @media (min-width: 640px) { #game-canvas { width: 640px; } }
+
+      @media (min-width: 960px) { #game-canvas { width: 960px; } }
+
+      @media (min-width: 1280px) { #game-canvas { width: 1280px; } }
 
       #debug {
         position: fixed;

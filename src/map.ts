@@ -1,6 +1,6 @@
 import { loadJson } from './assets';
 
-export enum Terrain {
+export enum TerrainId {
   Void = 0,
   Ocean = 1,
   Forest = 2,
@@ -16,54 +16,68 @@ export enum Terrain {
   Arctic = 12,
 }
 
-export type TerrainValues = {
+export type Terrain = {
+  name: string;
   movementCost: number;
 };
 
-export const terrainValueMap: Record<Terrain, TerrainValues> = {
-  [Terrain.Void]: {
+export const terrainValueMap: Record<TerrainId, Terrain> = {
+  [TerrainId.Void]: {
+    name: 'VOID',
     movementCost: 0,
   },
-  [Terrain.Ocean]: {
+  [TerrainId.Ocean]: {
+    name: 'Ocean',
     movementCost: 1,
   },
-  [Terrain.Forest]: {
+  [TerrainId.Forest]: {
+    name: 'Forest',
     movementCost: 2,
   },
-  [Terrain.Swamp]: {
+  [TerrainId.Swamp]: {
+    name: 'Swamp',
     movementCost: 2,
   },
-  [Terrain.Plains]: {
+  [TerrainId.Plains]: {
+    name: 'Plains',
     movementCost: 1,
   },
-  [Terrain.Tundra]: {
+  [TerrainId.Tundra]: {
+    name: 'Tundra',
     movementCost: 1,
   },
-  [Terrain.River]: {
+  [TerrainId.River]: {
+    name: 'River',
     movementCost: 1,
   },
-  [Terrain.Grassland]: {
+  [TerrainId.Grassland]: {
+    name: 'Grassland',
     movementCost: 1,
   },
-  [Terrain.Jungle]: {
+  [TerrainId.Jungle]: {
+    name: 'Jungle',
     movementCost: 2,
   },
-  [Terrain.Hills]: {
+  [TerrainId.Hills]: {
+    name: 'Hills',
     movementCost: 2,
   },
-  [Terrain.Mountains]: {
+  [TerrainId.Mountains]: {
+    name: 'Mountains',
     movementCost: 3,
   },
-  [Terrain.Desert]: {
+  [TerrainId.Desert]: {
+    name: 'Desert',
     movementCost: 1,
   },
-  [Terrain.Arctic]: {
+  [TerrainId.Arctic]: {
+    name: 'Arctic',
     movementCost: 2,
   },
 };
 
 export type MapTile = {
-  terrain: Terrain;
+  terrain: TerrainId;
   hasRailroad?: boolean;
   hasRoad?: boolean;
   hasIrrigation?: boolean;
@@ -75,7 +89,7 @@ export type MapTile = {
 export type MapTemplate = {
   width: number;
   height: number;
-  data: Terrain[];
+  data: TerrainId[];
 };
 
 export type GameMap = {
@@ -91,7 +105,7 @@ export enum MapDirectionBit {
   West = 0b1000,
 }
 
-const voidTile = { terrain: Terrain.Void };
+const voidTile = { terrain: TerrainId.Void };
 
 export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   if (y < 0 || y >= map.height) {
@@ -107,7 +121,7 @@ export const getTileIndex = (map: GameMap, x: number, y: number): number => {
   return x + y * map.width;
 };
 
-const terrainBit = (map: GameMap, x: number, y: number, terrain: Terrain) => {
+const terrainBit = (map: GameMap, x: number, y: number, terrain: TerrainId) => {
   return getTileAt(map, x, y).terrain === terrain ? 1 : 0;
 };
 

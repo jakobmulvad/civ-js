@@ -1,4 +1,4 @@
-import { loadAllAssets } from "./src/assets";
-import { newGame, onFrame } from "./src/game-controller";
+import { waitForAssets } from './src/assets';
+import { newGame } from './src/game-controller';
 
-loadAllAssets().then(newGame, (err) => console.error(err));
+waitForAssets().then(newGame, (err) => console.error(err));

@@ -1,6 +1,11 @@
+import { waitForAssets } from '../assets';
+import { fonts } from '../fonts';
+import { renderText } from '../renderer';
+
 export type UiScreen = {
   onFocus?: () => void;
   onBlur?: () => void;
+  isDirty?: (time: number) => boolean;
   onRender?: (time: number) => void;
   onClick?: (x: number, y: number) => void;
   onKey?: (keyCode: string) => void;
@@ -26,7 +31,9 @@ export const uiTopScreen = (): UiScreen | undefined => {
 
 export const uiRender = (time: number) => {
   for (const screen of uiStack) {
-    screen.onRender?.(time);
+    if (!screen.isDirty || screen.isDirty(time)) {
+      screen.onRender?.(time);
+    }
   }
 };
 
@@ -51,4 +58,9 @@ const frameHandler = (time: number) => {
   requestAnimationFrame(frameHandler);
   uiRender(time);
 };
-requestAnimationFrame(frameHandler);
+
+waitForAssets()
+  .then(() => {
+    requestAnimationFrame(frameHandler);
+  })
+  .catch((err) => console.error(`Failed to load assets: ${err as string}`));

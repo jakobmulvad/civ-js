@@ -1,5 +1,5 @@
-import { GameMap } from './map';
-import { Unit } from './unit';
+import { GameMap, getTileAt } from './map';
+import { Unit, unitPrototypeMap } from './unit';
 
 export enum PlayerType {
   Human = 0,
@@ -13,6 +13,8 @@ export type PlayerState = {
   units: Unit[];
   type: PlayerType;
   selectedUnit: number | undefined;
+  gold: number;
+  beakers: number;
 };
 
 export type GameState = {
@@ -22,3 +24,14 @@ export type GameState = {
   masterMap: GameMap;
   turn: number;
 };
+
+export const getPlayerInTurn = (state: GameState) => state.players[state.playerInTurn];
+
+export const getSelectedUnit = (state: GameState): Unit | undefined => {
+  const player = getPlayerInTurn(state);
+  return player.units[player.selectedUnit];
+};
+
+export const getPrototype = (unit: Unit) => unitPrototypeMap[unit.prototypeId];
+
+export const getTileAtUnit = (state: GameState, unit: Unit) => getTileAt(state.masterMap, unit.x, unit.y);

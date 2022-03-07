@@ -1,7 +1,7 @@
 import { Action, ActionUnitMove, popAction } from './action';
 import { animate } from './animation';
 import { GameState, PlayerState, PlayerType } from './game-state';
-import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from './map';
+import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, TerrainId, terrainValueMap } from './map';
 import { generateSpriteSheets } from './renderer';
 import { uiClear, uiPushScreen } from './ui/ui-controller';
 import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from './ui/ui-worldview';
@@ -67,6 +67,8 @@ export const newPlayer = (
     units: [],
     type,
     selectedUnit: -1,
+    gold: 0,
+    beakers: 0,
   };
 };
 
@@ -89,7 +91,7 @@ export const newGame = async () => {
     playerInTurn: 0,
     players: [
       newPlayer(newMap, 'Weevil', [234, 123, 34], PlayerType.Human),
-      newPlayer(newMap, 'Evil', [210, 115, 255], PlayerType.Computer),
+      //newPlayer(newMap, 'Evil', [210, 115, 255], PlayerType.Computer),
     ],
     masterMap: newMap,
     turn: 0,
@@ -98,8 +100,6 @@ export const newGame = async () => {
   generateSpriteSheets(state.players.map((pl) => pl.color));
 
   spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 43, 12);
-  spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 6, 9);
-  spawnUnitForPlayer(1, UnitPrototypeId.Cavalry, 5, 10);
 
   uiClear();
   setWorldUiGameState(state);
@@ -153,7 +153,7 @@ export const handleMoveUnit = async (action: ActionUnitMove) => {
   const targetTile = getTileAt(state.masterMap, newX, newY);
   const prototype = unitPrototypeMap[unit.prototypeId];
 
-  if (targetTile.terrain === Terrain.Ocean && prototype.type == UnitType.Land) {
+  if (targetTile.terrain === TerrainId.Ocean && prototype.type == UnitType.Land) {
     // Todo: add check if ocean square contains transport
     return;
   }
@@ -171,11 +171,13 @@ export const handleMoveUnit = async (action: ActionUnitMove) => {
   unit.y = newY;
   discoverMapAround(state.playerInTurn, unit.x, unit.y);
 
-  const terrainValues = terrainValueMap[targetTile.terrain];
-  unit.movesLeft = Math.max(0, unit.movesLeft - terrainValues.movementCost * 3);
+  const terrain = terrainValueMap[targetTile.terrain];
+  unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
 
   if (unit.movesLeft === 0) {
     selectNextUnit();
+  } else {
+    centerViewportIfNeeded(unit.x, unit.y);
   }
 };
 
@@ -210,15 +212,17 @@ export const handleAction = async (action: Action): Promise<void> => {
 const logicFrame = () => {
   const action = popAction();
 
-  if (action) {
-    handleAction(action)
-      .then(() => requestAnimationFrame(logicFrame))
-      .catch((err) => {
-        console.error(`Failed to process action ${action.type}: ${err as string}`);
-        requestAnimationFrame(logicFrame);
-      });
+  if (!action) {
+    requestAnimationFrame(logicFrame);
     return;
   }
-  requestAnimationFrame(logicFrame);
+
+  handleAction(action).then(
+    () => requestAnimationFrame(logicFrame),
+    (err) => {
+      console.error(`Failed to process action ${action.type}: ${err as string}`);
+      requestAnimationFrame(logicFrame);
+    }
+  );
 };
 requestAnimationFrame(logicFrame);

@@ -16,50 +16,58 @@ export enum UnitType {
 
 export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
   [UnitPrototypeId.Settlers]: {
+    name: 'Settlers',
     attack: 0,
     defense: 1,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Militia]: {
+    name: 'Militia',
     attack: 1,
     defense: 1,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Phalanx]: {
+    name: 'Phalanx',
     attack: 1,
     defense: 2,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Legion]: {
+    name: 'Legion',
     attack: 3,
     defense: 1,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Musketeers]: {
+    name: 'Musketeers',
     attack: 2,
     defense: 3,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Riflemen]: {
+    name: 'Riflemen',
     attack: 3,
     defense: 5,
     moves: 1,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Cavalry]: {
+    name: 'Cavalry',
     attack: 2,
     defense: 1,
-    moves: 2,
+    moves: 2000,
     type: UnitType.Land,
   },
 };
 
 export type UnitPrototype = {
+  name: string;
   attack: number;
   defense: number;
   moves: number;

@@ -9,32 +9,32 @@ import {
   getTerrainMaskSouthEast,
   getTerrainMaskSouthWest,
   getTileAt,
-  Terrain,
+  TerrainId,
 } from './map';
+import { palette } from './palette';
 import { RenderViewport } from './types';
 
 const terrainSpriteMapIndex = {
-  [Terrain.Desert]: 0,
-  [Terrain.Plains]: 1,
-  [Terrain.Grassland]: 2,
-  [Terrain.Forest]: 3,
-  [Terrain.Hills]: 4,
-  [Terrain.Mountains]: 5,
-  [Terrain.Tundra]: 6,
-  [Terrain.Arctic]: 7,
-  [Terrain.Swamp]: 8,
-  [Terrain.Jungle]: 9,
+  [TerrainId.Desert]: 0,
+  [TerrainId.Plains]: 1,
+  [TerrainId.Grassland]: 2,
+  [TerrainId.Forest]: 3,
+  [TerrainId.Hills]: 4,
+  [TerrainId.Mountains]: 5,
+  [TerrainId.Tundra]: 6,
+  [TerrainId.Arctic]: 7,
+  [TerrainId.Swamp]: 8,
+  [TerrainId.Jungle]: 9,
 };
 
 const canvas: HTMLCanvasElement = document.querySelector('#game-canvas');
-const context2d = canvas.getContext('2d');
+const screenCtx = canvas.getContext('2d');
 const unitSpriteSheet = document.createElement('canvas').getContext('2d');
-const fontsSpriteSheet = document.createElement('canvas').getContext('2d');
 
-canvas.parentNode.append(fontsSpriteSheet.canvas);
+//canvas.parentNode.append(fontsSpriteSheet.canvas);
 
 export const generateSpriteSheets = (playerColors: [number, number, number][]) => {
-  const sp257 = getImageAsset('sp257.pic.gif');
+  const sp257 = getImageAsset('sp257.pic.gif').canvas;
 
   // Dimensions of the units block in sp257.pic
   const bWidth = 20 * 16;
@@ -81,19 +81,13 @@ export const generateSpriteSheets = (playerColors: [number, number, number][]) =
       }
     }
 
-    // copy font from image to a canvas so we can manipulate color
-    const fontsCv = getImageAsset('fonts.cv.png');
-    fontsSpriteSheet.canvas.width = fontsCv.width;
-    fontsSpriteSheet.canvas.height = fontsCv.height;
-    fontsSpriteSheet.drawImage(fontsCv, 0, 0);
-
     unitSpriteSheet.putImageData(imageData, 0, index * bHeight);
   });
 };
 
 export const renderMap = (map: GameMap, viewport: RenderViewport) => {
-  const ter257 = getImageAsset('ter257.pic.gif');
-  const sp257 = getImageAsset('sp257.pic.gif');
+  const ter257 = getImageAsset('ter257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.gif').canvas;
 
   for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
     for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
@@ -102,71 +96,71 @@ export const renderMap = (map: GameMap, viewport: RenderViewport) => {
       const screenY = viewport.screenY + (y - viewport.y) * 16;
 
       if (tile.hidden) {
-        context2d.fillRect(screenX, screenY, 16, 16);
+        screenCtx.fillRect(screenX, screenY, 16, 16);
         continue;
       }
 
       switch (tile.terrain) {
         // Rivers are a special case because they also connect to ocean tiles
-        case Terrain.River: {
-          context2d.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
+        case TerrainId.River: {
+          screenCtx.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
 
-          const riverMask = getTerrainMaskCross(map, x, y, Terrain.River);
-          const oceanMask = getTerrainMaskCross(map, x, y, Terrain.Ocean);
-          context2d.drawImage(sp257, (riverMask | oceanMask) * 16, 4 * 16, 16, 16, screenX, screenY, 16, 16);
+          const riverMask = getTerrainMaskCross(map, x, y, TerrainId.River);
+          const oceanMask = getTerrainMaskCross(map, x, y, TerrainId.Ocean);
+          screenCtx.drawImage(sp257, (riverMask | oceanMask) * 16, 4 * 16, 16, 16, screenX, screenY, 16, 16);
           break;
         }
 
         // Ocean tiles are split up in 4 8x8 tiles, one for each corner of the 16x16 tile
-        case Terrain.Ocean: {
-          const nwMask = getTerrainMaskNorthWest(map, x, y, Terrain.Ocean);
-          context2d.drawImage(ter257, (nwMask ^ 0b111) * 16, 11 * 16, 8, 8, screenX, screenY, 8, 8);
+        case TerrainId.Ocean: {
+          const nwMask = getTerrainMaskNorthWest(map, x, y, TerrainId.Ocean);
+          screenCtx.drawImage(ter257, (nwMask ^ 0b111) * 16, 11 * 16, 8, 8, screenX, screenY, 8, 8);
 
-          const neMask = getTerrainMaskNorthEast(map, x, y, Terrain.Ocean);
-          context2d.drawImage(ter257, (neMask ^ 0b111) * 16 + 8, 11 * 16, 8, 8, screenX + 8, screenY, 8, 8);
+          const neMask = getTerrainMaskNorthEast(map, x, y, TerrainId.Ocean);
+          screenCtx.drawImage(ter257, (neMask ^ 0b111) * 16 + 8, 11 * 16, 8, 8, screenX + 8, screenY, 8, 8);
 
-          const seMask = getTerrainMaskSouthEast(map, x, y, Terrain.Ocean);
-          context2d.drawImage(ter257, (seMask ^ 0b111) * 16 + 8, 11 * 16 + 8, 8, 8, screenX + 8, screenY + 8, 8, 8);
+          const seMask = getTerrainMaskSouthEast(map, x, y, TerrainId.Ocean);
+          screenCtx.drawImage(ter257, (seMask ^ 0b111) * 16 + 8, 11 * 16 + 8, 8, 8, screenX + 8, screenY + 8, 8, 8);
 
-          const swMask = getTerrainMaskSouthWest(map, x, y, Terrain.Ocean);
-          context2d.drawImage(ter257, (swMask ^ 0b111) * 16, 11 * 16 + 8, 8, 8, screenX, screenY + 8, 8, 8);
+          const swMask = getTerrainMaskSouthWest(map, x, y, TerrainId.Ocean);
+          screenCtx.drawImage(ter257, (swMask ^ 0b111) * 16, 11 * 16 + 8, 8, 8, screenX, screenY + 8, 8, 8);
 
           // Check for river outlets
-          if (getTileAt(map, x, y - 1).terrain === Terrain.River) {
-            context2d.drawImage(ter257, 8 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
+          if (getTileAt(map, x, y - 1).terrain === TerrainId.River) {
+            screenCtx.drawImage(ter257, 8 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
           }
-          if (getTileAt(map, x + 1, y).terrain === Terrain.River) {
-            context2d.drawImage(ter257, 9 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
+          if (getTileAt(map, x + 1, y).terrain === TerrainId.River) {
+            screenCtx.drawImage(ter257, 9 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
           }
-          if (getTileAt(map, x, y + 1).terrain === Terrain.River) {
-            context2d.drawImage(ter257, 10 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
+          if (getTileAt(map, x, y + 1).terrain === TerrainId.River) {
+            screenCtx.drawImage(ter257, 10 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
           }
-          if (getTileAt(map, x - 1, y).terrain === Terrain.River) {
-            context2d.drawImage(ter257, 11 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
+          if (getTileAt(map, x - 1, y).terrain === TerrainId.River) {
+            screenCtx.drawImage(ter257, 11 * 16, 11 * 16, 16, 16, screenX, screenY, 16, 16);
           }
 
           if (tile.specialResource) {
-            context2d.drawImage(sp257, 10 * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
+            screenCtx.drawImage(sp257, 10 * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
           }
           break;
         }
 
-        case Terrain.Void:
-          context2d.fillRect(screenX, screenY, 16, 16);
+        case TerrainId.Void:
+          screenCtx.fillRect(screenX, screenY, 16, 16);
           break;
 
         default: {
-          // First draw base grass background, then add terrain specific overlay
-          context2d.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
+          // First draw base grass background, then add TerrainId.specific overlay
+          screenCtx.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
 
           const terrainMask = getTerrainMaskCross(map, x, y, tile.terrain);
           const terrainOffset = terrainSpriteMapIndex[tile.terrain];
-          context2d.drawImage(ter257, terrainMask * 16, terrainOffset * 16, 16, 16, screenX, screenY, 16, 16);
+          screenCtx.drawImage(ter257, terrainMask * 16, terrainOffset * 16, 16, 16, screenX, screenY, 16, 16);
 
-          if (tile.terrain === Terrain.Grassland && tile.extraShield) {
-            context2d.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, screenX + 4, screenY + 4, 7, 7);
+          if (tile.terrain === TerrainId.Grassland && tile.extraShield) {
+            screenCtx.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, screenX + 4, screenY + 4, 7, 7);
           } else if (tile.specialResource) {
-            context2d.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
+            screenCtx.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
           }
           break;
         }
@@ -174,16 +168,16 @@ export const renderMap = (map: GameMap, viewport: RenderViewport) => {
 
       // Render the disolve edge near hidden tiles
       if (getTileAt(map, x, y - 1).hidden) {
-        context2d.drawImage(sp257, 5 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
+        screenCtx.drawImage(sp257, 5 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
       }
       if (getTileAt(map, x + 1, y).hidden) {
-        context2d.drawImage(sp257, 6 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
+        screenCtx.drawImage(sp257, 6 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
       }
       if (getTileAt(map, x, y + 1).hidden) {
-        context2d.drawImage(sp257, 7 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
+        screenCtx.drawImage(sp257, 7 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
       }
       if (getTileAt(map, x - 1, y).hidden) {
-        context2d.drawImage(sp257, 8 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
+        screenCtx.drawImage(sp257, 8 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
       }
     }
   }
@@ -202,7 +196,7 @@ export const renderWorld = (state: GameState, viewport: RenderViewport, renderSe
     // Render units
     for (const unit of player.units) {
       if (unit !== selectedUnit || renderSelected) {
-        context2d.drawImage(
+        screenCtx.drawImage(
           unitSpriteSheet.canvas,
           unit.prototypeId * 16,
           pi * 16 * 2,
@@ -220,23 +214,29 @@ export const renderWorld = (state: GameState, viewport: RenderViewport, renderSe
   }
 };
 
-export const renderText = (font: Font, text: string, x: number, y: number, color: [number, number, number]) => {
-  const { width, height, kerning, offset } = font;
-
+export const setFontColor = (font: Font, color: [number, number, number]) => {
+  const fontsCv = getImageAsset('fonts.cv.png');
+  const offset = font.offset;
   const [r, g, b] = color;
-  const fontImageData = fontsSpriteSheet.getImageData(0, offset, 32 * font.width, 3 * font.height);
+
+  const fontImageData = fontsCv.getImageData(0, offset, 32 * font.width, 3 * font.height);
   const { data } = fontImageData;
   for (let i = 0; i < data.length; i += 4) {
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
   }
-  fontsSpriteSheet.putImageData(fontImageData, 0, offset);
+  fontsCv.putImageData(fontImageData, 0, offset);
+};
+
+export const renderText = (font: Font, text: string, x: number, y: number) => {
+  const fontsCv = getImageAsset('fonts.cv.png');
+  const { width, height, offset, kerning } = font;
 
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    context2d.drawImage(
-      fontsSpriteSheet.canvas,
+    screenCtx.drawImage(
+      fontsCv.canvas,
       (code % 32) * width,
       offset + ((code >> 5) - 1) * height,
       width,
@@ -248,4 +248,76 @@ export const renderText = (font: Font, text: string, x: number, y: number, color
     );
     x += kerning[code - 32] + 1;
   }
+};
+
+const renderBorder = (destination: ImageData) => {
+  const { width, height } = destination;
+  const dstData = destination.data;
+  let topRowIndex = 0;
+  let bottomRowIndex = (height - 1) * width * 4;
+
+  for (let dx = 0; dx < width; dx++) {
+    dstData[topRowIndex++] = palette.darkGray[0];
+    dstData[topRowIndex++] = palette.darkGray[1];
+    dstData[topRowIndex++] = palette.darkGray[2];
+    dstData[topRowIndex++] = 255;
+    dstData[bottomRowIndex++] = palette.white[0];
+    dstData[bottomRowIndex++] = palette.white[1];
+    dstData[bottomRowIndex++] = palette.white[2];
+    dstData[bottomRowIndex++] = 255;
+  }
+
+  let leftColumnIndex = width * 4;
+  let rightColumnIndex = (width - 1) * 4;
+  const increment = (width - 1) * 4;
+
+  for (let dy = 1; dy < height; dy++) {
+    dstData[leftColumnIndex++] = palette.white[0];
+    dstData[leftColumnIndex++] = palette.white[1];
+    dstData[leftColumnIndex++] = palette.white[2];
+    dstData[leftColumnIndex++] = 255;
+
+    dstData[rightColumnIndex++] = palette.darkGray[0];
+    dstData[rightColumnIndex++] = palette.darkGray[1];
+    dstData[rightColumnIndex++] = palette.darkGray[2];
+    dstData[rightColumnIndex++] = 255;
+    leftColumnIndex += increment;
+    rightColumnIndex += increment;
+  }
+};
+
+export const renderWindow = (x: number, y: number, width: number, height: number, color: [number, number, number]) => {
+  const [r, g, b] = color;
+  const dst = screenCtx.getImageData(x, y, width, height);
+  for (let i = width; i < dst.data.length - width; i += 4) {
+    dst[i] = r;
+    dst[i + 1] = g;
+    dst[i + 2] = b;
+    dst[i + 3] = 255;
+  }
+
+  renderBorder(dst);
+  screenCtx.putImageData(dst, x, y);
+};
+
+export const renderGrayBox = (x: number, y: number, width: number, height: number) => {
+  const sp257 = getImageAsset('sp257.pic.gif');
+
+  const srcData = sp257.getImageData(18 * 16, 11 * 16, 32, 16).data;
+  const dst = screenCtx.getImageData(x, y, width, height);
+  const dstData = dst.data;
+
+  for (let dx = 1; dx < width - 1; dx++) {
+    for (let dy = 1; dy < height - 1; dy++) {
+      const dstIndex = (dx + dy * width) * 4;
+      const srcIndex = ((dx % 32) + (dy % 16) * 32) * 4;
+      dstData[dstIndex] = srcData[srcIndex];
+      dstData[dstIndex + 1] = srcData[srcIndex + 1];
+      dstData[dstIndex + 2] = srcData[srcIndex + 2];
+      dstData[dstIndex + 3] = 255;
+    }
+  }
+
+  renderBorder(dst);
+  screenCtx.putImageData(dst, x, y);
 };
