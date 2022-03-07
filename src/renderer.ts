@@ -31,12 +31,9 @@ const context2d = canvas.getContext('2d');
 const unitSpriteSheet = document.createElement('canvas').getContext('2d');
 const fontsSpriteSheet = document.createElement('canvas').getContext('2d');
 
-fontsSpriteSheet.canvas.width = 512;
-fontsSpriteSheet.canvas.height = 309;
+canvas.parentNode.append(fontsSpriteSheet.canvas);
 
-//canvas.parentNode.append(fontsSpriteSheet.canvas);
-
-export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
+export const generateSpriteSheets = (playerColors: [number, number, number][]) => {
   const sp257 = getImageAsset('sp257.pic.gif');
 
   // Dimensions of the units block in sp257.pic
@@ -44,9 +41,9 @@ export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
   const bHeight = 2 * 16;
 
   unitSpriteSheet.canvas.width = bWidth;
-  unitSpriteSheet.canvas.height = bHeight * colors.length;
+  unitSpriteSheet.canvas.height = bHeight * playerColors.length;
 
-  colors.forEach((color, index) => {
+  playerColors.forEach((color, index) => {
     unitSpriteSheet.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
 
     const imageData = unitSpriteSheet.getImageData(0, index * bHeight, bWidth, bHeight);
@@ -84,41 +81,14 @@ export const generateUnitSpriteSheet = (colors: [number, number, number][]) => {
       }
     }
 
+    // copy font from image to a canvas so we can manipulate color
+    const fontsCv = getImageAsset('fonts.cv.png');
+    fontsSpriteSheet.canvas.width = fontsCv.width;
+    fontsSpriteSheet.canvas.height = fontsCv.height;
+    fontsSpriteSheet.drawImage(fontsCv, 0, 0);
+
     unitSpriteSheet.putImageData(imageData, 0, index * bHeight);
   });
-
-  const fontsCv = getImageAsset('fonts.cv.png');
-  const { width, height, offset } = fonts.leaderEastern;
-
-  // copy font from file so we can manipulate color
-  fontsSpriteSheet.drawImage(fontsCv, 0, offset, 32 * width, 3 * height, 0, offset, 32 * width, 3 * height);
-  const fontImageData = fontsSpriteSheet.getImageData(0, offset, 32 * width, 3 * height);
-
-  const measureChar = (code: number) => {
-    const offsetX = (code % 32) * width;
-    const offsetY = ((code >> 5) - 1) * height;
-
-    let foundPixels = false;
-    for (let x = 0; x < width; x++) {
-      let columnHasPixels = false;
-      for (let y = 0; y < height; y++) {
-        const data = fontImageData.data[(offsetX + x + (offsetY + y) * fontImageData.width) * 4 + 3];
-        columnHasPixels ||= !!data;
-      }
-      foundPixels ||= columnHasPixels;
-      if (foundPixels && !columnHasPixels) {
-        return x;
-      }
-    }
-    return width;
-  };
-
-  const widths = [];
-  for (let code = 33; code < 33 + 32 * 3; code++) {
-    widths.push(measureChar(code));
-  }
-
-  console.log(widths);
 };
 
 export const renderMap = (map: GameMap, viewport: RenderViewport) => {
@@ -251,28 +221,22 @@ export const renderWorld = (state: GameState, viewport: RenderViewport, renderSe
 };
 
 export const renderText = (font: Font, text: string, x: number, y: number, color: [number, number, number]) => {
-  const fontsCv = getImageAsset('fonts.cv.png');
   const { width, height, kerning, offset } = font;
 
-  // copy font from file so we can manipulate color
-  fontsSpriteSheet.drawImage(
-    fontsCv,
-    0,
-    offset,
-    32 * font.width,
-    3 * font.height,
-    0,
-    offset,
-    32 * font.width,
-    3 * font.height
-  );
-
+  const [r, g, b] = color;
   const fontImageData = fontsSpriteSheet.getImageData(0, offset, 32 * font.width, 3 * font.height);
+  const { data } = fontImageData;
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+  }
+  fontsSpriteSheet.putImageData(fontImageData, 0, offset);
 
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
     context2d.drawImage(
-      fontsCv,
+      fontsSpriteSheet.canvas,
       (code % 32) * width,
       offset + ((code >> 5) - 1) * height,
       width,

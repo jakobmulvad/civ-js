@@ -2,7 +2,7 @@ import { Action, ActionUnitMove, popAction } from './action';
 import { animate } from './animation';
 import { GameState, PlayerState, PlayerType } from './game-state';
 import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, Terrain, terrainValueMap } from './map';
-import { generateUnitSpriteSheet } from './renderer';
+import { generateSpriteSheets } from './renderer';
 import { uiClear, uiPushScreen } from './ui/ui-controller';
 import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from './ui/ui-worldview';
 import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from './unit';
@@ -95,7 +95,7 @@ export const newGame = async () => {
     turn: 0,
   };
 
-  generateUnitSpriteSheet(state.players.map((pl) => pl.color));
+  generateSpriteSheets(state.players.map((pl) => pl.color));
 
   spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 43, 12);
   spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 6, 9);

@@ -111,7 +111,8 @@ export const setWorldUiGameState = (gameState: GameState) => (state = gameState)
 export const uiWorldView: UiScreen = {
   onRender: (time: number) => {
     renderWorld(state, viewport, isAnimating() || Math.floor(time * 0.006) % 2 === 0);
-    renderText(fonts.leaderEastern, 'What shall we build in Moscow?', 10, 50, [255, 255, 255]);
+    renderText(fonts.main, 'What shall we build in Moscow?', 10 + 1, 50 + 1, [0, 0, 0]);
+    renderText(fonts.main, 'What shall we build in Moscow?', 10, 50, [255, 255, 255]);
   },
   onKey: (keyCode: string) => {
     if (!state) {

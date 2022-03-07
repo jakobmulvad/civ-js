@@ -1,5 +1,5 @@
 export type Font = {
-  offset: number;
+  offset: number; // Offset into fonts.cv on y-axis
   width: number;
   height: number;
   kerning: number[];
