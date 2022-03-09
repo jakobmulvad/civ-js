@@ -1,6 +1,6 @@
 import { getImageAsset, ImageAssetKey } from './assets';
-import { Font, fonts } from './fonts';
-import { GameState } from './game-state';
+import { Font } from './fonts';
+import { GameState } from './logic/game-state';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -10,7 +10,7 @@ import {
   getTerrainMaskSouthWest,
   getTileAt,
   TerrainId,
-} from './map';
+} from './logic/map';
 import { palette } from './palette';
 import { RenderViewport } from './types';
 
@@ -33,7 +33,12 @@ const unitSpriteSheet = document.createElement('canvas').getContext('2d');
 
 //canvas.parentNode.append(fontsSpriteSheet.canvas);
 
-export const generateSpriteSheets = (playerColors: [number, number, number][]) => {
+export const generateSpriteSheets = (
+  colors: {
+    primaryColor: [number, number, number];
+    secondaryColor: [number, number, number];
+  }[]
+) => {
   const sp257 = getImageAsset('sp257.pic.gif').canvas;
 
   // Dimensions of the units block in sp257.pic
@@ -41,13 +46,16 @@ export const generateSpriteSheets = (playerColors: [number, number, number][]) =
   const bHeight = 2 * 16;
 
   unitSpriteSheet.canvas.width = bWidth;
-  unitSpriteSheet.canvas.height = bHeight * playerColors.length;
+  unitSpriteSheet.canvas.height = bHeight * colors.length;
 
-  playerColors.forEach((color, index) => {
+  colors.forEach((color, index) => {
     unitSpriteSheet.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
 
     const imageData = unitSpriteSheet.getImageData(0, index * bHeight, bWidth, bHeight);
     const { data } = imageData;
+
+    const [pr, pg, pb] = color.primaryColor;
+    const [sr, sg, sb] = color.secondaryColor;
 
     for (let x = 0; x < bWidth; x++) {
       for (let y = 0; y < bHeight; y++) {
@@ -67,16 +75,16 @@ export const generateSpriteSheets = (playerColors: [number, number, number][]) =
 
         // Replace primary color
         if (r === 97 && g === 227 && b === 101) {
-          data[i] = color[0];
-          data[i + 1] = color[1];
-          data[i + 2] = color[2];
+          data[i] = pr;
+          data[i + 1] = pg;
+          data[i + 2] = pb;
         }
 
         // Replace secondary color
         if (r === 44 && g === 121 && b === 0) {
-          data[i] = color[0] >> 1;
-          data[i + 1] = color[1] >> 1;
-          data[i + 2] = color[2] >> 1;
+          data[i] = sr;
+          data[i + 1] = sg;
+          data[i + 2] = sb;
         }
       }
     }
@@ -271,9 +279,9 @@ const renderBorder = (destination: ImageData) => {
   let bottomRowIndex = (height - 1) * width * 4;
 
   for (let dx = 0; dx < width; dx++) {
-    dstData[topRowIndex++] = palette.darkGray[0];
-    dstData[topRowIndex++] = palette.darkGray[1];
-    dstData[topRowIndex++] = palette.darkGray[2];
+    dstData[topRowIndex++] = palette.grayDark[0];
+    dstData[topRowIndex++] = palette.grayDark[1];
+    dstData[topRowIndex++] = palette.grayDark[2];
     dstData[topRowIndex++] = 255;
     dstData[bottomRowIndex++] = palette.white[0];
     dstData[bottomRowIndex++] = palette.white[1];
@@ -291,9 +299,9 @@ const renderBorder = (destination: ImageData) => {
     dstData[leftColumnIndex++] = palette.white[2];
     dstData[leftColumnIndex++] = 255;
 
-    dstData[rightColumnIndex++] = palette.darkGray[0];
-    dstData[rightColumnIndex++] = palette.darkGray[1];
-    dstData[rightColumnIndex++] = palette.darkGray[2];
+    dstData[rightColumnIndex++] = palette.grayDark[0];
+    dstData[rightColumnIndex++] = palette.grayDark[1];
+    dstData[rightColumnIndex++] = palette.grayDark[2];
     dstData[rightColumnIndex++] = 255;
     leftColumnIndex += increment;
     rightColumnIndex += increment;

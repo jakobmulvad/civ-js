@@ -1,226 +1,114 @@
-import { Action, ActionUnitMove, popAction } from './action';
-import { animate } from './animation';
-import { GameState, PlayerState, PlayerType } from './game-state';
-import { GameMap, generateMapFromTemplate, getTileAt, getTileIndex, TerrainId, terrainValueMap } from './map';
+import { GameState, getSelectedUnitForPlayer } from './logic/game-state';
+import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
-import { uiClear, uiPushScreen } from './ui/ui-controller';
-import { centerViewportIfNeeded, setWorldUiGameState, uiWorldView } from './ui/ui-worldview';
-import { newUnit, UnitPrototypeId, unitPrototypeMap, UnitType } from './unit';
+import { clearUi, pushUiScreen } from './ui/ui-controller';
+import {
+  animateUnitMoved,
+  centerViewport,
+  ensureSelectedUnitIsInViewport,
+  setWorldUiGameState,
+  uiWorldView,
+} from './ui/ui-worldview';
+import { handleEndTurn, handleMoveUnit, handleUnitNoOrder, handleUnitWait, newGame } from './logic/civ-game';
+import { loadJson } from './assets';
+import { americans, egyptians } from './logic/civilizations';
+import { popUiEvent, UiEvent } from './ui/ui-event-queue';
 
 let state: GameState;
+const localPlayer = 0; // todo don't use hardcoded index for local player
 
-export const playerInTurn = () => state.players[state.playerInTurn];
+export const startGame = async () => {
+  const newMap = await loadJson<MapTemplate>('/assets/earth.json');
 
-export const discoverMap = (player: number, x: number, y: number) => {
-  const idx = getTileIndex(state.masterMap, x, y);
-  state.players[player].map.tiles[idx] = { ...state.masterMap.tiles[idx], hidden: false };
-};
+  state = newGame(newMap, [americans, egyptians]);
 
-export const discoverMapAround = (player: number, x: number, y: number) => {
-  discoverMap(player, x - 1, y - 1);
-  discoverMap(player, x, y - 1);
-  discoverMap(player, x + 1, y - 1);
-  discoverMap(player, x - 1, y);
-  discoverMap(player, x, y);
-  discoverMap(player, x + 1, y);
-  discoverMap(player, x - 1, y + 1);
-  discoverMap(player, x, y + 1);
-  discoverMap(player, x + 1, y + 1);
-};
+  generateSpriteSheets(state.players.map((pl) => pl.civ));
 
-export const spawnUnitForPlayer = (player: number, id: UnitPrototypeId, x: number, y: number) => {
-  const unit = newUnit(id, x, y);
-  state.players[player].units.push(unit);
-
-  discoverMapAround(player, x, y);
-};
-
-export const startTurn = () => {
-  const player = state.players[state.playerInTurn];
-
-  for (const unit of player.units) {
-    const prototype = unitPrototypeMap[unit.prototypeId];
-    unit.movesLeft = prototype.moves * 3;
-    discoverMapAround(state.playerInTurn, unit.x, unit.y);
-  }
-  selectNextUnit();
-};
-
-export const endTurn = () => {
-  state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
-  startTurn();
-};
-
-export const newPlayer = (
-  map: GameMap,
-  name: string,
-  color: [number, number, number],
-  type: PlayerType
-): PlayerState => {
-  return {
-    color,
-    name,
-    map: {
-      ...map,
-      tiles: map.tiles.map((tile) => ({ ...tile, hidden: true })),
-    },
-    units: [],
-    type,
-    selectedUnit: -1,
-    gold: 0,
-    beakers: 0,
-  };
-};
-
-export const newGame = async () => {
-  const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-  const newMap = await generateMapFromTemplate('/assets/earth.json');
-
-  // Assign special resources based on seed
-  for (let x = 0; x < newMap.width; x++) {
-    for (let y = 0; y < newMap.height; y++) {
-      const idx = getTileIndex(newMap, x, y);
-      const tile = newMap.tiles[idx];
-      tile.extraShield = !!((x * 7 + (y - 2) * 11) & 0x02);
-      tile.specialResource = (x % 4) * 4 + (y % 4) === ((x >> 2) * 13 + (y >> 2) * 11 + seed) % 16;
-    }
-  }
-
-  state = {
-    seed,
-    playerInTurn: 0,
-    players: [
-      newPlayer(newMap, 'Weevil', [234, 123, 34], PlayerType.Human),
-      //newPlayer(newMap, 'Evil', [210, 115, 255], PlayerType.Computer),
-    ],
-    masterMap: newMap,
-    turn: 0,
-  };
-
-  generateSpriteSheets(state.players.map((pl) => pl.color));
-
-  spawnUnitForPlayer(0, UnitPrototypeId.Cavalry, 43, 12);
-
-  uiClear();
+  // Initialize ui
+  clearUi();
   setWorldUiGameState(state);
-  uiPushScreen(uiWorldView);
+  pushUiScreen(uiWorldView);
 
-  startTurn();
+  const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+  centerViewport(selectedUnit.x, selectedUnit.y);
 };
 
-export const selectNextUnit = () => {
-  const player = state.players[state.playerInTurn];
-  const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0);
+// eslint-disable-next-line @typescript-eslint/require-await
+const handleMoveEvent = async (dx: number, dy: number): Promise<void> => {
+  ensureSelectedUnitIsInViewport();
 
-  if (unitsWithMoves.length === 0) {
-    player.selectedUnit = -1;
-    return;
-  }
-
-  const currentIndex = unitsWithMoves.findIndex((unit) => unit === player.units[player.selectedUnit]);
-  const newIndex = (currentIndex + 1) % unitsWithMoves.length;
-  const newSelected = unitsWithMoves[newIndex];
-  player.selectedUnit = player.units.findIndex((unit) => unit === newSelected);
-
-  centerViewportIfNeeded(newSelected.x, newSelected.y);
-};
-
-export const handleMoveUnit = async (action: ActionUnitMove) => {
-  if (action.player !== state.playerInTurn) {
-    throw new Error(`Player ${action.player} cannot move out of turn`);
-  }
-
-  const player = state.players[action.player];
-  if (player.selectedUnit === -1) {
-    throw new Error(`Player ${action.player} has no units to move`);
-  }
-
+  const player = state.players[localPlayer];
   const unit = player.units[player.selectedUnit];
 
-  if (unit.movesLeft === 0) {
-    return;
-  }
+  const result = handleMoveUnit(state, { type: 'UnitMove', dx, dy, player: localPlayer, unit: player.selectedUnit });
 
-  centerViewportIfNeeded(unit.x, unit.y);
+  await animateUnitMoved(dx, dy, result);
 
-  // Is unit trying to move out of bounds on y-axis?
-  if ((action.dy < 0 && unit.y === 0) || (action.dy > 0 && unit.y === state.masterMap.height - 1)) {
-    return;
-  }
-
-  const newX = (unit.x + action.dx + state.masterMap.width) % state.masterMap.width; // wrap-around on x-axis
-  const newY = unit.y + action.dy;
-  const targetTile = getTileAt(state.masterMap, newX, newY);
-  const prototype = unitPrototypeMap[unit.prototypeId];
-
-  if (targetTile.terrain === TerrainId.Ocean && prototype.type == UnitType.Land) {
-    // Todo: add check if ocean square contains transport
-    return;
-  }
-
-  await animate((time) => {
-    const progress = Math.floor(time * 0.06);
-    unit.screenOffsetX = action.dx * progress;
-    unit.screenOffsetY = action.dy * progress;
-    return progress === 16;
-  });
-
-  unit.screenOffsetX = 0;
-  unit.screenOffsetY = 0;
-  unit.x = newX;
-  unit.y = newY;
-  discoverMapAround(state.playerInTurn, unit.x, unit.y);
-
-  const terrain = terrainValueMap[targetTile.terrain];
-  unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
-
-  if (unit.movesLeft === 0) {
-    selectNextUnit();
-  } else {
-    centerViewportIfNeeded(unit.x, unit.y);
-  }
+  ensureSelectedUnitIsInViewport();
 };
 
-export const handleNoOrder = () => {
-  const player = state.players[state.playerInTurn];
+const handleEvent = async (event: UiEvent): Promise<void> => {
+  const unit = state.players[localPlayer].selectedUnit;
 
-  if (player.selectedUnit === -1) {
-    return;
-  }
+  switch (event) {
+    case UiEvent.UnitMoveNorth:
+      return handleMoveEvent(0, -1);
 
-  const unit = player.units[player.selectedUnit];
-  unit.movesLeft = 0;
-  selectNextUnit();
-};
+    case UiEvent.UnitMoveNorthEast:
+      return handleMoveEvent(1, -1);
 
-export const handleAction = async (action: Action): Promise<void> => {
-  switch (action.type) {
-    case 'UnitMove':
-      return handleMoveUnit(action);
+    case UiEvent.UnitMoveEast:
+      return handleMoveEvent(1, 0);
 
-    case 'UnitWait':
-      return selectNextUnit();
+    case UiEvent.UnitMoveSouthEast:
+      return handleMoveEvent(1, 1);
 
-    case 'UnitNoOrders':
-      return handleNoOrder();
+    case UiEvent.UnitMoveSouth:
+      return handleMoveEvent(0, 1);
 
-    case 'EndTurn':
-      return endTurn();
+    case UiEvent.UnitMoveSouthWest:
+      return handleMoveEvent(-1, 1);
+
+    case UiEvent.UnitMoveWest:
+      return handleMoveEvent(-1, 0);
+
+    case UiEvent.UnitMoveNorthWest:
+      return handleMoveEvent(-1, -1);
+
+    case UiEvent.UnitWait:
+      handleUnitWait(state, { player: localPlayer, unit });
+      ensureSelectedUnitIsInViewport();
+      return;
+
+    case UiEvent.UnitNoOrders:
+      handleUnitNoOrder(state, { player: localPlayer, unit });
+      ensureSelectedUnitIsInViewport();
+      return;
+
+    case UiEvent.EndTurn:
+      handleEndTurn(state, { player: localPlayer });
+      return;
+
+    case UiEvent.UnitCenter: {
+      const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+      centerViewport(selectedUnit.x, selectedUnit.y);
+      return;
+    }
   }
 };
 
 const logicFrame = () => {
-  const action = popAction();
+  const event = popUiEvent();
 
-  if (!action) {
+  if (!event) {
     requestAnimationFrame(logicFrame);
     return;
   }
 
-  handleAction(action).then(
+  handleEvent(event).then(
     () => requestAnimationFrame(logicFrame),
     (err) => {
-      console.error(`Failed to process action ${action.type}: ${err as string}`);
+      console.error(`Failed to process action ${event}: ${err as string}`);
       requestAnimationFrame(logicFrame);
     }
   );

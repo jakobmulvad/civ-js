@@ -14,6 +14,23 @@ export enum UnitType {
   Air,
 }
 
+export type UnitPrototype = {
+  name: string;
+  attack: number;
+  defense: number;
+  moves: number;
+  type: UnitType;
+};
+
+export type Unit = {
+  prototypeId: UnitPrototypeId;
+  x: number;
+  y: number;
+  screenOffsetX: number;
+  screenOffsetY: number;
+  movesLeft: number;
+};
+
 export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
   [UnitPrototypeId.Settlers]: {
     name: 'Settlers',
@@ -64,23 +81,6 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 2000,
     type: UnitType.Land,
   },
-};
-
-export type UnitPrototype = {
-  name: string;
-  attack: number;
-  defense: number;
-  moves: number;
-  type: UnitType;
-};
-
-export type Unit = {
-  prototypeId: UnitPrototypeId;
-  x: number;
-  y: number;
-  screenOffsetX: number;
-  screenOffsetY: number;
-  movesLeft: number;
 };
 
 export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number): Unit => {

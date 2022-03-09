@@ -5,8 +5,7 @@
   },
   "plugins": ["prettier", "@typescript-eslint"],
   "rules": {
-    "prettier/prettier": "error",
-    "max-len": ["error", { "code": 120 }]
+    "prettier/prettier": "error"
   },
   "extends": [
     "eslint:recommended",

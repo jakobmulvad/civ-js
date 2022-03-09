@@ -1,6 +1,7 @@
 import { waitForAssets } from '../assets';
 import { fonts } from '../fonts';
 import { renderText } from '../renderer';
+import { clearUiEventQueue } from './ui-event-queue';
 
 export type UiScreen = {
   onFocus?: () => void;
@@ -13,19 +14,14 @@ export type UiScreen = {
 
 let uiStack: UiScreen[] = [];
 
-export const uiPushScreen = (screen: UiScreen) => {
-  uiStack.push(screen);
-};
-
-export const uiPopScreen = () => {
-  uiStack.pop();
-};
-
-export const uiClear = () => {
+export const pushUiScreen = (screen: UiScreen) => uiStack.push(screen);
+export const popUiScreen = () => uiStack.pop();
+export const clearUi = () => {
   uiStack = [];
+  clearUiEventQueue();
 };
 
-export const uiTopScreen = (): UiScreen | undefined => {
+export const topUiScreen = (): UiScreen | undefined => {
   return uiStack[uiStack.length - 1];
 };
 
@@ -39,7 +35,7 @@ export const uiRender = (time: number) => {
 
 document.addEventListener('keydown', (evt) => {
   console.log('keydown', evt.code);
-  const screen = uiTopScreen();
+  const screen = topUiScreen();
   screen?.onKey?.(evt.code);
 });
 
@@ -50,7 +46,7 @@ canvas.addEventListener('mousedown', (evt) => {
   const screenX = Math.floor((evt.offsetX * 320) / canvasBounds.width);
   const screenY = Math.floor((evt.offsetY * 200) / canvasBounds.height);
 
-  const screen = uiTopScreen();
+  const screen = topUiScreen();
   screen?.onClick?.(screenX, screenY);
 });
 

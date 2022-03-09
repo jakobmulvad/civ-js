@@ -1,5 +1,3 @@
-import { loadJson } from './assets';
-
 export enum TerrainId {
   Void = 0,
   Ocean = 1,
@@ -164,15 +162,4 @@ export const getTerrainMaskSouthWest = (map: GameMap, x: number, y: number, mask
     (terrainBit(map, x - 1, y + 1, mask) << 1) |
     (terrainBit(map, x - 1, y, mask) << 2)
   );
-};
-
-export const generateMapFromTemplate = async (templateName: string) => {
-  const template = await loadJson<MapTemplate>(templateName);
-
-  const map: GameMap = {
-    width: template.width,
-    height: template.height,
-    tiles: template.data.map((terrain) => ({ terrain })),
-  };
-  return map;
 };

@@ -1,17 +1,19 @@
-import { Action, pushAction } from '../action';
-import { isAnimating } from '../animation';
+import { animate, isAnimating } from '../animation';
 import { fonts } from '../fonts';
-import { GameState, getPrototype, getTileAtUnit } from '../game-state';
-import { inputMapping, UiInput } from '../input';
-import { terrainValueMap } from '../map';
+import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from '../logic/game-state';
+import { inputMappingWorldView } from '../input';
+import { terrainValueMap } from '../logic/map';
 import { palette } from '../palette';
 import { renderGrayBox, renderSprite, renderText, renderWindow, renderWorld, setFontColor } from '../renderer';
 import { RenderViewport } from '../types';
 import { UiScreen } from './ui-controller';
+import { pushUiEvent } from './ui-event-queue';
+import { MoveUnitResult } from '../logic/civ-game';
 
 let state: GameState;
 let isDirty = true;
 let isBlinking = true;
+const localPlayer = 0;
 
 const viewport: RenderViewport = {
   screenX: 320 - 15 * 16,
@@ -22,51 +24,6 @@ const viewport: RenderViewport = {
   height: 12,
 };
 
-const inputToAction = (input: UiInput): Action | undefined => {
-  const player = 0; // for now assume local player is index zero
-
-  switch (input) {
-    case UiInput.UnitMoveNorth:
-      return { type: 'UnitMove', dx: 0, dy: -1, player };
-
-    case UiInput.UnitMoveNorthEast:
-      return { type: 'UnitMove', dx: 1, dy: -1, player };
-
-    case UiInput.UnitMoveEast:
-      return { type: 'UnitMove', dx: 1, dy: 0, player };
-
-    case UiInput.UnitMoveSouthEast:
-      return { type: 'UnitMove', dx: 1, dy: 1, player };
-
-    case UiInput.UnitMoveSouth:
-      return { type: 'UnitMove', dx: 0, dy: 1, player };
-
-    case UiInput.UnitMoveSouthWest:
-      return { type: 'UnitMove', dx: -1, dy: 1, player };
-
-    case UiInput.UnitMoveWest:
-      return { type: 'UnitMove', dx: -1, dy: 0, player };
-
-    case UiInput.UnitMoveNorthWest:
-      return { type: 'UnitMove', dx: -1, dy: -1, player };
-
-    case UiInput.UnitWait:
-      return { type: 'UnitWait', player };
-
-    case UiInput.UnitNoOrders:
-      return { type: 'UnitNoOrders', player };
-
-    case UiInput.EndTurn:
-      if (state.players[player].selectedUnit !== -1) {
-        return undefined;
-      }
-      return { type: 'EndTurn', player };
-
-    default:
-      return undefined;
-  }
-};
-
 export const centerViewport = (x: number, y: number) => {
   const newX = x - (viewport.width >> 1);
   const newY = y - (viewport.height >> 1);
@@ -75,24 +32,31 @@ export const centerViewport = (x: number, y: number) => {
   isDirty = true;
 };
 
-export const centerViewportIfNeeded = (x: number, y: number) => {
+export const ensureSelectedUnitIsInViewport = () => {
+  const unit = getSelectedUnitForPlayer(state, localPlayer);
+
+  if (!unit) {
+    return;
+  }
+
   const halfWidth = viewport.width * 0.5;
   const halfHeight = viewport.height * 0.5;
 
   if (
-    Math.abs(x - (viewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
-    Math.abs(y - (viewport.y + halfHeight - 0.5)) > halfHeight - 1
+    Math.abs(unit.x - (viewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
+    Math.abs(unit.y - (viewport.y + halfHeight - 0.5)) > halfHeight - 1
   ) {
-    centerViewport(x, y);
+    centerViewport(unit.x, unit.y);
   }
 };
 
-const handleInput = (input: UiInput) => {
+/*const handleInput = (input: UiInput) => {
   if (state.playerInTurn !== 0) {
     return;
   }
 
-  // push to action queue
+  // push input event to action queue
+
   const action = inputToAction(input);
   if (action) {
     console.log('action pushed');
@@ -115,12 +79,12 @@ const handleInput = (input: UiInput) => {
       return centerViewport(unit.x, unit.y);
     }
   }
-};
+};*/
 
 export const setWorldUiGameState = (gameState: GameState) => (state = gameState);
 
-export const renderEmprireInfoBox = () => {
-  const player = state.players[0];
+export const renderEmpireInfoBox = () => {
+  const player = state.players[localPlayer];
 
   renderGrayBox(0, 58, 80, 39);
   renderText(fonts.main, '40,000#', 2, 73); // todo: add turn counter and year calculation
@@ -132,14 +96,14 @@ export const renderEmprireInfoBox = () => {
 export const renderUnitInfoBox = () => {
   renderGrayBox(0, 97, 80, 103);
 
-  const player = state.players[0];
+  const player = state.players[localPlayer];
   const selectedUnit = player.units[player.selectedUnit];
 
   if (selectedUnit) {
     const prototype = getPrototype(selectedUnit);
     const tile = getTileAtUnit(state, selectedUnit);
     const terrain = terrainValueMap[tile.terrain];
-    renderText(fonts.main, 'German', 3, 99); // todo: add civ names
+    renderText(fonts.main, player.civ.name, 3, 99);
     renderText(fonts.main, prototype.name, 3, 107);
     renderText(fonts.main, `Moves: ${selectedUnit.movesLeft / 3}`, 3, 115);
     renderText(fonts.main, 'Berlin', 3, 123); // todo add upkeep city
@@ -147,9 +111,42 @@ export const renderUnitInfoBox = () => {
     return;
   }
 
-  isBlinking && renderText(fonts.main, 'End of Turn', 3, 125);
-  renderText(fonts.main, 'Press Enter', 3, 138);
-  renderText(fonts.main, 'to continue', 3, 146);
+  if (!isAnimating()) {
+    isBlinking && renderText(fonts.main, 'End of Turn', 3, 125);
+    renderText(fonts.main, 'Press Enter', 3, 138);
+    renderText(fonts.main, 'to continue', 3, 146);
+  }
+};
+
+export const animateUnitMoved = async (dx: number, dy: number, moveResult: MoveUnitResult) => {
+  switch (moveResult.outcome) {
+    case 'UnitMoved': {
+      moveResult.unit.screenOffsetX = -dx * 16;
+      moveResult.unit.screenOffsetY = -dy * 16;
+      let lastProgress;
+      await animate((time) => {
+        const progress = Math.floor(time * 0.08);
+        if (progress !== lastProgress) {
+          isDirty = true;
+          moveResult.unit.screenOffsetX = -dx * (16 - progress);
+          moveResult.unit.screenOffsetY = -dy * (16 - progress);
+        }
+        lastProgress = progress;
+        return progress > 15;
+      });
+      moveResult.unit.screenOffsetX = 0;
+      moveResult.unit.screenOffsetY = 0;
+      return;
+    }
+
+    case 'UnitMoveDenied':
+      // do nothing
+      return;
+
+    case 'Combat':
+      // animate combar
+      return;
+  }
 };
 
 export const uiWorldView: UiScreen = {
@@ -159,7 +156,7 @@ export const uiWorldView: UiScreen = {
     }
 
     const newBlinkingState = Math.floor(time * 0.007) % 2 === 0;
-    if (isBlinking === newBlinkingState) {
+    if (isBlinking === newBlinkingState || isAnimating()) {
       return false;
     }
 
@@ -174,7 +171,7 @@ export const uiWorldView: UiScreen = {
     // Left info bar
     setFontColor(fonts.main, palette.black);
     renderWindow(0, 8, 80, 50, palette.black);
-    renderEmprireInfoBox();
+    renderEmpireInfoBox();
     renderUnitInfoBox();
     isDirty = false;
   },
@@ -183,9 +180,9 @@ export const uiWorldView: UiScreen = {
       return;
     }
 
-    const input = inputMapping[keyCode];
-    if (input) {
-      handleInput(input);
+    const event = inputMappingWorldView[keyCode];
+    if (event) {
+      pushUiEvent(event);
     }
   },
   onClick: (x: number, y: number) => {

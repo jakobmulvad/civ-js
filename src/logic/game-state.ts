@@ -1,17 +1,18 @@
+import { Civilization } from './civilizations';
 import { GameMap, getTileAt } from './map';
-import { Unit, unitPrototypeMap } from './unit';
+import { Unit, unitPrototypeMap } from './units';
 
-export enum PlayerType {
+export enum PlayerController {
   Human = 0,
   Computer = 1,
+  Remote = 2, // todo LOL
 }
 
 export type PlayerState = {
-  color: [number, number, number];
-  name: string;
+  civ: Civilization;
   map: GameMap;
   units: Unit[];
-  type: PlayerType;
+  controller: PlayerController;
   selectedUnit: number | undefined;
   gold: number;
   beakers: number;
@@ -30,6 +31,11 @@ export const getPlayerInTurn = (state: GameState) => state.players[state.playerI
 export const getSelectedUnit = (state: GameState): Unit | undefined => {
   const player = getPlayerInTurn(state);
   return player.units[player.selectedUnit];
+};
+
+export const getSelectedUnitForPlayer = (state: GameState, player: number): Unit | undefined => {
+  const playerState = state.players[player];
+  return playerState.units[playerState.selectedUnit];
 };
 
 export const getPrototype = (unit: Unit) => unitPrototypeMap[unit.prototypeId];
