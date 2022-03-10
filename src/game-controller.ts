@@ -55,7 +55,8 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
   }
 
   const player = state.players[localPlayer];
-  const unit = player.selectedUnit;
+  const selectedUnitIdx = player.selectedUnit;
+  const selectedUnit = player.units[selectedUnitIdx];
 
   switch (event) {
     case UiEvent.UnitMoveNorth:
@@ -66,8 +67,7 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
     case UiEvent.UnitMoveSouthWest:
     case UiEvent.UnitMoveWest:
     case UiEvent.UnitMoveNorthWest: {
-      if (unit === -1) {
-        console.log('Ignoring', state);
+      if (!selectedUnit) {
         return;
       }
       const [dx, dy] = unitMoveDirection[event];
@@ -75,18 +75,18 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
     }
 
     case UiEvent.UnitWait:
-      if (!unit) {
+      if (!selectedUnit) {
         return;
       }
-      handleUnitWait(state, { player: localPlayer, unit });
+      handleUnitWait(state, { player: localPlayer, unit: selectedUnitIdx });
       ensureSelectedUnitIsInViewport();
       return;
 
     case UiEvent.UnitNoOrders:
-      if (!unit) {
+      if (!selectedUnit) {
         return;
       }
-      handleUnitNoOrder(state, { player: localPlayer, unit });
+      handleUnitNoOrder(state, { player: localPlayer, unit: selectedUnitIdx });
       ensureSelectedUnitIsInViewport();
       return;
 
@@ -94,14 +94,12 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
       handleEndTurn(state, { player: localPlayer });
       return;
 
-    case UiEvent.UnitCenter: {
-      if (!unit) {
+    case UiEvent.UnitCenter:
+      if (!selectedUnit) {
         return;
       }
-      const selectedUnit = player.units[unit];
       centerViewport(selectedUnit.x, selectedUnit.y);
       return;
-    }
   }
 };
 
