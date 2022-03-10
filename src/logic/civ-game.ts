@@ -1,5 +1,5 @@
 import { randomIntBelow } from '../helpers';
-import { ActionWithPlayer, ActionWithUnit, PlayerAction, UnitAction, UnitActionMove } from './action';
+import { ActionWithPlayer, ActionWithUnit, UnitActionMove } from './action';
 import { Civilization } from './civilizations';
 import { GameState, PlayerController, PlayerState } from './game-state';
 import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainValueMap } from './map';
@@ -98,6 +98,12 @@ export const handleEndTurn = (state: GameState, action: ActionWithPlayer) => {
   validatePlayerAction(state, action);
 
   state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
+
+  // New turn
+  if (state.playerInTurn === 0) {
+    state.turn++;
+  }
+
   startTurn(state);
 };
 

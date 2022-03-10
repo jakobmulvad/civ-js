@@ -1,4 +1,4 @@
-export const palette = {
+const untypedPalette = {
   black: [0, 0, 0],
   white: [235, 235, 235],
   grayLight: [138, 138, 142],
@@ -12,3 +12,8 @@ export const palette = {
   blue: [121, 142, 255],
   blueDark: [48, 77, 178],
 };
+
+// todo: type correctly so we get a type error if providing anything other than [number, number, number] in above map
+const palette = untypedPalette as { [key in keyof typeof untypedPalette]: [number, number, number] };
+
+export { palette };

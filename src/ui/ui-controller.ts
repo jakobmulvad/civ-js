@@ -1,6 +1,5 @@
+import { animateFrame } from '../animation';
 import { waitForAssets } from '../assets';
-import { fonts } from '../fonts';
-import { renderText } from '../renderer';
 import { clearUiEventQueue } from './ui-event-queue';
 
 export type UiScreen = {
@@ -51,8 +50,9 @@ canvas.addEventListener('mousedown', (evt) => {
 });
 
 const frameHandler = (time: number) => {
-  requestAnimationFrame(frameHandler);
+  animateFrame(time);
   uiRender(time);
+  requestAnimationFrame(frameHandler);
 };
 
 waitForAssets()

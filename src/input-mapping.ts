@@ -19,3 +19,14 @@ export const inputMappingWorldView: Record<string, UiEvent | undefined> = {
   KeyC: UiEvent.UnitCenter,
   Enter: UiEvent.EndTurn,
 };
+
+export const unitMoveDirection = {
+  [UiEvent.UnitMoveNorth]: [0, -1],
+  [UiEvent.UnitMoveNorthEast]: [1, -1],
+  [UiEvent.UnitMoveEast]: [1, 0],
+  [UiEvent.UnitMoveSouthEast]: [1, 1],
+  [UiEvent.UnitMoveSouth]: [0, 1],
+  [UiEvent.UnitMoveSouthWest]: [-1, 1],
+  [UiEvent.UnitMoveWest]: [-1, 0],
+  [UiEvent.UnitMoveNorthWest]: [-1, -1],
+};

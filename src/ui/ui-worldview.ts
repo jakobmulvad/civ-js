@@ -1,7 +1,7 @@
-import { animate, isAnimating } from '../animation';
+import { isAnimating, startAnimation } from '../animation';
 import { fonts } from '../fonts';
 import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from '../logic/game-state';
-import { inputMappingWorldView } from '../input';
+import { inputMappingWorldView } from '../input-mapping';
 import { terrainValueMap } from '../logic/map';
 import { palette } from '../palette';
 import { renderGrayBox, renderSprite, renderText, renderWindow, renderWorld, setFontColor } from '../renderer';
@@ -9,6 +9,7 @@ import { RenderViewport } from '../types';
 import { UiScreen } from './ui-controller';
 import { pushUiEvent } from './ui-event-queue';
 import { MoveUnitResult } from '../logic/civ-game';
+import { turnToYear } from '../logic/formulas';
 
 let state: GameState;
 let isDirty = true;
@@ -33,7 +34,7 @@ export const centerViewport = (x: number, y: number) => {
 };
 
 export const ensureSelectedUnitIsInViewport = () => {
-  const unit = getSelectedUnitForPlayer(state, localPlayer);
+  const unit = getSelectedUnitForPlayer(state, state.playerInTurn);
 
   if (!unit) {
     return;
@@ -46,6 +47,7 @@ export const ensureSelectedUnitIsInViewport = () => {
     Math.abs(unit.x - (viewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
     Math.abs(unit.y - (viewport.y + halfHeight - 0.5)) > halfHeight - 1
   ) {
+    console.log('centering on unit');
     centerViewport(unit.x, unit.y);
   }
 };
@@ -88,7 +90,7 @@ export const renderEmpireInfoBox = () => {
 
   renderGrayBox(0, 58, 80, 39);
   renderText(fonts.main, '40,000#', 2, 73); // todo: add turn counter and year calculation
-  const textOffset = renderText(fonts.main, '3520 BC', 2, 81); // todo: add turn counter and year calculation
+  const textOffset = renderText(fonts.main, turnToYear(state.turn), 2, 81); // todo: add turn counter and year calculation
   renderSprite('sp299.pic.png', 20 * 8, 15 * 8, textOffset + 2, 80, 8, 8);
   renderText(fonts.main, `${player.gold}$ 0.5.5`, 2, 89); // todo: add gold and tax rates
 };
@@ -124,7 +126,7 @@ export const animateUnitMoved = async (dx: number, dy: number, moveResult: MoveU
       moveResult.unit.screenOffsetX = -dx * 16;
       moveResult.unit.screenOffsetY = -dy * 16;
       let lastProgress;
-      await animate((time) => {
+      await startAnimation((time) => {
         const progress = Math.floor(time * 0.08);
         if (progress !== lastProgress) {
           isDirty = true;
@@ -164,7 +166,6 @@ export const uiWorldView: UiScreen = {
     return true;
   },
   onRender: (time: number) => {
-    console.log('render');
     // World view
     renderWorld(state, viewport, isAnimating() || isBlinking);
 

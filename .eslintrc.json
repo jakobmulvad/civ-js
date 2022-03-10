@@ -3,9 +3,10 @@
   "parserOptions": {
     "project": "./tsconfig.json"
   },
-  "plugins": ["prettier", "@typescript-eslint"],
+  "plugins": ["prettier", "@typescript-eslint", "unused-imports"],
   "rules": {
-    "prettier/prettier": "error"
+    "prettier/prettier": "error",
+    "unused-imports/no-unused-imports": "error"
   },
   "extends": [
     "eslint:recommended",

@@ -11,8 +11,9 @@ import {
 } from './ui/ui-worldview';
 import { handleEndTurn, handleMoveUnit, handleUnitNoOrder, handleUnitWait, newGame } from './logic/civ-game';
 import { loadJson } from './assets';
-import { americans, egyptians } from './logic/civilizations';
+import { americans } from './logic/civilizations';
 import { popUiEvent, UiEvent } from './ui/ui-event-queue';
+import { unitMoveDirection } from './input-mapping';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -20,7 +21,7 @@ const localPlayer = 0; // todo don't use hardcoded index for local player
 export const startGame = async () => {
   const newMap = await loadJson<MapTemplate>('/assets/earth.json');
 
-  state = newGame(newMap, [americans, egyptians]);
+  state = newGame(newMap, [americans]);
 
   generateSpriteSheets(state.players.map((pl) => pl.civ));
 
@@ -48,39 +49,43 @@ const handleMoveEvent = async (dx: number, dy: number): Promise<void> => {
 };
 
 const handleEvent = async (event: UiEvent): Promise<void> => {
-  const unit = state.players[localPlayer].selectedUnit;
+  // for now ignore events out of turn. There might exist exceptions in the future (like granting audience)
+  if (state.playerInTurn !== localPlayer) {
+    return;
+  }
+
+  const player = state.players[localPlayer];
+  const unit = player.selectedUnit;
 
   switch (event) {
     case UiEvent.UnitMoveNorth:
-      return handleMoveEvent(0, -1);
-
     case UiEvent.UnitMoveNorthEast:
-      return handleMoveEvent(1, -1);
-
     case UiEvent.UnitMoveEast:
-      return handleMoveEvent(1, 0);
-
     case UiEvent.UnitMoveSouthEast:
-      return handleMoveEvent(1, 1);
-
     case UiEvent.UnitMoveSouth:
-      return handleMoveEvent(0, 1);
-
     case UiEvent.UnitMoveSouthWest:
-      return handleMoveEvent(-1, 1);
-
     case UiEvent.UnitMoveWest:
-      return handleMoveEvent(-1, 0);
-
-    case UiEvent.UnitMoveNorthWest:
-      return handleMoveEvent(-1, -1);
+    case UiEvent.UnitMoveNorthWest: {
+      if (unit === -1) {
+        console.log('Ignoring', state);
+        return;
+      }
+      const [dx, dy] = unitMoveDirection[event];
+      return handleMoveEvent(dx, dy);
+    }
 
     case UiEvent.UnitWait:
+      if (!unit) {
+        return;
+      }
       handleUnitWait(state, { player: localPlayer, unit });
       ensureSelectedUnitIsInViewport();
       return;
 
     case UiEvent.UnitNoOrders:
+      if (!unit) {
+        return;
+      }
       handleUnitNoOrder(state, { player: localPlayer, unit });
       ensureSelectedUnitIsInViewport();
       return;
@@ -90,7 +95,10 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
       return;
 
     case UiEvent.UnitCenter: {
-      const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+      if (!unit) {
+        return;
+      }
+      const selectedUnit = player.units[unit];
       centerViewport(selectedUnit.x, selectedUnit.y);
       return;
     }
