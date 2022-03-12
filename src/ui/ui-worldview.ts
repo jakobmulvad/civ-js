@@ -4,19 +4,34 @@ import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from
 import { inputMappingWorldView } from '../input-mapping';
 import { terrainValueMap } from '../logic/map';
 import { palette } from '../palette';
-import { renderGrayBox, renderSprite, renderText, renderWindow, renderWorld, setFontColor } from '../renderer';
-import { RenderViewport } from '../types';
+import {
+  mapCoordToScreenX,
+  mapCoordToScreenY,
+  renderGrayBox,
+  renderSprite,
+  renderText,
+  renderTextLines,
+  renderTile,
+  renderUnit,
+  renderWindow,
+  renderWorld,
+  setFontColor,
+} from '../renderer';
+import { MapRenderViewport } from '../types';
 import { UiScreen } from './ui-controller';
 import { pushUiEvent } from './ui-event-queue';
 import { MoveUnitResult } from '../logic/civ-game';
 import { turnToYear } from '../logic/formulas';
+import { Unit } from '../logic/units';
+import { getImageAsset } from '../assets';
 
 let state: GameState;
 let isDirty = true;
 let isBlinking = true;
 const localPlayer = 0;
+let excludeUnitInRender: Unit | undefined;
 
-const viewport: RenderViewport = {
+const viewport: MapRenderViewport = {
   screenX: 320 - 15 * 16,
   screenY: 200 - 12 * 16,
   x: 0,
@@ -33,8 +48,8 @@ export const centerViewport = (x: number, y: number) => {
   isDirty = true;
 };
 
-export const ensureSelectedUnitIsInViewport = () => {
-  const unit = getSelectedUnitForPlayer(state, state.playerInTurn);
+export const ensureSelectedUnitIsInViewport = (unit?: Unit) => {
+  unit = unit ?? getSelectedUnitForPlayer(state, state.playerInTurn);
 
   if (!unit) {
     return;
@@ -47,41 +62,9 @@ export const ensureSelectedUnitIsInViewport = () => {
     Math.abs(unit.x - (viewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
     Math.abs(unit.y - (viewport.y + halfHeight - 0.5)) > halfHeight - 1
   ) {
-    console.log('centering on unit');
     centerViewport(unit.x, unit.y);
   }
 };
-
-/*const handleInput = (input: UiInput) => {
-  if (state.playerInTurn !== 0) {
-    return;
-  }
-
-  // push input event to action queue
-
-  const action = inputToAction(input);
-  if (action) {
-    console.log('action pushed');
-    pushAction(action);
-    return;
-  }
-
-  if (isAnimating()) {
-    return;
-  }
-
-  switch (input) {
-    case UiInput.UnitCenter: {
-      const player = state.players[state.playerInTurn];
-      if (player.selectedUnit === -1) {
-        return;
-      }
-
-      const unit = player.units[player.selectedUnit];
-      return centerViewport(unit.x, unit.y);
-    }
-  }
-};*/
 
 export const setWorldUiGameState = (gameState: GameState) => (state = gameState);
 
@@ -98,18 +81,31 @@ export const renderEmpireInfoBox = () => {
 export const renderUnitInfoBox = () => {
   renderGrayBox(0, 97, 80, 103);
 
+  if (state.playerInTurn !== localPlayer) {
+    return;
+  }
+
   const player = state.players[localPlayer];
-  const selectedUnit = player.units[player.selectedUnit];
+  const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
 
   if (selectedUnit) {
     const prototype = getPrototype(selectedUnit);
     const tile = getTileAtUnit(state, selectedUnit);
     const terrain = terrainValueMap[tile.terrain];
-    renderText(fonts.main, player.civ.name, 3, 99);
-    renderText(fonts.main, prototype.name, 3, 107);
-    renderText(fonts.main, `Moves: ${selectedUnit.movesLeft / 3}`, 3, 115);
-    renderText(fonts.main, 'Berlin', 3, 123); // todo add upkeep city
-    renderText(fonts.main, `(${terrain.name})`, 3, 131);
+
+    renderTextLines(
+      fonts.main,
+      [
+        player.civ.name,
+        prototype.name,
+        selectedUnit.isVeteran ? ' Veteran' : undefined,
+        `Moves: ${selectedUnit.movesLeft / 3}`,
+        'Berlin',
+        `(${terrain.name})`,
+      ],
+      3,
+      99
+    );
     return;
   }
 
@@ -120,24 +116,27 @@ export const renderUnitInfoBox = () => {
   }
 };
 
-export const animateUnitMoved = async (dx: number, dy: number, moveResult: MoveUnitResult) => {
+export const animateUnitMoved = async (moveResult: MoveUnitResult) => {
+  const ter257 = getImageAsset('ter257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+
   switch (moveResult.outcome) {
     case 'UnitMoved': {
-      moveResult.unit.screenOffsetX = -dx * 16;
-      moveResult.unit.screenOffsetY = -dy * 16;
-      let lastProgress;
-      await startAnimation((time) => {
-        const progress = Math.floor(time * 0.08);
-        if (progress !== lastProgress) {
+      const { dx, dy, unit } = moveResult;
+
+      excludeUnitInRender = unit;
+      await startAnimation({
+        duration: 20 * 16, // 20 ms per frame
+        to: 16,
+        onUpdate: (value) => {
           isDirty = true;
-          moveResult.unit.screenOffsetX = -dx * (16 - progress);
-          moveResult.unit.screenOffsetY = -dy * (16 - progress);
-        }
-        lastProgress = progress;
-        return progress > 15;
+        },
+        onRender: (value) => {
+          renderUnit(state, viewport, unit, sp257, -dx * (16 - value), -dy * (16 - value));
+        },
       });
-      moveResult.unit.screenOffsetX = 0;
-      moveResult.unit.screenOffsetY = 0;
+      excludeUnitInRender = undefined;
+
       return;
     }
 
@@ -145,9 +144,76 @@ export const animateUnitMoved = async (dx: number, dy: number, moveResult: MoveU
       // do nothing
       return;
 
-    case 'Combat':
-      // animate combar
+    case 'Combat': {
+      const { dx, dy } = moveResult;
+
+      const mapWidth = state.masterMap.width;
+      const loser = moveResult.winner === 'Attacker' ? moveResult.defender : moveResult.attacker;
+      const winner = moveResult.winner === 'Attacker' ? moveResult.attacker : moveResult.defender;
+      const loserScreenX = mapCoordToScreenX(mapWidth, viewport, loser.x);
+      const loserScreenY = mapCoordToScreenY(viewport, loser.y);
+
+      excludeUnitInRender = winner;
+      await startAnimation({
+        duration: 30 * 10, // 30 ms per frame
+        to: 10,
+        onUpdate: (value) => {
+          isDirty = true;
+        },
+        onRender: (value) => {
+          renderUnit(state, viewport, moveResult.defender, sp257);
+          renderUnit(state, viewport, moveResult.attacker, sp257, dx * value, dy * value);
+        },
+      });
+
+      await startAnimation({
+        duration: 60 * 7,
+        to: 7,
+        onUpdate: (value) => {
+          isDirty = true;
+        },
+        onRender: (value) => {
+          renderTile(state.masterMap, viewport, loser.x, loser.y, ter257, sp257);
+          renderUnit(state, viewport, winner, sp257);
+          renderUnit(state, viewport, loser, sp257);
+          renderSprite('sp257.pic.gif', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
+        },
+      });
+
+      excludeUnitInRender = undefined;
+
+      /*await startAnimation(
+        (frame) => {
+          isDirty = true;
+          renderUnit(state, viewport, loser, sp257);
+
+          if (frame > 11) {
+            moveResult.attacker.screenOffsetX = 0;
+            moveResult.attacker.screenOffsetY = 0;
+            return true;
+          }
+
+          moveResult.attacker.screenOffsetX = dx * frame;
+          moveResult.attacker.screenOffsetY = dy * frame;
+          return false;
+        },
+        33.333,
+        'postRender'
+      ); // 10 frames travel in 300 ms = 30 ms/frame = 33 fps
+
+      await startAnimation(
+        (frame) => {
+          renderTile(state.masterMap, viewport, loser.x, loser.y, ter257, sp257);
+          renderUnit(state, viewport, loser, sp257);
+          renderSprite('sp257.pic.gif', frame * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
+          return frame > 6;
+        },
+        16.667, // 8 frames of animation in 480 ms 60 ms/frame = 16.667 fps
+        'postRender'
+      );*/
+
       return;
+    }
   }
 };
 
@@ -157,17 +223,22 @@ export const uiWorldView: UiScreen = {
       return true;
     }
 
-    const newBlinkingState = Math.floor(time * 0.007) % 2 === 0;
-    if (isBlinking === newBlinkingState || isAnimating()) {
+    if (isAnimating() || state.playerInTurn !== localPlayer) {
+      return false;
+    }
+
+    const newBlinkingState = Math.floor(time * 0.00667) % 2 === 0; //150 ms per blink
+    if (isBlinking === newBlinkingState) {
       return false;
     }
 
     isBlinking = newBlinkingState;
+    excludeUnitInRender = isBlinking ? getSelectedUnitForPlayer(state, localPlayer) : undefined;
     return true;
   },
   onRender: (time: number) => {
     // World view
-    renderWorld(state, viewport, isAnimating() || isBlinking);
+    renderWorld(state, viewport, excludeUnitInRender);
 
     // Left info bar
     setFontColor(fonts.main, palette.black);

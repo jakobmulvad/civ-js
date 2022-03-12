@@ -17,6 +17,7 @@ export enum TerrainId {
 export type Terrain = {
   name: string;
   movementCost: number;
+  defensiveFactor?: number;
 };
 
 export const terrainValueMap: Record<TerrainId, Terrain> = {
@@ -31,10 +32,12 @@ export const terrainValueMap: Record<TerrainId, Terrain> = {
   [TerrainId.Forest]: {
     name: 'Forest',
     movementCost: 2,
+    defensiveFactor: 1.5,
   },
   [TerrainId.Swamp]: {
     name: 'Swamp',
     movementCost: 2,
+    defensiveFactor: 1.5,
   },
   [TerrainId.Plains]: {
     name: 'Plains',
@@ -47,6 +50,7 @@ export const terrainValueMap: Record<TerrainId, Terrain> = {
   [TerrainId.River]: {
     name: 'River',
     movementCost: 1,
+    defensiveFactor: 1.5,
   },
   [TerrainId.Grassland]: {
     name: 'Grassland',
@@ -55,14 +59,17 @@ export const terrainValueMap: Record<TerrainId, Terrain> = {
   [TerrainId.Jungle]: {
     name: 'Jungle',
     movementCost: 2,
+    defensiveFactor: 1.5,
   },
   [TerrainId.Hills]: {
     name: 'Hills',
     movementCost: 2,
+    defensiveFactor: 2,
   },
   [TerrainId.Mountains]: {
     name: 'Mountains',
     movementCost: 3,
+    defensiveFactor: 3,
   },
   [TerrainId.Desert]: {
     name: 'Desert',

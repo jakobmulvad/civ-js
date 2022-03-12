@@ -1,4 +1,4 @@
-export type RenderViewport = {
+export type MapRenderViewport = {
   screenX: number;
   screenY: number;
   x: number;

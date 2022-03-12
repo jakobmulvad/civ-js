@@ -6,12 +6,25 @@ export enum UnitPrototypeId {
   Musketeers = 4,
   Riflemen = 5,
   Cavalry = 6,
+  Knight = 7,
 }
 
 export enum UnitType {
   Land,
   Sea,
   Air,
+}
+
+export enum UnitState {
+  Idle,
+  Sentry,
+  Fortifying,
+  Fortified,
+  BuildingRoad,
+  BuildingIrrigation,
+  BuildingMine,
+  BuildingFortress,
+  CleaningPolution,
 }
 
 export type UnitPrototype = {
@@ -26,9 +39,11 @@ export type Unit = {
   prototypeId: UnitPrototypeId;
   x: number;
   y: number;
-  screenOffsetX: number;
-  screenOffsetY: number;
   movesLeft: number;
+  isVeteran?: boolean;
+  state: UnitState;
+  progress: number;
+  owner: number;
 };
 
 export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
@@ -78,12 +93,27 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     name: 'Cavalry',
     attack: 2,
     defense: 1,
-    moves: 2000,
+    moves: 2,
+    type: UnitType.Land,
+  },
+  [UnitPrototypeId.Knight]: {
+    name: 'Knight',
+    attack: 4,
+    defense: 2,
+    moves: 2,
     type: UnitType.Land,
   },
 };
 
-export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number): Unit => {
+export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number, owner: number): Unit => {
   const prototype = unitPrototypeMap[prototypeId];
-  return { prototypeId, x, y, movesLeft: prototype.moves * 3, screenOffsetX: 0, screenOffsetY: 0 };
+  return {
+    prototypeId,
+    x,
+    y,
+    movesLeft: prototype.moves * 3,
+    state: UnitState.Idle,
+    progress: 0,
+    owner,
+  };
 };

@@ -1,20 +1,32 @@
 import { randomIntBelow } from '../helpers';
-import { ActionWithPlayer, ActionWithUnit, UnitActionMove } from './action';
+import { Action, ActionWithPlayer, ActionWithUnit, UnitActionMove } from './action';
 import { Civilization } from './civilizations';
-import { GameState, PlayerController, PlayerState } from './game-state';
+import { attackStrength, defenseStrength } from './formulas';
+import {
+  GameState,
+  getPlayersUnitsAt,
+  getSelectedUnitForPlayer,
+  PlayerController,
+  PlayerState,
+  removeUnitFromGame,
+} from './game-state';
 import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainValueMap } from './map';
-import { newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitType } from './units';
+import { newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from './units';
 
 export type MoveUnitResult =
   | {
       outcome: 'UnitMoved';
       unit: Unit;
+      dx: number;
+      dy: number;
     }
   | {
       outcome: 'UnitMoveDenied';
     }
   | {
       outcome: 'Combat';
+      dx: number;
+      dy: number;
       attacker: Unit;
       defender: Unit;
       winner: 'Attacker' | 'Defender';
@@ -37,26 +49,36 @@ const discoverMapAround = (state: GameState, player: number, x: number, y: numbe
   discoverMapTile(state, player, x + 1, y + 1);
 };
 
-export const spawnUnitForPlayer = (state: GameState, player: number, id: UnitPrototypeId, x: number, y: number) => {
-  const unit = newUnit(id, x, y);
+export const spawnUnitForPlayer = (
+  state: GameState,
+  player: number,
+  id: UnitPrototypeId,
+  x: number,
+  y: number
+): Unit => {
+  const unit = newUnit(id, x, y, player);
   state.players[player].units.push(unit);
 
   discoverMapAround(state, player, x, y);
+
+  return unit;
 };
 
-export const selectNextUnit = (state: GameState) => {
+const selectNextUnit = (state: GameState) => {
   const player = state.players[state.playerInTurn];
-  const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0);
+  const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0 && unit.state === UnitState.Idle);
 
   if (unitsWithMoves.length === 0) {
     player.selectedUnit = -1;
     return;
   }
 
-  const currentIndex = unitsWithMoves.findIndex((unit) => unit === player.units[player.selectedUnit]);
-  const newIndex = (currentIndex + 1) % unitsWithMoves.length;
+  const currentSelected = getSelectedUnitForPlayer(state, state.playerInTurn);
+  const currentIndex = unitsWithMoves.findIndex((unit) => unit === currentSelected);
+
+  const newIndex = currentIndex > -1 ? (currentIndex + 1) % unitsWithMoves.length : 0;
   const newSelected = unitsWithMoves[newIndex];
-  player.selectedUnit = player.units.findIndex((unit) => unit === newSelected);
+  player.selectedUnit = player.units.indexOf(newSelected);
 };
 
 const startTurn = (state: GameState) => {
@@ -94,7 +116,7 @@ const validateUnitAction = (state: GameState, action: ActionWithUnit) => {
   return unit;
 };
 
-export const handleEndTurn = (state: GameState, action: ActionWithPlayer) => {
+const executeEndTurn = (state: GameState, action: ActionWithPlayer) => {
   validatePlayerAction(state, action);
 
   state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
@@ -107,7 +129,56 @@ export const handleEndTurn = (state: GameState, action: ActionWithPlayer) => {
   startTurn(state);
 };
 
-export const handleMoveUnit = (state: GameState, action: UnitActionMove): MoveUnitResult => {
+const resolveCombatWinner = (state: GameState, winner: Unit, loser: Unit) => {
+  removeUnitFromGame(state, loser);
+
+  if (Math.random() > 0.5) {
+    console.log('Promoted');
+    winner.isVeteran = true;
+  }
+};
+
+const executeAttack = (state: GameState, action: UnitActionMove, attacker: Unit, defenders: Unit[]): MoveUnitResult => {
+  const attackStr = attackStrength(attacker);
+
+  let bestDefender: Unit = defenders[0];
+  let bestDefenseStr = 0;
+
+  const tile = getTileAt(state.masterMap, attacker.x + action.dx, attacker.y + action.dy);
+  const terrain = terrainValueMap[tile.terrain];
+
+  for (const defender of defenders) {
+    const defenseStr = defenseStrength(defender, terrain, false);
+    if (defenseStr > bestDefenseStr) {
+      bestDefender = defender;
+      bestDefenseStr = defenseStr;
+    }
+  }
+
+  const attackRoll = randomIntBelow(attackStr);
+  const defenseRoll = randomIntBelow(bestDefenseStr);
+
+  console.log('Attack and defense str:', attackStr, bestDefenseStr);
+  console.log('Attack and defense roll:', attackRoll, defenseRoll);
+
+  const winner = attackRoll > defenseRoll ? 'Attacker' : 'Defender';
+
+  if (winner === 'Attacker') {
+    resolveCombatWinner(state, attacker, bestDefender);
+  } else {
+    resolveCombatWinner(state, bestDefender, attacker);
+  }
+
+  attacker.movesLeft = Math.max(0, attacker.movesLeft - 3);
+
+  if (attacker.movesLeft === 0) {
+    selectNextUnit(state);
+  }
+
+  return { outcome: 'Combat', attacker, defender: bestDefender, winner, dx: action.dx, dy: action.dy };
+};
+
+const executeMoveUnit = (state: GameState, action: UnitActionMove): MoveUnitResult => {
   const unit = validateUnitAction(state, action);
 
   // Is unit trying to move out of bounds on y-axis?
@@ -120,9 +191,19 @@ export const handleMoveUnit = (state: GameState, action: UnitActionMove): MoveUn
   const targetTile = getTileAt(state.masterMap, newX, newY);
   const prototype = unitPrototypeMap[unit.prototypeId];
 
-  if (targetTile.terrain === TerrainId.Ocean && prototype.type == UnitType.Land) {
+  if (targetTile.terrain === TerrainId.Ocean && prototype.type === UnitType.Land) {
     // Todo: add check if ocean square contains transport
     return { outcome: 'UnitMoveDenied' };
+  }
+
+  for (let i = 0; i < state.players.length; i++) {
+    if (i === action.player) {
+      continue;
+    }
+    const enemyUnitsAtDest = getPlayersUnitsAt(state, i, newX, newY);
+    if (enemyUnitsAtDest.length) {
+      return executeAttack(state, action, unit, enemyUnitsAtDest);
+    }
   }
 
   unit.x = newX;
@@ -135,35 +216,35 @@ export const handleMoveUnit = (state: GameState, action: UnitActionMove): MoveUn
     selectNextUnit(state);
   }
 
-  return { outcome: 'UnitMoved', unit };
+  return { outcome: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
 };
 
-export const handleUnitNoOrder = (state: GameState, action: ActionWithUnit) => {
+const executeUnitNoOrder = (state: GameState, action: ActionWithUnit) => {
   const unit = validateUnitAction(state, action);
   unit.movesLeft = 0;
   selectNextUnit(state);
 };
 
-export const handleUnitWait = (state: GameState, action: ActionWithUnit) => {
+const executeUnitWait = (state: GameState, action: ActionWithUnit) => {
   validateUnitAction(state, action);
   selectNextUnit(state);
 };
 
-/*export const handlePlayerAction = (state: GameState, action: Action) => {
+export const executeAction = (state: GameState, action: Action) => {
   switch (action.type) {
     case 'UnitMove':
-      return handleMoveUnit(state, action);
+      return executeMoveUnit(state, action);
 
     case 'UnitWait':
-      return handleUnitWait(state, action);
+      return executeUnitWait(state, action);
 
     case 'UnitNoOrders':
-      return handleNoOrder(state, action);
+      return executeUnitNoOrder(state, action);
 
     case 'EndTurn':
-      return handleEndTurn(state, action);
+      return executeEndTurn(state, action);
   }
-};*/
+};
 
 export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameState => {
   const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
@@ -220,9 +301,15 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
       terrain = getTileAt(map, x, y).terrain;
     } while (!suitableStartTerrain.includes(terrain) || tries < 100);
 
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
+    //spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
   }
 
+  const a = spawnUnitForPlayer(state, 0, UnitPrototypeId.Knight, 8, 15);
+  a.isVeteran = true;
+
+  const d = spawnUnitForPlayer(state, 1, UnitPrototypeId.Militia, 10, 14);
+  //d.state = UnitState.Fortified;
+  //u.isVeteran = true;
   startTurn(state);
   return state;
 };

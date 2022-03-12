@@ -1,4 +1,4 @@
-import { GameState, getSelectedUnitForPlayer } from './logic/game-state';
+import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController } from './logic/game-state';
 import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
@@ -9,11 +9,13 @@ import {
   setWorldUiGameState,
   uiWorldView,
 } from './ui/ui-worldview';
-import { handleEndTurn, handleMoveUnit, handleUnitNoOrder, handleUnitWait, newGame } from './logic/civ-game';
+import { executeAction, newGame } from './logic/civ-game';
 import { loadJson } from './assets';
-import { americans } from './logic/civilizations';
+import { americans, egyptians } from './logic/civilizations';
 import { popUiEvent, UiEvent } from './ui/ui-event-queue';
 import { unitMoveDirection } from './input-mapping';
+import { aiTick } from './logic/ai';
+import { Action } from './logic/action';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -21,42 +23,43 @@ const localPlayer = 0; // todo don't use hardcoded index for local player
 export const startGame = async () => {
   const newMap = await loadJson<MapTemplate>('/assets/earth.json');
 
-  state = newGame(newMap, [americans]);
-
-  generateSpriteSheets(state.players.map((pl) => pl.civ));
+  state = newGame(newMap, [americans, egyptians]);
+  state.players[localPlayer].controller = PlayerController.LocalHuman;
 
   // Initialize ui
+  generateSpriteSheets(state.players.map((pl) => pl.civ));
   clearUi();
   setWorldUiGameState(state);
   pushUiScreen(uiWorldView);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
-  centerViewport(selectedUnit.x, selectedUnit.y);
+  if (selectedUnit) {
+    centerViewport(selectedUnit.x, selectedUnit.y);
+  }
 };
 
-// eslint-disable-next-line @typescript-eslint/require-await
-const handleMoveEvent = async (dx: number, dy: number): Promise<void> => {
+const handleAction = async (action: Action | undefined): Promise<void> => {
+  if (!action) {
+    return;
+  }
+
+  const result = executeAction(state, action);
   ensureSelectedUnitIsInViewport();
 
-  const player = state.players[localPlayer];
-  const unit = player.units[player.selectedUnit];
-
-  const result = handleMoveUnit(state, { type: 'UnitMove', dx, dy, player: localPlayer, unit: player.selectedUnit });
-
-  await animateUnitMoved(dx, dy, result);
-
-  ensureSelectedUnitIsInViewport();
+  if (result) {
+    await animateUnitMoved(result);
+  }
 };
 
-const handleEvent = async (event: UiEvent): Promise<void> => {
+const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
   // for now ignore events out of turn. There might exist exceptions in the future (like granting audience)
-  if (state.playerInTurn !== localPlayer) {
+  if (!event || state.playerInTurn !== localPlayer) {
     return;
   }
 
   const player = state.players[localPlayer];
   const selectedUnitIdx = player.selectedUnit;
-  const selectedUnit = player.units[selectedUnitIdx];
+  const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
 
   switch (event) {
     case UiEvent.UnitMoveNorth:
@@ -67,32 +70,28 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
     case UiEvent.UnitMoveSouthWest:
     case UiEvent.UnitMoveWest:
     case UiEvent.UnitMoveNorthWest: {
-      if (!selectedUnit) {
+      if (selectedUnitIdx === undefined) {
         return;
       }
+      ensureSelectedUnitIsInViewport();
       const [dx, dy] = unitMoveDirection[event];
-      return handleMoveEvent(dx, dy);
+      return { type: 'UnitMove', dx, dy, player: localPlayer, unit: selectedUnitIdx };
     }
 
     case UiEvent.UnitWait:
-      if (!selectedUnit) {
+      if (selectedUnitIdx === undefined) {
         return;
       }
-      handleUnitWait(state, { player: localPlayer, unit: selectedUnitIdx });
-      ensureSelectedUnitIsInViewport();
-      return;
+      return { type: 'UnitWait', player: localPlayer, unit: selectedUnitIdx };
 
     case UiEvent.UnitNoOrders:
-      if (!selectedUnit) {
+      if (selectedUnitIdx === undefined) {
         return;
       }
-      handleUnitNoOrder(state, { player: localPlayer, unit: selectedUnitIdx });
-      ensureSelectedUnitIsInViewport();
-      return;
+      return { type: 'UnitNoOrders', player: localPlayer, unit: selectedUnitIdx };
 
     case UiEvent.EndTurn:
-      handleEndTurn(state, { player: localPlayer });
-      return;
+      return { type: 'EndTurn', player: localPlayer };
 
     case UiEvent.UnitCenter:
       if (!selectedUnit) {
@@ -100,21 +99,38 @@ const handleEvent = async (event: UiEvent): Promise<void> => {
       }
       centerViewport(selectedUnit.x, selectedUnit.y);
       return;
+
+    default:
+      return;
   }
 };
 
 const logicFrame = () => {
-  const event = popUiEvent();
-
-  if (!event) {
+  if (!state) {
     requestAnimationFrame(logicFrame);
     return;
   }
 
-  handleEvent(event).then(
+  const playerInTurn = getPlayerInTurn(state);
+  let action: Action | undefined = undefined;
+
+  switch (playerInTurn.controller) {
+    case PlayerController.LocalHuman: {
+      const event = popUiEvent();
+      action = uiEventToAction(event);
+      break;
+    }
+
+    case PlayerController.Computer: {
+      action = aiTick(state);
+      break;
+    }
+  }
+
+  handleAction(action).then(
     () => requestAnimationFrame(logicFrame),
     (err) => {
-      console.error(`Failed to process action ${event}: ${err as string}`);
+      console.error(`Failed to process action ${action?.type}: ${err as string}`);
       requestAnimationFrame(logicFrame);
     }
   );

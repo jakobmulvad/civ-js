@@ -1,4 +1,4 @@
-import { animateFrame } from '../animation';
+import { postRenderFrame, preRenderFrame } from '../animation';
 import { waitForAssets } from '../assets';
 import { clearUiEventQueue } from './ui-event-queue';
 
@@ -38,9 +38,9 @@ document.addEventListener('keydown', (evt) => {
   screen?.onKey?.(evt.code);
 });
 
-const canvas: HTMLCanvasElement = document.querySelector('#game-canvas');
+const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 
-canvas.addEventListener('mousedown', (evt) => {
+canvas?.addEventListener('mousedown', (evt) => {
   const canvasBounds = canvas.getBoundingClientRect();
   const screenX = Math.floor((evt.offsetX * 320) / canvasBounds.width);
   const screenY = Math.floor((evt.offsetY * 200) / canvasBounds.height);
@@ -50,8 +50,9 @@ canvas.addEventListener('mousedown', (evt) => {
 });
 
 const frameHandler = (time: number) => {
-  animateFrame(time);
+  preRenderFrame(time);
   uiRender(time);
+  postRenderFrame(time);
   requestAnimationFrame(frameHandler);
 };
 
