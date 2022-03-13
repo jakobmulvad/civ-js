@@ -6,7 +6,8 @@
   "plugins": ["prettier", "@typescript-eslint", "unused-imports"],
   "rules": {
     "prettier/prettier": "error",
-    "unused-imports/no-unused-imports": "error"
+    "unused-imports/no-unused-imports": "error",
+    "curly": "error"
   },
   "extends": [
     "eslint:recommended",

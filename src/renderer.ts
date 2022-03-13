@@ -1,6 +1,5 @@
 import { getImageAsset, ImageAssetKey } from './assets';
 import { Font } from './fonts';
-import { GameState } from './logic/game-state';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -9,11 +8,11 @@ import {
   getTerrainMaskSouthEast,
   getTerrainMaskSouthWest,
   getTileAt,
+  MapTile,
   TerrainId,
 } from './logic/map';
 import { Unit, UnitState } from './logic/units';
 import { palette } from './palette';
-import { MapRenderViewport } from './types';
 
 const terrainSpriteMapIndex = {
   [TerrainId.Desert]: 0,
@@ -111,23 +110,16 @@ export const renderSprite = (
   screenCtx.drawImage(spriteContext.canvas, sx, sy, width, height, dx, dy, width, height);
 };
 
-export const renderTile = (
+export const renderTileTerrain = (
+  ter257: CanvasImageSource,
+  sp257: CanvasImageSource,
   map: GameMap,
-  viewport: MapRenderViewport,
+  tile: MapTile,
   x: number,
   y: number,
-  ter257: CanvasImageSource,
-  sp257: CanvasImageSource
+  screenX: number,
+  screenY: number
 ) => {
-  const tile = getTileAt(map, x, y);
-  const screenX = viewport.screenX + (x - viewport.x) * 16;
-  const screenY = viewport.screenY + (y - viewport.y) * 16;
-
-  if (tile.hidden) {
-    screenCtx.fillRect(screenX, screenY, 16, 16);
-    return;
-  }
-
   switch (tile.terrain) {
     // Rivers are a special case because they also connect to ocean tiles
     case TerrainId.River: {
@@ -209,36 +201,26 @@ export const renderTile = (
   }
 };
 
-export const renderMap = (map: GameMap, viewport: MapRenderViewport) => {
-  const ter257 = getImageAsset('ter257.pic.gif').canvas;
-  const sp257 = getImageAsset('sp257.pic.gif').canvas;
-
-  for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
-    for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
-      renderTile(map, viewport, x, y, ter257, sp257);
-    }
-  }
-};
-
-export const mapCoordToScreenX = (mapWidth: number, viewport: MapRenderViewport, mapX: number): number => {
-  return viewport.screenX + Math.max(mapX - viewport.x, (mapX - viewport.x + mapWidth) % mapWidth) * 16;
-};
-
-export const mapCoordToScreenY = (viewport: MapRenderViewport, mapY: number): number => {
-  return viewport.screenY + (mapY - viewport.y) * 16;
-};
-
 export const renderUnit = (
-  state: GameState,
-  viewport: MapRenderViewport,
-  unit: Unit,
   sp257: CanvasImageSource,
-  offsetX = 0,
-  offsetY = 0
+  unit: Unit,
+  screenX: number,
+  screenY: number,
+  stacked?: boolean
 ) => {
-  const mapWidth = state.masterMap.width;
-  const unitScreenX = mapCoordToScreenX(mapWidth, viewport, unit.x) + offsetX;
-  const unitScreenY = mapCoordToScreenY(viewport, unit.y) + offsetY;
+  if (stacked) {
+    screenCtx.drawImage(
+      unitSpriteSheet.canvas,
+      unit.prototypeId * 16,
+      unit.owner * 16 * 2,
+      16,
+      16,
+      screenX,
+      screenY,
+      16,
+      16
+    );
+  }
 
   screenCtx.drawImage(
     unitSpriteSheet.canvas,
@@ -246,30 +228,37 @@ export const renderUnit = (
     unit.owner * 16 * 2,
     16,
     16,
-    unitScreenX,
-    unitScreenY,
+    screenX - 1,
+    screenY - 1,
     16,
     16
   );
 
   if (unit.state === UnitState.Fortified) {
-    screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, unitScreenX + 1, unitScreenY + 1, 15, 15);
+    screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, screenX + 1, screenY + 1, 15, 15);
   }
 };
 
-export const renderWorld = (state: GameState, viewport: MapRenderViewport, exclude?: Unit) => {
-  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+export const renderTile = (
+  ter257: CanvasImageSource,
+  sp257: CanvasImageSource,
+  map: GameMap,
+  x: number,
+  y: number,
+  screenX: number,
+  screenY: number,
+  units?: Unit[]
+) => {
+  const tile = getTileAt(map, x, y);
 
-  renderMap(state.players[0].map, viewport);
+  if (tile.hidden) {
+    screenCtx.fillRect(screenX, screenY, 16, 16);
+    return;
+  }
 
-  // Render players
-  for (const player of state.players) {
-    // Render units
-    for (const unit of player.units) {
-      if (unit !== exclude) {
-        renderUnit(state, viewport, unit, sp257);
-      }
-    }
+  renderTileTerrain(ter257, sp257, map, tile, x, y, screenX, screenY);
+  if (units?.length) {
+    renderUnit(sp257, units[0], screenX, screenY, units.length > 1);
   }
 };
 

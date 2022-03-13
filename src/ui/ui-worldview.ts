@@ -1,23 +1,20 @@
 import { isAnimating, startAnimation } from '../animation';
 import { fonts } from '../fonts';
-import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from '../logic/game-state';
+import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit, getUnitsAt } from '../logic/game-state';
 import { inputMappingWorldView } from '../input-mapping';
-import { terrainValueMap } from '../logic/map';
+import { getTileAt, terrainValueMap } from '../logic/map';
 import { palette } from '../palette';
 import {
-  mapCoordToScreenX,
-  mapCoordToScreenY,
   renderGrayBox,
   renderSprite,
   renderText,
   renderTextLines,
   renderTile,
+  renderTileTerrain,
   renderUnit,
   renderWindow,
-  renderWorld,
   setFontColor,
 } from '../renderer';
-import { MapRenderViewport } from '../types';
 import { UiScreen } from './ui-controller';
 import { pushUiEvent } from './ui-event-queue';
 import { MoveUnitResult } from '../logic/civ-game';
@@ -30,6 +27,15 @@ let isDirty = true;
 let isBlinking = true;
 const localPlayer = 0;
 let excludeUnitInRender: Unit | undefined;
+
+export type MapRenderViewport = {
+  screenX: number;
+  screenY: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 const viewport: MapRenderViewport = {
   screenX: 320 - 15 * 16,
@@ -78,6 +84,15 @@ export const renderEmpireInfoBox = () => {
   renderText(fonts.main, `${player.gold}$ 0.5.5`, 2, 89); // todo: add gold and tax rates
 };
 
+const mapCoordToScreenX = (x: number): number => {
+  const mapWidth = state.masterMap.width;
+  return viewport.screenX + Math.max(x - viewport.x, (x - viewport.x + mapWidth) % mapWidth) * 16;
+};
+
+const mapCoordToScreenY = (y: number): number => {
+  return viewport.screenY + (y - viewport.y) * 16;
+};
+
 export const renderUnitInfoBox = () => {
   renderGrayBox(0, 97, 80, 103);
 
@@ -119,20 +134,24 @@ export const renderUnitInfoBox = () => {
 export const animateUnitMoved = async (moveResult: MoveUnitResult) => {
   const ter257 = getImageAsset('ter257.pic.gif').canvas;
   const sp257 = getImageAsset('sp257.pic.gif').canvas;
+  isBlinking = false;
 
   switch (moveResult.outcome) {
     case 'UnitMoved': {
       const { dx, dy, unit } = moveResult;
 
+      const screenX = mapCoordToScreenX(unit.x);
+      const screenY = mapCoordToScreenY(unit.y);
+
       excludeUnitInRender = unit;
       await startAnimation({
-        duration: 20 * 16, // 20 ms per frame
+        duration: 15 * 16, // 15 ms per frame
         to: 16,
-        onUpdate: (value) => {
+        onUpdate: () => {
           isDirty = true;
         },
         onRender: (value) => {
-          renderUnit(state, viewport, unit, sp257, -dx * (16 - value), -dy * (16 - value));
+          renderUnit(sp257, unit, screenX - (16 - value) * dx, screenY - (16 - value) * dy);
         },
       });
       excludeUnitInRender = undefined;
@@ -145,76 +164,83 @@ export const animateUnitMoved = async (moveResult: MoveUnitResult) => {
       return;
 
     case 'Combat': {
-      const { dx, dy } = moveResult;
+      const { dx, dy, attacker, defender } = moveResult;
 
-      const mapWidth = state.masterMap.width;
       const loser = moveResult.winner === 'Attacker' ? moveResult.defender : moveResult.attacker;
       const winner = moveResult.winner === 'Attacker' ? moveResult.attacker : moveResult.defender;
-      const loserScreenX = mapCoordToScreenX(mapWidth, viewport, loser.x);
-      const loserScreenY = mapCoordToScreenY(viewport, loser.y);
+      const loserScreenX = mapCoordToScreenX(loser.x);
+      const loserScreenY = mapCoordToScreenY(loser.y);
+      const tileAtLoser = getTileAt(state.masterMap, loser.x, loser.y);
 
       excludeUnitInRender = winner;
+
+      const renderUnitAt = (unit: Unit, offsetX = 0, offsetY = 0) => {
+        renderUnit(sp257, unit, mapCoordToScreenX(unit.x) + offsetX, mapCoordToScreenY(unit.y) + offsetY);
+      };
+
       await startAnimation({
         duration: 30 * 10, // 30 ms per frame
         to: 10,
-        onUpdate: (value) => {
+        onUpdate: () => {
           isDirty = true;
         },
         onRender: (value) => {
-          renderUnit(state, viewport, moveResult.defender, sp257);
-          renderUnit(state, viewport, moveResult.attacker, sp257, dx * value, dy * value);
+          renderUnitAt(defender);
+          renderUnitAt(attacker, value * dx, value * dy);
         },
       });
 
       await startAnimation({
-        duration: 60 * 7,
+        duration: 60 * 7, // 60 ms per frame
         to: 7,
-        onUpdate: (value) => {
+        onUpdate: () => {
           isDirty = true;
         },
         onRender: (value) => {
-          renderTile(state.masterMap, viewport, loser.x, loser.y, ter257, sp257);
-          renderUnit(state, viewport, winner, sp257);
-          renderUnit(state, viewport, loser, sp257);
+          renderTileTerrain(ter257, sp257, state.masterMap, tileAtLoser, loser.x, loser.y, loserScreenX, loserScreenY);
+          renderUnitAt(defender);
+          renderUnitAt(attacker);
           renderSprite('sp257.pic.gif', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
         },
       });
 
       excludeUnitInRender = undefined;
-
-      /*await startAnimation(
-        (frame) => {
-          isDirty = true;
-          renderUnit(state, viewport, loser, sp257);
-
-          if (frame > 11) {
-            moveResult.attacker.screenOffsetX = 0;
-            moveResult.attacker.screenOffsetY = 0;
-            return true;
-          }
-
-          moveResult.attacker.screenOffsetX = dx * frame;
-          moveResult.attacker.screenOffsetY = dy * frame;
-          return false;
-        },
-        33.333,
-        'postRender'
-      ); // 10 frames travel in 300 ms = 30 ms/frame = 33 fps
-
-      await startAnimation(
-        (frame) => {
-          renderTile(state.masterMap, viewport, loser.x, loser.y, ter257, sp257);
-          renderUnit(state, viewport, loser, sp257);
-          renderSprite('sp257.pic.gif', frame * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
-          return frame > 6;
-        },
-        16.667, // 8 frames of animation in 480 ms 60 ms/frame = 16.667 fps
-        'postRender'
-      );*/
-
       return;
     }
   }
+};
+
+const renderWorld = () => {
+  const ter257 = getImageAsset('ter257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+
+  // TODO: don't hardcode local player to index 0
+  const player = state.players[0];
+
+  const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+  const shouldHideSelectedStack = !!selectedUnit && isBlinking && state.playerInTurn === localPlayer;
+
+  // TODO: only draw tiles that are actually updated (dirty rect)
+  for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
+    for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
+      const screenX = mapCoordToScreenX(x);
+      const screenY = mapCoordToScreenY(y);
+      let units: Unit[] | undefined = getUnitsAt(state, x, y, excludeUnitInRender);
+
+      if (
+        units.length &&
+        units[0].owner === localPlayer &&
+        shouldHideSelectedStack &&
+        selectedUnit.x === x &&
+        selectedUnit.y === y
+      ) {
+        units = undefined; // don't render unit stack if it is selected stack and we are blinking
+      }
+
+      renderTile(ter257, sp257, player.map, x, y, screenX, screenY, units);
+    }
+  }
+  renderTile(ter257, sp257, player.map, 10, 10, screenX, screenY, state.players[0].units);
 };
 
 export const uiWorldView: UiScreen = {
@@ -224,6 +250,7 @@ export const uiWorldView: UiScreen = {
     }
 
     if (isAnimating() || state.playerInTurn !== localPlayer) {
+      isBlinking = false;
       return false;
     }
 
@@ -236,9 +263,9 @@ export const uiWorldView: UiScreen = {
     excludeUnitInRender = isBlinking ? getSelectedUnitForPlayer(state, localPlayer) : undefined;
     return true;
   },
-  onRender: (time: number) => {
+  onRender: () => {
     // World view
-    renderWorld(state, viewport, excludeUnitInRender);
+    renderWorld();
 
     // Left info bar
     setFontColor(fonts.main, palette.black);

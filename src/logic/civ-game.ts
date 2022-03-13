@@ -133,7 +133,6 @@ const resolveCombatWinner = (state: GameState, winner: Unit, loser: Unit) => {
   removeUnitFromGame(state, loser);
 
   if (Math.random() > 0.5) {
-    console.log('Promoted');
     winner.isVeteran = true;
   }
 };
@@ -305,6 +304,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
   }
 
   const a = spawnUnitForPlayer(state, 0, UnitPrototypeId.Knight, 8, 15);
+  spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 8, 16);
   a.isVeteran = true;
 
   const d = spawnUnitForPlayer(state, 1, UnitPrototypeId.Militia, 10, 14);

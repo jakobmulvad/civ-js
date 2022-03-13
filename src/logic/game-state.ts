@@ -82,3 +82,18 @@ export const getIndexOfUnitOwner = (state: GameState, unit: Unit): number | unde
     }
   }
 };
+
+export const getUnitsAt = (state: GameState, x: number, y: number, exclude?: Unit | undefined): Unit[] => {
+  const result: Unit[] = [];
+  for (const player of state.players) {
+    for (const unit of player.units) {
+      if (unit.x === x && unit.y === y && unit !== exclude) {
+        result.push(unit);
+      }
+    }
+    if (result.length) {
+      continue; // Units of different players cannot occupy same tile
+    }
+  }
+  return result;
+};
