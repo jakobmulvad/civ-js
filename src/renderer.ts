@@ -247,7 +247,8 @@ export const renderTile = (
   y: number,
   screenX: number,
   screenY: number,
-  units?: Unit[]
+  unit?: Unit | undefined,
+  stacked?: boolean | undefined
 ) => {
   const tile = getTileAt(map, x, y);
 
@@ -257,8 +258,8 @@ export const renderTile = (
   }
 
   renderTileTerrain(ter257, sp257, map, tile, x, y, screenX, screenY);
-  if (units?.length) {
-    renderUnit(sp257, units[0], screenX, screenY, units.length > 1);
+  if (unit) {
+    renderUnit(sp257, unit, screenX, screenY, stacked);
   }
 };
 

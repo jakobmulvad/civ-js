@@ -218,6 +218,7 @@ const renderWorld = () => {
   const player = state.players[0];
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+  const excludeSelected = excludeUnitInRender === selectedUnit;
   const shouldHideSelectedStack = !!selectedUnit && isBlinking && state.playerInTurn === localPlayer;
 
   // TODO: only draw tiles that are actually updated (dirty rect)
@@ -225,22 +226,28 @@ const renderWorld = () => {
     for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
       const screenX = mapCoordToScreenX(x);
       const screenY = mapCoordToScreenY(y);
-      let units: Unit[] | undefined = getUnitsAt(state, x, y, excludeUnitInRender);
+      const units: Unit[] = getUnitsAt(state, x, y, excludeUnitInRender);
+      let [unit] = units;
 
       if (
         units.length &&
         units[0].owner === localPlayer &&
-        shouldHideSelectedStack &&
+        selectedUnit &&
         selectedUnit.x === x &&
         selectedUnit.y === y
       ) {
-        units = undefined; // don't render unit stack if it is selected stack and we are blinking
+        // This is the currently selected stack. Check if we should blink it or just show selected
+        // unit at top.
+        if (shouldHideSelectedStack) {
+          unit = undefined; // don't render unit stack if we are blinking
+        } else if (!excludeSelected) {
+          unit = selectedUnit; // force selected unit on top of stack
+        }
       }
 
-      renderTile(ter257, sp257, player.map, x, y, screenX, screenY, units);
+      renderTile(ter257, sp257, player.map, x, y, screenX, screenY, unit, units.length > 1);
     }
   }
-  renderTile(ter257, sp257, player.map, 10, 10, screenX, screenY, state.players[0].units);
 };
 
 export const uiWorldView: UiScreen = {
