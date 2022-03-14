@@ -39,7 +39,7 @@ export const getSelectedUnit = (state: GameState): Unit | undefined => {
 
 export const getPrototype = (unit: Unit) => unitPrototypeMap[unit.prototypeId];
 
-export const getTileAtUnit = (state: GameState, unit: Unit) => getTileAt(state.masterMap, unit.x, unit.y);
+export const getTileAtUnit = (map: GameMap, unit: Unit) => getTileAt(map, unit.x, unit.y);
 
 export const getPlayersUnitsAt = (state: GameState, player: number, x: number, y: number): Unit[] => {
   const result: Unit[] = [];

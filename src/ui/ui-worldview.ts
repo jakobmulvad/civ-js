@@ -104,8 +104,10 @@ export const renderUnitInfoBox = () => {
 
   if (selectedUnit) {
     const prototype = getPrototype(selectedUnit);
-    const tile = getTileAtUnit(state, selectedUnit);
+    const tile = getTileAtUnit(player.map, selectedUnit);
     const terrain = terrainMap[tile.terrain];
+    const wholeMoves = Math.floor(selectedUnit.movesLeft / 3);
+    const fractionMoves = selectedUnit.movesLeft % 3;
 
     renderTextLines(
       fonts.main,
@@ -113,7 +115,7 @@ export const renderUnitInfoBox = () => {
         player.civ.name,
         prototype.name,
         selectedUnit.isVeteran ? ' Veteran' : undefined,
-        `Moves: ${selectedUnit.movesLeft / 3}`,
+        `Moves: ${fractionMoves === 0 ? wholeMoves : `${wholeMoves}.${fractionMoves}`}`,
         'Berlin',
         `(${terrain.name})`,
         tile.hasRoad ? `(Road)` : undefined,

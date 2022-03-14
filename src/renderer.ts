@@ -43,6 +43,11 @@ const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const screenCtx = canvas?.getContext('2d');
 const unitCanvas = document.createElement('canvas');
 const unitContext = unitCanvas.getContext('2d');
+const centerRoadImageData = new ImageData(
+  new Uint8ClampedArray([...palette.brown, 255, ...palette.brown, 255, ...palette.brown, 255, ...palette.brown, 255]),
+  2,
+  2
+);
 
 if (!canvas || !screenCtx || !unitContext) {
   throw new Error('Failed to initialise renderer');
@@ -132,7 +137,7 @@ export const renderTileRoads = (
   screenX: number,
   screenY: number
 ) => {
-  const drawn = false;
+  let drawn = false;
   const tiles = getTilesAround(map, x, y);
 
   for (let i = 0; i < tiles.length; i++) {
@@ -149,9 +154,16 @@ export const renderTileRoads = (
         16,
         16
       );
+      drawn = true;
     } else if (neighbor.hasRoad) {
       screenCtx.drawImage(sp257, i * 16, 3 * 16, 16, 16, screenX, screenY, 16, 16);
+      drawn = true;
     }
+  }
+
+  if (!drawn) {
+    // Paint center 2x2 road colored if only this tile has road
+    screenCtx.putImageData(centerRoadImageData, screenX + 7, screenY + 7);
   }
 };
 

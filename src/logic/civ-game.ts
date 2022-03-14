@@ -101,6 +101,7 @@ const startTurn = (state: GameState) => {
   for (const unit of player.units) {
     const prototype = unitPrototypeMap[unit.prototypeId];
     unit.movesLeft = prototype.moves * 3;
+    const tile = getTileAtUnit(state.masterMap, unit);
 
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (unit.state) {
@@ -110,7 +111,6 @@ const startTurn = (state: GameState) => {
         unit.progress++;
         if (unit.progress === 4) {
           jobsDone(unit);
-          const tile = getTileAtUnit(state, unit);
           tile.hasIrrigation = true;
         }
         break;
@@ -119,7 +119,6 @@ const startTurn = (state: GameState) => {
         unit.progress++;
         if (unit.progress === 9) {
           jobsDone(unit);
-          const tile = getTileAtUnit(state, unit);
           tile.hasMine = true;
         }
         break;
@@ -128,7 +127,6 @@ const startTurn = (state: GameState) => {
         unit.progress++;
         if (unit.progress === 4) {
           jobsDone(unit);
-          const tile = getTileAtUnit(state, unit);
           const proto = terrainMap[tile.terrain];
           tile.terrain = proto.clearsTo ?? tile.terrain;
         }
@@ -138,7 +136,6 @@ const startTurn = (state: GameState) => {
         unit.progress++;
         if (unit.progress === 1) {
           jobsDone(unit);
-          const tile = getTileAtUnit(state, unit);
           if (tile.hasRoad) {
             tile.hasRailroad = true;
           } else {
@@ -260,11 +257,19 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResu
     }
   }
 
+  const tile = getTileAtUnit(state.masterMap, unit);
+
   unit.x = newX;
   unit.y = newY;
 
-  const terrain = terrainMap[targetTile.terrain];
-  unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
+  if (tile.hasRoad && targetTile.hasRoad) {
+    if (!tile.hasRailroad) {
+      unit.movesLeft -= 1;
+    }
+  } else {
+    const terrain = terrainMap[targetTile.terrain];
+    unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
+  }
 
   discoverMapAround(state, action.player, newX, newY);
   if (unit.movesLeft === 0) {
