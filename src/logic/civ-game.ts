@@ -5,32 +5,46 @@ import { attackStrength, defenseStrength } from './formulas';
 import {
   GameState,
   getPlayersUnitsAt,
+  getPrototype,
   getSelectedUnitForPlayer,
+  getTileAtUnit,
   PlayerController,
   PlayerState,
   removeUnitFromGame,
 } from './game-state';
-import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainValueMap } from './map';
-import { newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from './units';
+import {
+  GameMap,
+  getTerrainAt,
+  getTileAt,
+  getTileIndex,
+  getTilesCross,
+  MapTemplate,
+  TerrainId,
+  terrainMap,
+} from './map';
+import { jobsDone, newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from './units';
 
-export type MoveUnitResult =
-  | {
-      outcome: 'UnitMoved';
-      unit: Unit;
-      dx: number;
-      dy: number;
-    }
-  | {
-      outcome: 'UnitMoveDenied';
-    }
-  | {
-      outcome: 'Combat';
-      dx: number;
-      dy: number;
-      attacker: Unit;
-      defender: Unit;
-      winner: 'Attacker' | 'Defender';
-    };
+export type UnitMoveResult = {
+  result: 'UnitMoved';
+  unit: Unit;
+  dx: number;
+  dy: number;
+};
+
+export type UnitCombatResult = {
+  result: 'Combat';
+  dx: number;
+  dy: number;
+  attacker: Unit;
+  defender: Unit;
+  winner: 'Attacker' | 'Defender';
+};
+
+export type UnitBuildIrrigationResult = {
+  result: 'MissingWaterSupply';
+};
+
+export type ActionResult = UnitMoveResult | UnitCombatResult | UnitBuildIrrigationResult | void;
 
 const discoverMapTile = (state: GameState, player: number, x: number, y: number) => {
   const idx = getTileIndex(state.masterMap, x, y);
@@ -87,6 +101,56 @@ const startTurn = (state: GameState) => {
   for (const unit of player.units) {
     const prototype = unitPrototypeMap[unit.prototypeId];
     unit.movesLeft = prototype.moves * 3;
+
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (unit.state) {
+      case UnitState.BuildingFortress:
+      case UnitState.CleaningPolution:
+      case UnitState.BuildingIrrigation:
+        unit.progress++;
+        if (unit.progress === 4) {
+          jobsDone(unit);
+          const tile = getTileAtUnit(state, unit);
+          tile.hasIrrigation = true;
+        }
+        break;
+
+      case UnitState.BuildingMine:
+        unit.progress++;
+        if (unit.progress === 9) {
+          jobsDone(unit);
+          const tile = getTileAtUnit(state, unit);
+          tile.hasMine = true;
+        }
+        break;
+
+      case UnitState.Clearing:
+        unit.progress++;
+        if (unit.progress === 4) {
+          jobsDone(unit);
+          const tile = getTileAtUnit(state, unit);
+          const proto = terrainMap[tile.terrain];
+          tile.terrain = proto.clearsTo ?? tile.terrain;
+        }
+        break;
+
+      case UnitState.BuildingRoad:
+        unit.progress++;
+        if (unit.progress === 1) {
+          jobsDone(unit);
+          const tile = getTileAtUnit(state, unit);
+          if (tile.hasRoad) {
+            tile.hasRailroad = true;
+          } else {
+            tile.hasRoad = true;
+          }
+        }
+        break;
+
+      case UnitState.Fortifying:
+        unit.state = UnitState.Fortified;
+        break;
+    }
     discoverMapAround(state, state.playerInTurn, unit.x, unit.y);
   }
   selectNextUnit(state);
@@ -102,7 +166,6 @@ const validateUnitAction = (state: GameState, action: ActionWithUnit) => {
   validatePlayerAction(state, action);
 
   const unit = state.players[action.player]?.units[action.unit];
-
   if (!unit) {
     throw new Error(`Player ${action.player} cannot issue unit action on unit ${action.unit} because it doesn't exist`);
   }
@@ -116,19 +179,6 @@ const validateUnitAction = (state: GameState, action: ActionWithUnit) => {
   return unit;
 };
 
-const executeEndTurn = (state: GameState, action: ActionWithPlayer) => {
-  validatePlayerAction(state, action);
-
-  state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
-
-  // New turn
-  if (state.playerInTurn === 0) {
-    state.turn++;
-  }
-
-  startTurn(state);
-};
-
 const resolveCombatWinner = (state: GameState, winner: Unit, loser: Unit) => {
   removeUnitFromGame(state, loser);
 
@@ -137,14 +187,19 @@ const resolveCombatWinner = (state: GameState, winner: Unit, loser: Unit) => {
   }
 };
 
-const executeAttack = (state: GameState, action: UnitActionMove, attacker: Unit, defenders: Unit[]): MoveUnitResult => {
+const executeAttack = (
+  state: GameState,
+  action: UnitActionMove,
+  attacker: Unit,
+  defenders: Unit[]
+): UnitCombatResult => {
   const attackStr = attackStrength(attacker);
 
   let bestDefender: Unit = defenders[0];
   let bestDefenseStr = 0;
 
   const tile = getTileAt(state.masterMap, attacker.x + action.dx, attacker.y + action.dy);
-  const terrain = terrainValueMap[tile.terrain];
+  const terrain = terrainMap[tile.terrain];
 
   for (const defender of defenders) {
     const defenseStr = defenseStrength(defender, terrain, false);
@@ -174,15 +229,15 @@ const executeAttack = (state: GameState, action: UnitActionMove, attacker: Unit,
     selectNextUnit(state);
   }
 
-  return { outcome: 'Combat', attacker, defender: bestDefender, winner, dx: action.dx, dy: action.dy };
+  return { result: 'Combat', attacker, defender: bestDefender, winner, dx: action.dx, dy: action.dy };
 };
 
-const executeMoveUnit = (state: GameState, action: UnitActionMove): MoveUnitResult => {
+const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResult | UnitCombatResult | void => {
   const unit = validateUnitAction(state, action);
 
   // Is unit trying to move out of bounds on y-axis?
   if ((action.dy < 0 && unit.y === 0) || (action.dy > 0 && unit.y === state.masterMap.height - 1)) {
-    return { outcome: 'UnitMoveDenied' };
+    return;
   }
 
   const newX = (unit.x + action.dx + state.masterMap.width) % state.masterMap.width; // wrap-around on x-axis
@@ -192,7 +247,7 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): MoveUnitResu
 
   if (targetTile.terrain === TerrainId.Ocean && prototype.type === UnitType.Land) {
     // Todo: add check if ocean square contains transport
-    return { outcome: 'UnitMoveDenied' };
+    return;
   }
 
   for (let i = 0; i < state.players.length; i++) {
@@ -208,44 +263,108 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): MoveUnitResu
   unit.x = newX;
   unit.y = newY;
 
-  const terrain = terrainValueMap[targetTile.terrain];
+  const terrain = terrainMap[targetTile.terrain];
   unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
 
+  discoverMapAround(state, action.player, newX, newY);
   if (unit.movesLeft === 0) {
     selectNextUnit(state);
   }
 
-  return { outcome: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
+  return { result: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
 };
 
-const executeUnitNoOrder = (state: GameState, action: ActionWithUnit) => {
-  const unit = validateUnitAction(state, action);
-  unit.movesLeft = 0;
-  selectNextUnit(state);
-};
+export const executeAction = (state: GameState, action: Action): ActionResult => {
+  console.log('Executing action', action);
 
-const executeUnitWait = (state: GameState, action: ActionWithUnit) => {
-  validateUnitAction(state, action);
-  selectNextUnit(state);
-};
-
-export const executeAction = (state: GameState, action: Action) => {
   switch (action.type) {
     case 'UnitMove':
       return executeMoveUnit(state, action);
 
     case 'UnitWait':
-      return executeUnitWait(state, action);
+      validateUnitAction(state, action);
+      break;
 
-    case 'UnitNoOrders':
-      return executeUnitNoOrder(state, action);
+    case 'UnitNoOrders': {
+      const unit = validateUnitAction(state, action);
+      unit.movesLeft = 0;
+      break;
+    }
 
-    case 'EndTurn':
-      return executeEndTurn(state, action);
+    case 'EndTurn': {
+      validatePlayerAction(state, action);
+      state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
+
+      if (state.playerInTurn === 0) {
+        // New turn
+        state.turn++;
+      }
+
+      return startTurn(state);
+    }
+
+    case 'UnitBuildIrrigation': {
+      const unit = validateUnitAction(state, action);
+      const unitProto = getPrototype(unit);
+      const tile = getTileAt(state.masterMap, unit.x, unit.y);
+      const terrain = terrainMap[tile.terrain];
+      if (unitProto.isBuilder && terrain.canIrrigate && !tile.hasIrrigation) {
+        const crossTiles = getTilesCross(state.masterMap, unit.x, unit.y);
+        if (!crossTiles.some((tile) => terrainMap[tile.terrain].givesAccessToWater || tile.hasIrrigation)) {
+          return { result: 'MissingWaterSupply' };
+        }
+        unit.state = UnitState.BuildingIrrigation;
+      }
+      break;
+    }
+
+    case 'UnitBuildMine': {
+      const unit = validateUnitAction(state, action);
+      const proto = getPrototype(unit);
+      const tile = getTileAt(state.masterMap, unit.x, unit.y);
+      const terrain = terrainMap[tile.terrain];
+      if (proto.isBuilder && terrain.canMine && !tile.hasMine) {
+        unit.state = UnitState.BuildingMine;
+      }
+      break;
+    }
+
+    case 'UnitBuildRoad': {
+      const unit = validateUnitAction(state, action);
+      const proto = getPrototype(unit);
+      const tile = getTileAt(state.masterMap, unit.x, unit.y);
+      if (proto.isBuilder && tile.terrain !== TerrainId.Ocean && !tile.hasRailroad) {
+        // TODO: check for railroad tech
+        // TODO: check for brudge building tech
+        unit.state = UnitState.BuildingRoad;
+      }
+      break;
+    }
+
+    case 'UnitClear': {
+      const unit = validateUnitAction(state, action);
+      const proto = getPrototype(unit);
+      const terrain = getTerrainAt(state.masterMap, unit.x, unit.y);
+      if (proto.isBuilder && terrain.clearsTo !== undefined) {
+        unit.state = UnitState.Clearing;
+      }
+      break;
+    }
+
+    case 'UnitFortify': {
+      const unit = validateUnitAction(state, action);
+      const proto = getPrototype(unit);
+      if (proto.isCivil) {
+        return;
+      }
+      unit.state = UnitState.Fortifying;
+    }
   }
+  selectNextUnit(state);
 };
 
 export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameState => {
+  console.log('New game');
   const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 
   const map: GameMap = {
@@ -303,13 +422,8 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     //spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
   }
 
-  const a = spawnUnitForPlayer(state, 0, UnitPrototypeId.Knight, 8, 15);
-  spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 8, 16);
-  a.isVeteran = true;
+  spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
 
-  const d = spawnUnitForPlayer(state, 1, UnitPrototypeId.Militia, 10, 14);
-  //d.state = UnitState.Fortified;
-  //u.isVeteran = true;
   startTurn(state);
   return state;
 };

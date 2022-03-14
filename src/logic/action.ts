@@ -10,8 +10,15 @@ export type PlayerAction = {
   type: 'EndTurn';
 } & ActionWithPlayer;
 
-export type UnitAction<T = 'UnitWait' | 'UnitNoOrders'> = {
-  type: T;
+export type UnitAction = {
+  type:
+    | 'UnitWait'
+    | 'UnitNoOrders'
+    | 'UnitBuildRoad'
+    | 'UnitBuildIrrigation'
+    | 'UnitBuildMine'
+    | 'UnitClear'
+    | 'UnitFortify';
 } & ActionWithUnit;
 
 export type UnitActionMove = {

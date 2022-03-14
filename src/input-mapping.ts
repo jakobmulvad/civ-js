@@ -18,6 +18,10 @@ export const inputMappingWorldView: Record<string, UiEvent | undefined> = {
   KeyW: UiEvent.UnitWait,
   KeyC: UiEvent.UnitCenter,
   Enter: UiEvent.EndTurn,
+  KeyR: UiEvent.UnitBuildRoad,
+  KeyI: UiEvent.UnitBuildIrrigationOrClear,
+  KeyM: UiEvent.UnitBuildMine,
+  KeyF: UiEvent.UnitFortifyOrBuildFortress,
 };
 
 export const unitMoveDirection = {

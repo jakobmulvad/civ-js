@@ -1,5 +1,5 @@
 import { getImageAsset, ImageAssetKey } from './assets';
-import { Font } from './fonts';
+import { Font, fonts } from './fonts';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -8,6 +8,7 @@ import {
   getTerrainMaskSouthEast,
   getTerrainMaskSouthWest,
   getTileAt,
+  getTilesAround,
   MapTile,
   TerrainId,
 } from './logic/map';
@@ -27,11 +28,23 @@ const terrainSpriteMapIndex = {
   [TerrainId.Jungle]: 9,
 };
 
+const direction = [
+  [0, -1],
+  [1, -1],
+  [1, 0],
+  [1, 1],
+  [0, 1],
+  [-1, 1],
+  [-1, 0],
+  [-1, -1],
+];
+
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const screenCtx = canvas?.getContext('2d');
-const unitSpriteSheet = document.createElement('canvas').getContext('2d');
+const unitCanvas = document.createElement('canvas');
+const unitContext = unitCanvas.getContext('2d');
 
-if (!canvas || !screenCtx || !unitSpriteSheet?.canvas) {
+if (!canvas || !screenCtx || !unitContext) {
   throw new Error('Failed to initialise renderer');
 }
 
@@ -49,13 +62,13 @@ export const generateSpriteSheets = (
   const bWidth = 20 * 16;
   const bHeight = 2 * 16;
 
-  unitSpriteSheet.canvas.width = bWidth;
-  unitSpriteSheet.canvas.height = bHeight * colors.length;
+  unitCanvas.width = bWidth;
+  unitCanvas.height = bHeight * colors.length;
 
   colors.forEach((color, index) => {
-    unitSpriteSheet.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
+    unitContext.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
 
-    const imageData = unitSpriteSheet.getImageData(0, index * bHeight, bWidth, bHeight);
+    const imageData = unitContext.getImageData(0, index * bHeight, bWidth, bHeight);
     const { data } = imageData;
 
     const [pr, pg, pb] = color.primaryColor;
@@ -93,7 +106,7 @@ export const generateSpriteSheets = (
       }
     }
 
-    unitSpriteSheet.putImageData(imageData, 0, index * bHeight);
+    unitContext.putImageData(imageData, 0, index * bHeight);
   });
 };
 
@@ -110,8 +123,7 @@ export const renderSprite = (
   screenCtx.drawImage(spriteContext.canvas, sx, sy, width, height, dx, dy, width, height);
 };
 
-export const renderTileTerrain = (
-  ter257: CanvasImageSource,
+export const renderTileRoads = (
   sp257: CanvasImageSource,
   map: GameMap,
   tile: MapTile,
@@ -120,17 +132,44 @@ export const renderTileTerrain = (
   screenX: number,
   screenY: number
 ) => {
-  switch (tile.terrain) {
-    // Rivers are a special case because they also connect to ocean tiles
-    case TerrainId.River: {
-      screenCtx.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
+  const drawn = false;
+  const tiles = getTilesAround(map, x, y);
 
-      const riverMask = getTerrainMaskCross(map, x, y, TerrainId.River);
-      const oceanMask = getTerrainMaskCross(map, x, y, TerrainId.Ocean);
-      screenCtx.drawImage(sp257, (riverMask | oceanMask) * 16, 4 * 16, 16, 16, screenX, screenY, 16, 16);
-      break;
+  for (let i = 0; i < tiles.length; i++) {
+    const neighbor = tiles[i];
+    if (tile.hasRailroad && neighbor.hasRailroad) {
+      screenCtx.drawImage(
+        sp257,
+        (i + 8) * 16,
+        6 * 16,
+        16,
+        16,
+        screenX + direction[i][0],
+        screenY + direction[i][1],
+        16,
+        16
+      );
+    } else if (neighbor.hasRoad) {
+      screenCtx.drawImage(sp257, i * 16, 3 * 16, 16, 16, screenX, screenY, 16, 16);
     }
+  }
+};
 
+export const renderTileTerrain = (
+  ter257: CanvasImageSource,
+  sp257: CanvasImageSource,
+  map: GameMap,
+  x: number,
+  y: number,
+  screenX: number,
+  screenY: number
+) => {
+  const tile = getTileAt(map, x, y);
+  if (tile.hidden || tile.terrain === TerrainId.Void) {
+    screenCtx.fillRect(screenX, screenY, 16, 16);
+    return;
+  }
+  switch (tile.terrain) {
     // Ocean tiles are split up in 4 8x8 tiles, one for each corner of the 16x16 tile
     case TerrainId.Ocean: {
       const nwMask = getTerrainMaskNorthWest(map, x, y, TerrainId.Ocean);
@@ -165,23 +204,36 @@ export const renderTileTerrain = (
       break;
     }
 
-    case TerrainId.Void:
-      screenCtx.fillRect(screenX, screenY, 16, 16);
-      break;
-
     default: {
       // First draw base grass background, then add TerrainId.specific overlay
       screenCtx.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
 
-      const terrainMask = getTerrainMaskCross(map, x, y, tile.terrain);
+      if (tile.hasIrrigation) {
+        screenCtx.drawImage(sp257, 4 * 16, 2 * 16, 16, 16, screenX, screenY, 16, 16);
+      }
+
+      let terrainMask = getTerrainMaskCross(map, x, y, tile.terrain);
+
+      // Rivers are a special case because they also connect to ocean tiles - and are on a different sprite sheet
+      if (tile.terrain === TerrainId.River) {
+        terrainMask |= getTerrainMaskCross(map, x, y, TerrainId.Ocean);
+        screenCtx.drawImage(sp257, terrainMask * 16, 4 * 16, 16, 16, screenX, screenY, 16, 16);
+        break;
+      }
+
       const terrainOffset = terrainSpriteMapIndex[tile.terrain];
       screenCtx.drawImage(ter257, terrainMask * 16, terrainOffset * 16, 16, 16, screenX, screenY, 16, 16);
+
+      if (tile.hasMine) {
+        screenCtx.drawImage(sp257, 5 * 16, 2 * 16, 16, 16, screenX, screenY, 16, 16);
+      }
 
       if (tile.terrain === TerrainId.Grassland && tile.extraShield) {
         screenCtx.drawImage(sp257, 9 * 16 + 8 + 1, 2 * 16 + 8 + 1, 7, 7, screenX + 4, screenY + 4, 7, 7);
       } else if (tile.specialResource) {
         screenCtx.drawImage(sp257, terrainOffset * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
       }
+
       break;
     }
   }
@@ -199,6 +251,17 @@ export const renderTileTerrain = (
   if (getTileAt(map, x - 1, y).hidden) {
     screenCtx.drawImage(sp257, 8 * 16, 8 * 16, 16, 16, screenX, screenY, 16, 16);
   }
+
+  if (tile.hasRoad) {
+    renderTileRoads(sp257, map, tile, x, y, screenX, screenY);
+  }
+};
+
+export const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
+  setFontColor(fonts.main, palette.black);
+  renderText(fonts.main, letter, screenX + 5, screenY + 9);
+  setFontColor(fonts.main, palette.white);
+  renderText(fonts.main, letter, screenX + 5, screenY + 8);
 };
 
 export const renderUnit = (
@@ -208,58 +271,32 @@ export const renderUnit = (
   screenY: number,
   stacked?: boolean
 ) => {
+  const unitOffset = unit.prototypeId * 16;
+  const ownerOffset = unit.owner * 16 * 2;
+  screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
+
   if (stacked) {
-    screenCtx.drawImage(
-      unitSpriteSheet.canvas,
-      unit.prototypeId * 16,
-      unit.owner * 16 * 2,
-      16,
-      16,
-      screenX,
-      screenY,
-      16,
-      16
-    );
+    screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
   }
 
-  screenCtx.drawImage(
-    unitSpriteSheet.canvas,
-    unit.prototypeId * 16,
-    unit.owner * 16 * 2,
-    16,
-    16,
-    screenX - 1,
-    screenY - 1,
-    16,
-    16
-  );
-
-  if (unit.state === UnitState.Fortified) {
-    screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, screenX + 1, screenY + 1, 15, 15);
-  }
-};
-
-export const renderTile = (
-  ter257: CanvasImageSource,
-  sp257: CanvasImageSource,
-  map: GameMap,
-  x: number,
-  y: number,
-  screenX: number,
-  screenY: number,
-  unit?: Unit | undefined,
-  stacked?: boolean | undefined
-) => {
-  const tile = getTileAt(map, x, y);
-
-  if (tile.hidden) {
-    screenCtx.fillRect(screenX, screenY, 16, 16);
-    return;
-  }
-
-  renderTileTerrain(ter257, sp257, map, tile, x, y, screenX, screenY);
-  if (unit) {
-    renderUnit(sp257, unit, screenX, screenY, stacked);
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (unit.state) {
+    case UnitState.Fortified:
+      screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, screenX + 1, screenY + 1, 15, 15);
+      break;
+    case UnitState.Fortifying:
+      renderUnitLetter('F', screenX, screenY);
+      break;
+    case UnitState.Clearing:
+    case UnitState.BuildingIrrigation:
+      renderUnitLetter('I', screenX, screenY);
+      break;
+    case UnitState.BuildingMine:
+      renderUnitLetter('M', screenX, screenY);
+      break;
+    case UnitState.BuildingRoad:
+      renderUnitLetter('R', screenX, screenY);
+      break;
   }
 };
 
@@ -316,7 +353,7 @@ const renderBorder = (destination: ImageData) => {
   let topRowIndex = 0;
   let bottomRowIndex = (height - 1) * width * 4;
 
-  for (let dx = 0; dx < width; dx++) {
+  for (let dx = 0; dx < width - 1; dx++) {
     dstData[topRowIndex++] = palette.grayDark[0];
     dstData[topRowIndex++] = palette.grayDark[1];
     dstData[topRowIndex++] = palette.grayDark[2];
@@ -326,6 +363,10 @@ const renderBorder = (destination: ImageData) => {
     dstData[bottomRowIndex++] = palette.white[2];
     dstData[bottomRowIndex++] = 255;
   }
+  dstData[bottomRowIndex++] = palette.grayDark[0];
+  dstData[bottomRowIndex++] = palette.grayDark[1];
+  dstData[bottomRowIndex++] = palette.grayDark[2];
+  dstData[bottomRowIndex++] = 255;
 
   let leftColumnIndex = width * 4;
   let rightColumnIndex = (width - 1) * 4;

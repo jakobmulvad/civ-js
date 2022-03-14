@@ -18,9 +18,13 @@ export type Terrain = {
   name: string;
   movementCost: number;
   defensiveFactor?: number;
+  canIrrigate?: boolean;
+  canMine?: boolean;
+  clearsTo?: TerrainId;
+  givesAccessToWater?: boolean;
 };
 
-export const terrainValueMap: Record<TerrainId, Terrain> = {
+export const terrainMap: Record<TerrainId, Terrain> = {
   [TerrainId.Void]: {
     name: 'VOID',
     movementCost: 0,
@@ -28,20 +32,24 @@ export const terrainValueMap: Record<TerrainId, Terrain> = {
   [TerrainId.Ocean]: {
     name: 'Ocean',
     movementCost: 1,
+    givesAccessToWater: true,
   },
   [TerrainId.Forest]: {
     name: 'Forest',
     movementCost: 2,
     defensiveFactor: 1.5,
+    clearsTo: TerrainId.Plains,
   },
   [TerrainId.Swamp]: {
     name: 'Swamp',
     movementCost: 2,
     defensiveFactor: 1.5,
+    clearsTo: TerrainId.Grassland,
   },
   [TerrainId.Plains]: {
     name: 'Plains',
     movementCost: 1,
+    canIrrigate: true,
   },
   [TerrainId.Tundra]: {
     name: 'Tundra',
@@ -51,29 +59,38 @@ export const terrainValueMap: Record<TerrainId, Terrain> = {
     name: 'River',
     movementCost: 1,
     defensiveFactor: 1.5,
+    canIrrigate: true,
+    givesAccessToWater: true,
   },
   [TerrainId.Grassland]: {
     name: 'Grassland',
     movementCost: 1,
+    canIrrigate: true,
   },
   [TerrainId.Jungle]: {
     name: 'Jungle',
     movementCost: 2,
     defensiveFactor: 1.5,
+    clearsTo: TerrainId.Grassland,
   },
   [TerrainId.Hills]: {
     name: 'Hills',
     movementCost: 2,
     defensiveFactor: 2,
+    canMine: true,
+    canIrrigate: true,
   },
   [TerrainId.Mountains]: {
     name: 'Mountains',
     movementCost: 3,
     defensiveFactor: 3,
+    canMine: true,
   },
   [TerrainId.Desert]: {
     name: 'Desert',
     movementCost: 1,
+    canMine: true,
+    canIrrigate: true,
   },
   [TerrainId.Arctic]: {
     name: 'Arctic',
@@ -86,6 +103,7 @@ export type MapTile = {
   hasRailroad?: boolean;
   hasRoad?: boolean;
   hasIrrigation?: boolean;
+  hasMine?: boolean;
   hidden?: boolean;
   specialResource?: boolean;
   extraShield?: boolean;
@@ -118,6 +136,34 @@ export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   }
   x = (x + map.width) % map.width; // wrap-around on x-axis
   return map.tiles[x + y * map.width];
+};
+
+export const getTilesCross = (map: GameMap, x: number, y: number): MapTile[] => {
+  return [
+    getTileAt(map, x, y),
+    getTileAt(map, x, y - 1),
+    getTileAt(map, x + 1, y),
+    getTileAt(map, x, y + 1),
+    getTileAt(map, x - 1, y),
+  ];
+};
+
+export const getTilesAround = (map: GameMap, x: number, y: number): MapTile[] => {
+  return [
+    getTileAt(map, x, y - 1),
+    getTileAt(map, x + 1, y - 1),
+    getTileAt(map, x + 1, y),
+    getTileAt(map, x + 1, y + 1),
+    getTileAt(map, x, y + 1),
+    getTileAt(map, x - 1, y + 1),
+    getTileAt(map, x - 1, y),
+    getTileAt(map, x - 1, y - 1),
+  ];
+};
+
+export const getTerrainAt = (map: GameMap, x: number, y: number): Terrain => {
+  const tile = getTileAt(map, x, y);
+  return terrainMap[tile.terrain];
 };
 
 export const getTileIndex = (map: GameMap, x: number, y: number): number => {

@@ -11,6 +11,7 @@ const untypedPalette = {
   yellowDark: [142, 89, 40],
   blue: [121, 142, 255],
   blueDark: [48, 77, 178],
+  brown: [142, 89, 40], // roads
 };
 
 // todo: type correctly so we get a type error if providing anything other than [number, number, number] in above map

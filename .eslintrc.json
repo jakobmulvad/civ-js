@@ -7,7 +7,8 @@
   "rules": {
     "prettier/prettier": "error",
     "unused-imports/no-unused-imports": "error",
-    "curly": "error"
+    "curly": "error",
+    "@typescript-eslint/switch-exhaustiveness-check": "error"
   },
   "extends": [
     "eslint:recommended",

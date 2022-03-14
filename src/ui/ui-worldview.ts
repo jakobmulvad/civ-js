@@ -2,14 +2,13 @@ import { isAnimating, startAnimation } from '../animation';
 import { fonts } from '../fonts';
 import { GameState, getPrototype, getSelectedUnitForPlayer, getTileAtUnit, getUnitsAt } from '../logic/game-state';
 import { inputMappingWorldView } from '../input-mapping';
-import { getTileAt, terrainValueMap } from '../logic/map';
+import { terrainMap } from '../logic/map';
 import { palette } from '../palette';
 import {
   renderGrayBox,
   renderSprite,
   renderText,
   renderTextLines,
-  renderTile,
   renderTileTerrain,
   renderUnit,
   renderWindow,
@@ -17,10 +16,10 @@ import {
 } from '../renderer';
 import { UiScreen } from './ui-controller';
 import { pushUiEvent } from './ui-event-queue';
-import { MoveUnitResult } from '../logic/civ-game';
 import { turnToYear } from '../logic/formulas';
 import { Unit } from '../logic/units';
 import { getImageAsset } from '../assets';
+import { UnitCombatResult, UnitMoveResult } from '../logic/civ-game';
 
 let state: GameState;
 let isDirty = true;
@@ -106,7 +105,7 @@ export const renderUnitInfoBox = () => {
   if (selectedUnit) {
     const prototype = getPrototype(selectedUnit);
     const tile = getTileAtUnit(state, selectedUnit);
-    const terrain = terrainValueMap[tile.terrain];
+    const terrain = terrainMap[tile.terrain];
 
     renderTextLines(
       fonts.main,
@@ -117,6 +116,10 @@ export const renderUnitInfoBox = () => {
         `Moves: ${selectedUnit.movesLeft / 3}`,
         'Berlin',
         `(${terrain.name})`,
+        tile.hasRoad ? `(Road)` : undefined,
+        tile.hasRailroad ? `(Railroad)` : undefined,
+        tile.hasIrrigation ? `(Irrigation)` : undefined,
+        tile.hasMine ? `(Mine)` : undefined,
       ],
       3,
       99
@@ -131,83 +134,73 @@ export const renderUnitInfoBox = () => {
   }
 };
 
-export const animateUnitMoved = async (moveResult: MoveUnitResult) => {
-  const ter257 = getImageAsset('ter257.pic.gif').canvas;
+export const animateUnitMoved = async (result: UnitMoveResult) => {
   const sp257 = getImageAsset('sp257.pic.gif').canvas;
   isBlinking = false;
 
-  switch (moveResult.outcome) {
-    case 'UnitMoved': {
-      const { dx, dy, unit } = moveResult;
+  const { dx, dy, unit } = result;
 
-      const screenX = mapCoordToScreenX(unit.x);
-      const screenY = mapCoordToScreenY(unit.y);
+  const screenX = mapCoordToScreenX(unit.x);
+  const screenY = mapCoordToScreenY(unit.y);
 
-      excludeUnitInRender = unit;
-      await startAnimation({
-        duration: 15 * 16, // 15 ms per frame
-        to: 16,
-        onUpdate: () => {
-          isDirty = true;
-        },
-        onRender: (value) => {
-          renderUnit(sp257, unit, screenX - (16 - value) * dx, screenY - (16 - value) * dy);
-        },
-      });
-      excludeUnitInRender = undefined;
+  excludeUnitInRender = unit;
+  await startAnimation({
+    duration: 15 * 16, // 15 ms per frame
+    to: 16,
+    onUpdate: () => {
+      isDirty = true;
+    },
+    onRender: (value) => {
+      renderUnit(sp257, unit, screenX - (16 - value) * dx, screenY - (16 - value) * dy);
+    },
+  });
+  excludeUnitInRender = undefined;
+};
 
-      return;
-    }
+export const animateCombat = async (result: UnitCombatResult) => {
+  const ter257 = getImageAsset('ter257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+  const { dx, dy, attacker, defender } = result;
 
-    case 'UnitMoveDenied':
-      // do nothing
-      return;
+  const loser = result.winner === 'Attacker' ? defender : attacker;
+  const winner = result.winner === 'Attacker' ? attacker : defender;
+  const loserScreenX = mapCoordToScreenX(loser.x);
+  const loserScreenY = mapCoordToScreenY(loser.y);
 
-    case 'Combat': {
-      const { dx, dy, attacker, defender } = moveResult;
+  excludeUnitInRender = winner;
 
-      const loser = moveResult.winner === 'Attacker' ? moveResult.defender : moveResult.attacker;
-      const winner = moveResult.winner === 'Attacker' ? moveResult.attacker : moveResult.defender;
-      const loserScreenX = mapCoordToScreenX(loser.x);
-      const loserScreenY = mapCoordToScreenY(loser.y);
-      const tileAtLoser = getTileAt(state.masterMap, loser.x, loser.y);
+  const renderUnitAt = (unit: Unit, offsetX = 0, offsetY = 0) => {
+    renderUnit(sp257, unit, mapCoordToScreenX(unit.x) + offsetX, mapCoordToScreenY(unit.y) + offsetY);
+  };
 
-      excludeUnitInRender = winner;
+  await startAnimation({
+    duration: 30 * 10, // 30 ms per frame
+    to: 10,
+    onUpdate: () => {
+      isDirty = true;
+    },
+    onRender: (value) => {
+      renderUnitAt(defender);
+      renderUnitAt(attacker, value * dx, value * dy);
+    },
+  });
 
-      const renderUnitAt = (unit: Unit, offsetX = 0, offsetY = 0) => {
-        renderUnit(sp257, unit, mapCoordToScreenX(unit.x) + offsetX, mapCoordToScreenY(unit.y) + offsetY);
-      };
+  await startAnimation({
+    duration: 60 * 7, // 60 ms per frame
+    to: 7,
+    onUpdate: () => {
+      isDirty = true;
+    },
+    onRender: (value) => {
+      renderTileTerrain(ter257, sp257, state.masterMap, loser.x, loser.y, loserScreenX, loserScreenY);
+      renderUnitAt(defender);
+      renderUnitAt(attacker);
+      renderSprite('sp257.pic.gif', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
+    },
+  });
 
-      await startAnimation({
-        duration: 30 * 10, // 30 ms per frame
-        to: 10,
-        onUpdate: () => {
-          isDirty = true;
-        },
-        onRender: (value) => {
-          renderUnitAt(defender);
-          renderUnitAt(attacker, value * dx, value * dy);
-        },
-      });
-
-      await startAnimation({
-        duration: 60 * 7, // 60 ms per frame
-        to: 7,
-        onUpdate: () => {
-          isDirty = true;
-        },
-        onRender: (value) => {
-          renderTileTerrain(ter257, sp257, state.masterMap, tileAtLoser, loser.x, loser.y, loserScreenX, loserScreenY);
-          renderUnitAt(defender);
-          renderUnitAt(attacker);
-          renderSprite('sp257.pic.gif', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
-        },
-      });
-
-      excludeUnitInRender = undefined;
-      return;
-    }
-  }
+  excludeUnitInRender = undefined;
+  return;
 };
 
 const renderWorld = () => {
@@ -216,36 +209,38 @@ const renderWorld = () => {
 
   // TODO: don't hardcode local player to index 0
   const player = state.players[0];
+  const { map } = player;
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   const excludeSelected = excludeUnitInRender === selectedUnit;
   const shouldHideSelectedStack = !!selectedUnit && isBlinking && state.playerInTurn === localPlayer;
+  const mapWidth = state.masterMap.width;
 
   // TODO: only draw tiles that are actually updated (dirty rect)
   for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
     for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
-      const screenX = mapCoordToScreenX(x);
+      const mapX = (x + mapWidth) % mapWidth;
+      const screenX = mapCoordToScreenX(mapX);
       const screenY = mapCoordToScreenY(y);
-      const units: Unit[] = getUnitsAt(state, x, y, excludeUnitInRender);
-      let [unit] = units;
+      const units: Unit[] = getUnitsAt(state, mapX, y, excludeUnitInRender);
 
-      if (
-        units.length &&
-        units[0].owner === localPlayer &&
-        selectedUnit &&
-        selectedUnit.x === x &&
-        selectedUnit.y === y
-      ) {
-        // This is the currently selected stack. Check if we should blink it or just show selected
-        // unit at top.
+      renderTileTerrain(ter257, sp257, map, x, y, screenX, screenY);
+
+      if (!units.length) {
+        continue; // skip unit rendering
+      }
+
+      let unit: Unit = units[0];
+      if (unit.owner === localPlayer && selectedUnit && selectedUnit.x === mapX && selectedUnit.y === y) {
+        // This is the currently selected stack. Check if we should blink it or just show selected unit at top.
         if (shouldHideSelectedStack) {
-          unit = undefined; // don't render unit stack if we are blinking
+          continue; // don't render unit stack if we are blinking
         } else if (!excludeSelected) {
           unit = selectedUnit; // force selected unit on top of stack
         }
       }
 
-      renderTile(ter257, sp257, player.map, x, y, screenX, screenY, unit, units.length > 1);
+      renderUnit(sp257, unit, screenX, screenY, units.length > 1);
     }
   }
 };

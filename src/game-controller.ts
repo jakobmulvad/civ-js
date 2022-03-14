@@ -1,8 +1,9 @@
 import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController } from './logic/game-state';
-import { MapTemplate } from './logic/map';
+import { getTerrainAt, MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
 import {
+  animateCombat,
   animateUnitMoved,
   centerViewport,
   ensureSelectedUnitIsInViewport,
@@ -46,8 +47,23 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
   const result = executeAction(state, action);
   ensureSelectedUnitIsInViewport();
 
-  if (result) {
-    await animateUnitMoved(result);
+  if (!result) {
+    return;
+  }
+
+  switch (result.result) {
+    case 'UnitMoved':
+      await animateUnitMoved(result);
+      return;
+
+    case 'Combat':
+      await animateCombat(result);
+      return;
+
+    case 'MissingWaterSupply':
+      // TODO: display warning
+      console.log('MissingWaterSupply!');
+      return;
   }
 };
 
@@ -57,9 +73,19 @@ const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
     return;
   }
 
+  console.log('UiEvent:', event);
+
+  if (event === UiEvent.EndTurn) {
+    return { type: 'EndTurn', player: localPlayer };
+  }
+
   const player = state.players[localPlayer];
   const selectedUnitIdx = player.selectedUnit;
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
+
+  if (!selectedUnit || selectedUnitIdx === undefined) {
+    return;
+  }
 
   switch (event) {
     case UiEvent.UnitMoveNorth:
@@ -70,28 +96,36 @@ const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
     case UiEvent.UnitMoveSouthWest:
     case UiEvent.UnitMoveWest:
     case UiEvent.UnitMoveNorthWest: {
-      if (selectedUnitIdx === undefined) {
-        return;
-      }
       ensureSelectedUnitIsInViewport();
       const [dx, dy] = unitMoveDirection[event];
       return { type: 'UnitMove', dx, dy, player: localPlayer, unit: selectedUnitIdx };
     }
 
     case UiEvent.UnitWait:
-      if (selectedUnitIdx === undefined) {
-        return;
-      }
       return { type: 'UnitWait', player: localPlayer, unit: selectedUnitIdx };
 
     case UiEvent.UnitNoOrders:
-      if (selectedUnitIdx === undefined) {
-        return;
-      }
       return { type: 'UnitNoOrders', player: localPlayer, unit: selectedUnitIdx };
 
-    case UiEvent.EndTurn:
-      return { type: 'EndTurn', player: localPlayer };
+    case UiEvent.UnitFortifyOrBuildFortress:
+      return { type: 'UnitFortify', player: localPlayer, unit: selectedUnitIdx };
+
+    case UiEvent.UnitBuildIrrigationOrClear: {
+      const terrain = getTerrainAt(state.masterMap, selectedUnit.x, selectedUnit.y);
+      if (terrain.canIrrigate) {
+        return { type: 'UnitBuildIrrigation', player: localPlayer, unit: selectedUnitIdx };
+      }
+      if (terrain.clearsTo !== undefined) {
+        return { type: 'UnitClear', player: localPlayer, unit: selectedUnitIdx };
+      }
+      return;
+    }
+
+    case UiEvent.UnitBuildMine:
+      return { type: 'UnitBuildMine', player: localPlayer, unit: selectedUnitIdx };
+
+    case UiEvent.UnitBuildRoad:
+      return { type: 'UnitBuildRoad', player: localPlayer, unit: selectedUnitIdx };
 
     case UiEvent.UnitCenter:
       if (!selectedUnit) {
@@ -125,6 +159,10 @@ const logicFrame = () => {
       action = aiTick(state);
       break;
     }
+
+    case PlayerController.Remote:
+      // TODO: implement
+      throw new Error('Remote player not implemented');
   }
 
   handleAction(action).then(

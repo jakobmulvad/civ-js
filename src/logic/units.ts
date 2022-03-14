@@ -24,6 +24,7 @@ export enum UnitState {
   BuildingIrrigation,
   BuildingMine,
   BuildingFortress,
+  Clearing,
   CleaningPolution,
 }
 
@@ -33,6 +34,8 @@ export type UnitPrototype = {
   defense: number;
   moves: number;
   type: UnitType;
+  isBuilder?: boolean;
+  isCivil?: boolean; // cannot be fortified
 };
 
 export type Unit = {
@@ -53,6 +56,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     defense: 1,
     moves: 1,
     type: UnitType.Land,
+    isBuilder: true,
+    isCivil: true,
   },
   [UnitPrototypeId.Militia]: {
     name: 'Militia',
@@ -116,4 +121,10 @@ export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number, owne
     progress: 0,
     owner,
   };
+};
+
+export const jobsDone = (unit: Unit) => {
+  unit.movesLeft = 0;
+  unit.progress = 0;
+  unit.state = UnitState.Idle;
 };

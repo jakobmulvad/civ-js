@@ -10,6 +10,10 @@ export enum UiEvent {
   UnitNoOrders = 'UnitNoOrders',
   UnitWait = 'UnitWait',
   UnitCenter = 'UnitCenter',
+  UnitBuildRoad = 'UnitBuildRoad',
+  UnitBuildIrrigationOrClear = 'UnitBuildIrrigationOrClear',
+  UnitBuildMine = 'UnitBuildMine',
+  UnitFortifyOrBuildFortress = 'UnitFortifyOrBuildFortress',
   EndTurn = 'EndTurn',
 }
 
