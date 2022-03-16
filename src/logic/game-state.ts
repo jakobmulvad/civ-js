@@ -1,3 +1,4 @@
+import { City } from './city';
 import { Civilization } from './civilizations';
 import { GameMap, getTileAt } from './map';
 import { Unit, unitPrototypeMap } from './units';
@@ -12,6 +13,7 @@ export type PlayerState = {
   civ: Civilization;
   map: GameMap;
   units: Unit[];
+  cities: City[];
   controller: PlayerController;
   selectedUnit: number | undefined;
   gold: number;

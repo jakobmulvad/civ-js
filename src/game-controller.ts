@@ -1,15 +1,14 @@
-import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController } from './logic/game-state';
+import {
+  GameState,
+  getPlayerInTurn,
+  getPrototype,
+  getSelectedUnitForPlayer,
+  PlayerController,
+} from './logic/game-state';
 import { getTerrainAt, MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
-import {
-  animateCombat,
-  animateUnitMoved,
-  centerViewport,
-  ensureSelectedUnitIsInViewport,
-  setWorldUiGameState,
-  uiWorldView,
-} from './ui/ui-worldview';
+import { uiWorldView } from './ui/ui-worldview';
 import { executeAction, newGame } from './logic/civ-game';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
@@ -17,6 +16,9 @@ import { popUiEvent, UiEvent } from './ui/ui-event-queue';
 import { unitMoveDirection } from './input-mapping';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
+import { initUi, updateUiState } from './ui/ui-state';
+import { triggerGameEvent } from './game-controller-event';
+import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -30,8 +32,9 @@ export const startGame = async () => {
   // Initialize ui
   generateSpriteSheets(state.players.map((pl) => pl.civ));
   clearUi();
-  setWorldUiGameState(state);
+  initUi(state, localPlayer);
   pushUiScreen(uiWorldView);
+  triggerGameEvent('GameStateUpdated');
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {
@@ -45,13 +48,14 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
   }
 
   const result = executeAction(state, action);
+  triggerGameEvent('GameStateUpdated');
   ensureSelectedUnitIsInViewport();
 
   if (!result) {
     return;
   }
 
-  switch (result.result) {
+  switch (result.type) {
     case 'UnitMoved':
       await animateUnitMoved(result);
       return;
@@ -60,9 +64,9 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
       await animateCombat(result);
       return;
 
-    case 'MissingWaterSupply':
-      // TODO: display warning
-      console.log('MissingWaterSupply!');
+    case 'ActionFailed':
+      // TODO: handle failed actions
+      console.log('Action failed:', result.reason);
       return;
   }
 };
@@ -127,6 +131,12 @@ const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
     case UiEvent.UnitBuildRoad:
       return { type: 'UnitBuildRoad', player: localPlayer, unit: selectedUnitIdx };
 
+    case UiEvent.UnitBuildOrJoinCity:
+      if (!getPrototype(selectedUnit).isBuilder) {
+        return;
+      }
+      return { type: 'UnitBuildOrJoinCity', player: localPlayer, unit: selectedUnitIdx };
+
     case UiEvent.UnitCenter:
       if (!selectedUnit) {
         return;
@@ -139,10 +149,14 @@ const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
   }
 };
 
-const logicFrame = () => {
+const logicFrame = (time: number) => {
   if (!state) {
     requestAnimationFrame(logicFrame);
     return;
+  }
+
+  if (updateUiState('isBlinking', Math.floor(time * 0.00667) % 2 === 0)) {
+    triggerGameEvent('BlinkingStateUpdated');
   }
 
   const playerInTurn = getPlayerInTurn(state);
@@ -168,6 +182,7 @@ const logicFrame = () => {
   handleAction(action).then(
     () => requestAnimationFrame(logicFrame),
     (err) => {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       console.error(`Failed to process action ${action?.type}: ${err as string}`);
       requestAnimationFrame(logicFrame);
     }

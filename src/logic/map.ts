@@ -14,14 +14,24 @@ export enum TerrainId {
   Arctic = 12,
 }
 
+export type TerrainYield = {
+  food?: number;
+  shields?: number;
+  trade?: number;
+};
+
 export type Terrain = {
   name: string;
   movementCost: number;
   defensiveFactor?: number;
   canIrrigate?: boolean;
-  canMine?: boolean;
   clearsTo?: TerrainId;
+  clearCost?: number;
   givesAccessToWater?: boolean;
+  yield?: TerrainYield;
+  specialYield?: TerrainYield;
+  mineYield?: number;
+  roadYield?: number;
 };
 
 export const terrainMap: Record<TerrainId, Terrain> = {
@@ -33,27 +43,67 @@ export const terrainMap: Record<TerrainId, Terrain> = {
     name: 'Ocean',
     movementCost: 1,
     givesAccessToWater: true,
+    yield: {
+      food: 1,
+      trade: 2,
+    },
+    specialYield: {
+      food: 3,
+      trade: 2,
+    },
   },
   [TerrainId.Forest]: {
     name: 'Forest',
     movementCost: 2,
     defensiveFactor: 1.5,
     clearsTo: TerrainId.Plains,
+    clearCost: 5,
+    yield: {
+      food: 1,
+      shields: 2,
+    },
+    specialYield: {
+      food: 3,
+      shields: 2,
+    },
   },
   [TerrainId.Swamp]: {
     name: 'Swamp',
     movementCost: 2,
     defensiveFactor: 1.5,
     clearsTo: TerrainId.Grassland,
+    clearCost: 15,
+    yield: {
+      food: 1,
+    },
+    specialYield: {
+      food: 1,
+      shields: 4,
+    },
   },
   [TerrainId.Plains]: {
     name: 'Plains',
     movementCost: 1,
     canIrrigate: true,
+    yield: {
+      food: 1,
+      shields: 1,
+    },
+    specialYield: {
+      food: 1,
+      shields: 3,
+    },
+    roadYield: 1,
   },
   [TerrainId.Tundra]: {
     name: 'Tundra',
     movementCost: 1,
+    yield: {
+      food: 1,
+    },
+    specialYield: {
+      food: 3,
+    },
   },
   [TerrainId.River]: {
     name: 'River',
@@ -61,40 +111,88 @@ export const terrainMap: Record<TerrainId, Terrain> = {
     defensiveFactor: 1.5,
     canIrrigate: true,
     givesAccessToWater: true,
+    yield: {
+      food: 2,
+      trade: 1,
+    },
+    specialYield: {
+      food: 2,
+      shields: 1,
+      trade: 1,
+    },
   },
   [TerrainId.Grassland]: {
     name: 'Grassland',
     movementCost: 1,
     canIrrigate: true,
+    yield: {
+      food: 2,
+    },
+    specialYield: {
+      food: 2,
+      shields: 1,
+    },
+    roadYield: 1,
   },
   [TerrainId.Jungle]: {
     name: 'Jungle',
     movementCost: 2,
     defensiveFactor: 1.5,
     clearsTo: TerrainId.Grassland,
+    clearCost: 15,
+    yield: {
+      food: 1,
+    },
+    specialYield: {
+      food: 1,
+      trade: 4,
+    },
   },
   [TerrainId.Hills]: {
     name: 'Hills',
     movementCost: 2,
     defensiveFactor: 2,
-    canMine: true,
     canIrrigate: true,
+    yield: {
+      food: 1,
+    },
+    specialYield: {
+      food: 1,
+      shields: 2,
+    },
+    mineYield: 3,
   },
   [TerrainId.Mountains]: {
     name: 'Mountains',
     movementCost: 3,
     defensiveFactor: 3,
-    canMine: true,
+    yield: {
+      shields: 1,
+    },
+    specialYield: {
+      shields: 1,
+      trade: 6,
+    },
+    mineYield: 1,
   },
   [TerrainId.Desert]: {
     name: 'Desert',
     movementCost: 1,
-    canMine: true,
     canIrrigate: true,
+    yield: {
+      shields: 1,
+    },
+    specialYield: {
+      food: 3,
+      shields: 1,
+    },
+    mineYield: 1,
+    roadYield: 1,
   },
   [TerrainId.Arctic]: {
     name: 'Arctic',
     movementCost: 2,
+    specialYield: { food: 2 },
   },
 };
 

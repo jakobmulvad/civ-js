@@ -22,6 +22,7 @@ export const inputMappingWorldView: Record<string, UiEvent | undefined> = {
   KeyI: UiEvent.UnitBuildIrrigationOrClear,
   KeyM: UiEvent.UnitBuildMine,
   KeyF: UiEvent.UnitFortifyOrBuildFortress,
+  KeyB: UiEvent.UnitBuildOrJoinCity,
 };
 
 export const unitMoveDirection = {

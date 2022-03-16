@@ -18,7 +18,8 @@ export type UnitAction = {
     | 'UnitBuildIrrigation'
     | 'UnitBuildMine'
     | 'UnitClear'
-    | 'UnitFortify';
+    | 'UnitFortify'
+    | 'UnitBuildOrJoinCity';
 } & ActionWithUnit;
 
 export type UnitActionMove = {

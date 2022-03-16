@@ -1,5 +1,6 @@
 import { randomIntBelow } from '../helpers';
 import { Action, ActionWithPlayer, ActionWithUnit, UnitActionMove } from './action';
+import { newCity } from './city';
 import { Civilization } from './civilizations';
 import { attackStrength, defenseStrength } from './formulas';
 import {
@@ -12,27 +13,18 @@ import {
   PlayerState,
   removeUnitFromGame,
 } from './game-state';
-import {
-  GameMap,
-  getTerrainAt,
-  getTileAt,
-  getTileIndex,
-  getTilesCross,
-  MapTemplate,
-  TerrainId,
-  terrainMap,
-} from './map';
+import { GameMap, getTileAt, getTileIndex, getTilesCross, MapTemplate, TerrainId, terrainMap } from './map';
 import { jobsDone, newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from './units';
 
 export type UnitMoveResult = {
-  result: 'UnitMoved';
+  type: 'UnitMoved';
   unit: Unit;
   dx: number;
   dy: number;
 };
 
 export type UnitCombatResult = {
-  result: 'Combat';
+  type: 'Combat';
   dx: number;
   dy: number;
   attacker: Unit;
@@ -40,11 +32,12 @@ export type UnitCombatResult = {
   winner: 'Attacker' | 'Defender';
 };
 
-export type UnitBuildIrrigationResult = {
-  result: 'MissingWaterSupply';
+export type ActionFailedResult = {
+  type: 'ActionFailed';
+  reason: 'MissingWaterSupply' | 'UnitNotBuilder';
 };
 
-export type ActionResult = UnitMoveResult | UnitCombatResult | UnitBuildIrrigationResult | void;
+export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | void;
 
 const discoverMapTile = (state: GameState, player: number, x: number, y: number) => {
   const idx = getTileIndex(state.masterMap, x, y);
@@ -83,7 +76,7 @@ const selectNextUnit = (state: GameState) => {
   const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0 && unit.state === UnitState.Idle);
 
   if (unitsWithMoves.length === 0) {
-    player.selectedUnit = -1;
+    player.selectedUnit = undefined;
     return;
   }
 
@@ -99,9 +92,10 @@ const startTurn = (state: GameState) => {
   const player = state.players[state.playerInTurn];
 
   for (const unit of player.units) {
-    const prototype = unitPrototypeMap[unit.prototypeId];
-    unit.movesLeft = prototype.moves * 3;
+    const unitProto = unitPrototypeMap[unit.prototypeId];
+    unit.movesLeft = unitProto.moves * 3;
     const tile = getTileAtUnit(state.masterMap, unit);
+    const tileTerrain = terrainMap[tile.terrain];
 
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (unit.state) {
@@ -109,7 +103,8 @@ const startTurn = (state: GameState) => {
       case UnitState.CleaningPolution:
       case UnitState.BuildingIrrigation:
         unit.progress++;
-        if (unit.progress === 4) {
+        // a bug in civ causes all tile improvements to complete 1 turn before intended - we explicitly add that bug here as well
+        if (unit.progress === tileTerrain.movementCost * 2 - 1) {
           jobsDone(unit);
           tile.hasIrrigation = true;
         }
@@ -117,7 +112,7 @@ const startTurn = (state: GameState) => {
 
       case UnitState.BuildingMine:
         unit.progress++;
-        if (unit.progress === 9) {
+        if (unit.progress === 10 - 1) {
           jobsDone(unit);
           tile.hasMine = true;
         }
@@ -125,16 +120,17 @@ const startTurn = (state: GameState) => {
 
       case UnitState.Clearing:
         unit.progress++;
-        if (unit.progress === 4) {
+        if (unit.progress === (tileTerrain.clearCost ?? 5) - 1) {
           jobsDone(unit);
           const proto = terrainMap[tile.terrain];
           tile.terrain = proto.clearsTo ?? tile.terrain;
         }
         break;
 
-      case UnitState.BuildingRoad:
+      case UnitState.BuildingRoad: {
         unit.progress++;
-        if (unit.progress === 1) {
+        const cost = tile.hasRoad ? tileTerrain.movementCost * 4 : tileTerrain.movementCost * 2;
+        if (unit.progress === cost - 1) {
           jobsDone(unit);
           if (tile.hasRoad) {
             tile.hasRailroad = true;
@@ -143,6 +139,7 @@ const startTurn = (state: GameState) => {
           }
         }
         break;
+      }
 
       case UnitState.Fortifying:
         unit.state = UnitState.Fortified;
@@ -226,7 +223,7 @@ const executeAttack = (
     selectNextUnit(state);
   }
 
-  return { result: 'Combat', attacker, defender: bestDefender, winner, dx: action.dx, dy: action.dy };
+  return { type: 'Combat', attacker, defender: bestDefender, winner, dx: action.dx, dy: action.dy };
 };
 
 const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResult | UnitCombatResult | void => {
@@ -276,94 +273,94 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResu
     selectNextUnit(state);
   }
 
-  return { result: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
+  return { type: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
 };
 
 export const executeAction = (state: GameState, action: Action): ActionResult => {
   console.log('Executing action', action);
+
+  if (action.type === 'EndTurn') {
+    validatePlayerAction(state, action);
+    state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
+
+    if (state.playerInTurn === 0) {
+      // New turn
+      state.turn++;
+    }
+
+    return startTurn(state);
+  }
+
+  const unit = validateUnitAction(state, action);
+  const unitProto = getPrototype(unit);
+  const tile = getTileAt(state.masterMap, unit.x, unit.y);
+  const terrain = terrainMap[tile.terrain];
+  const player = state.players[state.playerInTurn];
 
   switch (action.type) {
     case 'UnitMove':
       return executeMoveUnit(state, action);
 
     case 'UnitWait':
-      validateUnitAction(state, action);
       break;
 
     case 'UnitNoOrders': {
-      const unit = validateUnitAction(state, action);
       unit.movesLeft = 0;
       break;
     }
 
-    case 'EndTurn': {
-      validatePlayerAction(state, action);
-      state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
-
-      if (state.playerInTurn === 0) {
-        // New turn
-        state.turn++;
-      }
-
-      return startTurn(state);
-    }
-
-    case 'UnitBuildIrrigation': {
-      const unit = validateUnitAction(state, action);
-      const unitProto = getPrototype(unit);
-      const tile = getTileAt(state.masterMap, unit.x, unit.y);
-      const terrain = terrainMap[tile.terrain];
+    case 'UnitBuildIrrigation':
       if (unitProto.isBuilder && terrain.canIrrigate && !tile.hasIrrigation) {
         const crossTiles = getTilesCross(state.masterMap, unit.x, unit.y);
         if (!crossTiles.some((tile) => terrainMap[tile.terrain].givesAccessToWater || tile.hasIrrigation)) {
-          return { result: 'MissingWaterSupply' };
+          return { type: 'ActionFailed', reason: 'MissingWaterSupply' };
         }
         unit.state = UnitState.BuildingIrrigation;
       }
       break;
-    }
 
-    case 'UnitBuildMine': {
-      const unit = validateUnitAction(state, action);
-      const proto = getPrototype(unit);
-      const tile = getTileAt(state.masterMap, unit.x, unit.y);
-      const terrain = terrainMap[tile.terrain];
-      if (proto.isBuilder && terrain.canMine && !tile.hasMine) {
+    case 'UnitBuildMine':
+      if (unitProto.isBuilder && terrain.mineYield && !tile.hasMine) {
         unit.state = UnitState.BuildingMine;
       }
       break;
-    }
 
-    case 'UnitBuildRoad': {
-      const unit = validateUnitAction(state, action);
-      const proto = getPrototype(unit);
-      const tile = getTileAt(state.masterMap, unit.x, unit.y);
-      if (proto.isBuilder && tile.terrain !== TerrainId.Ocean && !tile.hasRailroad) {
+    case 'UnitBuildRoad':
+      if (unitProto.isBuilder && tile.terrain !== TerrainId.Ocean && !tile.hasRailroad) {
         // TODO: check for railroad tech
-        // TODO: check for brudge building tech
+        // TODO: check for bridge building tech
         unit.state = UnitState.BuildingRoad;
       }
       break;
-    }
 
-    case 'UnitClear': {
-      const unit = validateUnitAction(state, action);
-      const proto = getPrototype(unit);
-      const terrain = getTerrainAt(state.masterMap, unit.x, unit.y);
-      if (proto.isBuilder && terrain.clearsTo !== undefined) {
-        unit.state = UnitState.Clearing;
+    case 'UnitBuildOrJoinCity': {
+      if (!unitProto.isBuilder) {
+        return;
       }
+
+      const city = newCity(state.playerInTurn, 'Test', unit.x, unit.y);
+      player.cities.push(city);
+
+      if (terrain.canIrrigate) {
+        tile.hasIrrigation = true;
+      }
+      tile.hasRoad = true;
+
+      removeUnitFromGame(state, unit);
       break;
     }
 
-    case 'UnitFortify': {
-      const unit = validateUnitAction(state, action);
-      const proto = getPrototype(unit);
-      if (proto.isCivil) {
+    case 'UnitClear':
+      if (unitProto.isBuilder && terrain.clearsTo !== undefined) {
+        unit.state = UnitState.Clearing;
+      }
+      break;
+
+    case 'UnitFortify':
+      if (unitProto.isCivil) {
         return;
       }
       unit.state = UnitState.Fortifying;
-    }
   }
   selectNextUnit(state);
 };
@@ -395,6 +392,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
       tiles: map.tiles.map((tile) => ({ ...tile, hidden: false })),
     },
     units: [],
+    cities: [],
     controller: PlayerController.Computer,
     selectedUnit: -1,
     gold: 0,
@@ -428,6 +426,8 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
   }
 
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
+  spawnUnitForPlayer(state, 0, UnitPrototypeId.Cavalry, 9, 15);
+  spawnUnitForPlayer(state, 1, UnitPrototypeId.Cavalry, 10, 15);
 
   startTurn(state);
   return state;

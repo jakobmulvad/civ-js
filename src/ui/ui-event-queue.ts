@@ -1,3 +1,4 @@
+// Events from the ui the game reacts to
 export enum UiEvent {
   UnitMoveNorth = 'UnitMoveNorth',
   UnitMoveNorthEast = 'UnitMoveNorthEast',
@@ -14,6 +15,7 @@ export enum UiEvent {
   UnitBuildIrrigationOrClear = 'UnitBuildIrrigationOrClear',
   UnitBuildMine = 'UnitBuildMine',
   UnitFortifyOrBuildFortress = 'UnitFortifyOrBuildFortress',
+  UnitBuildOrJoinCity = 'UnitBuildOrJoinCity',
   EndTurn = 'EndTurn',
 }
 

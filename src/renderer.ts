@@ -1,5 +1,6 @@
 import { getImageAsset, ImageAssetKey } from './assets';
 import { Font, fonts } from './fonts';
+import { City } from './logic/city';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -53,7 +54,56 @@ if (!canvas || !screenCtx || !unitContext) {
   throw new Error('Failed to initialise renderer');
 }
 
-//canvas.parentNode.append(fontsSpriteSheet.canvas);
+export const drawHorizontalLine = (
+  dst: ImageData,
+  x: number,
+  y: number,
+  length: number,
+  color: [number, number, number]
+) => {
+  const data = dst.data;
+  const [r, g, b] = color;
+  const start = (x + y * dst.width) * 4;
+  const end = start + length * 4;
+  for (let i = start; i < end; i += 4) {
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+  }
+};
+
+export const drawVerticalLine = (
+  dst: ImageData,
+  x: number,
+  y: number,
+  length: number,
+  color: [number, number, number]
+) => {
+  const data = dst.data;
+  const increment = dst.width * 4;
+  const [r, g, b] = color;
+  const start = (x + y * dst.width) * 4;
+  const end = start + length * increment;
+  for (let i = start; i < end; i += increment) {
+    data[i] = r;
+    data[i + 1] = g;
+    data[i + 2] = b;
+  }
+};
+
+export const drawFrame = (
+  dst: ImageData,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: [number, number, number]
+) => {
+  drawHorizontalLine(dst, x, y, width, color);
+  drawHorizontalLine(dst, x, y + height - 1, width, color);
+  drawVerticalLine(dst, x, y + 1, height - 2, color);
+  drawVerticalLine(dst, x + width - 1, y + 1, height - 2, color);
+};
 
 export const generateSpriteSheets = (
   colors: {
@@ -174,7 +224,8 @@ export const renderTileTerrain = (
   x: number,
   y: number,
   screenX: number,
-  screenY: number
+  screenY: number,
+  hideIrrigation?: boolean
 ) => {
   const tile = getTileAt(map, x, y);
   if (tile.hidden || tile.terrain === TerrainId.Void) {
@@ -220,7 +271,7 @@ export const renderTileTerrain = (
       // First draw base grass background, then add TerrainId.specific overlay
       screenCtx.drawImage(sp257, 0, 4 * 16, 16, 16, screenX, screenY, 16, 16);
 
-      if (tile.hasIrrigation) {
+      if (tile.hasIrrigation && !hideIrrigation) {
         screenCtx.drawImage(sp257, 4 * 16, 2 * 16, 16, 16, screenX, screenY, 16, 16);
       }
 
@@ -285,11 +336,10 @@ export const renderUnit = (
 ) => {
   const unitOffset = unit.prototypeId * 16;
   const ownerOffset = unit.owner * 16 * 2;
-  screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
-
   if (stacked) {
-    screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
+    screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
   }
+  screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (unit.state) {
@@ -310,6 +360,62 @@ export const renderUnit = (
       renderUnitLetter('R', screenX, screenY);
       break;
   }
+};
+
+export const renderCity = (
+  sp257: CanvasRenderingContext2D,
+  city: City,
+  screenX: number,
+  screenY: number,
+  primaryColor: [number, number, number],
+  secondaryColor: [number, number, number],
+  containsUnits?: boolean
+) => {
+  const imageData = sp257.getImageData(12 * 16, 7 * 16, 16, 16);
+  const data = imageData.data;
+
+  const [pRed, pGreen, pBlue] = primaryColor;
+  const [sRed, sGreen, sBlue] = secondaryColor;
+
+  // TODO: this can be optimized a lot
+  let i = 0;
+  for (let y = 0; y < 16; y++) {
+    for (let x = 0; x < 16; x++) {
+      if (y === 0 || y === 15 || x === 0 || x === 15) {
+        // Border
+        data[i] = 0;
+        data[i + 1] = 0;
+        data[i + 2] = 0;
+      } else if (data[i + 3] === 0) {
+        data[i] = pRed;
+        data[i + 1] = pGreen;
+        data[i + 2] = pBlue;
+        data[i + 3] = 255;
+      } else {
+        data[i] = sRed;
+        data[i + 1] = sGreen;
+        data[i + 2] = sBlue;
+      }
+      i += 4;
+    }
+  }
+
+  // Draw bevel
+  drawHorizontalLine(imageData, 2, 1, 14, secondaryColor);
+  drawHorizontalLine(imageData, 1, 14, 15, palette.white);
+  drawVerticalLine(imageData, 1, 1, 13, palette.white);
+  drawVerticalLine(imageData, 14, 2, 12, secondaryColor);
+
+  if (containsUnits) {
+    screenCtx.putImageData(imageData, screenX, screenY);
+  } else {
+    // Exclude black border if not containing units
+    screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
+  }
+
+  screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
+  setFontColor(fonts.main, palette.black);
+  renderText(fonts.main, city.size.toString(), screenX + 6, screenY + 5);
 };
 
 export const setFontColor = (font: Font, color: [number, number, number]) => {
@@ -359,7 +465,7 @@ export const renderTextLines = (font: Font, lines: (string | undefined)[], x: nu
   }
 };
 
-const renderBorder = (destination: ImageData) => {
+const renderBorder = (destination: ImageData, margin = 0) => {
   const { width, height } = destination;
   const dstData = destination.data;
   let topRowIndex = 0;
@@ -404,7 +510,7 @@ export const renderWindow = (x: number, y: number, width: number, height: number
   const dst = screenCtx.getImageData(x, y, width, height);
   const { data } = dst;
 
-  for (let i = width; i < dst.data.length - width; i += 4) {
+  for (let i = width * 4; i < dst.data.length - width; i += 4) {
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
@@ -414,6 +520,22 @@ export const renderWindow = (x: number, y: number, width: number, height: number
   renderBorder(dst);
   screenCtx.putImageData(dst, x, y);
 };
+
+/*export const renderWindow = (destination: ImageData, fill: [number, number, number], margin = 0) => {
+  const [r, g, b] = fill;
+  const { data, width, height } = destination;
+
+  for (let y = margin; y < height - margin; y++) {
+    const i = (y * width + margin) * 4;
+    for (let x = margin; x < width - margin; x++) {
+      data[i] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+    }
+  }
+
+  renderBorder(destination, margin);
+};*/
 
 export const renderGrayBox = (x: number, y: number, width: number, height: number) => {
   const sp257 = getImageAsset('sp257.pic.gif');

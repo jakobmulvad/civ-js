@@ -1,3 +1,5 @@
+import { UiWindow } from './ui/ui-controller';
+
 let lastFrameTime = 0;
 type InternalAnimationCallback = undefined | ((time: number) => void);
 
@@ -8,13 +10,13 @@ export const isAnimating = (): boolean => !!preRenderCallback;
 
 export type AnimationOptions = {
   duration: number;
-  from: number;
+  from?: number;
+  window?: UiWindow;
   to: number;
-  onUpdate?: (value: number) => void;
-  onRender?: (value: number) => void;
+  onRender: (value: number) => void;
 };
 
-export const startAnimation = (options: Omit<AnimationOptions, 'from'> & { from?: number }): Promise<void> => {
+export const startAnimation = (options: AnimationOptions): Promise<void> => {
   const animationStartTime = lastFrameTime;
   const from = options.from ?? 0;
 
@@ -28,7 +30,6 @@ export const startAnimation = (options: Omit<AnimationOptions, 'from'> & { from?
     preRenderCallback = (time: number) => {
       const progress = (time - animationStartTime) / options.duration;
       if (progress > 1) {
-        options.onUpdate?.(options.to);
         currentValue = options.to;
         preRenderCallback = undefined;
         res();
@@ -38,19 +39,22 @@ export const startAnimation = (options: Omit<AnimationOptions, 'from'> & { from?
       const newValue = Math.floor(from + (options.to - from) * progress);
 
       if (newValue !== currentValue) {
-        options.onUpdate?.(newValue);
+        if (options.window) {
+          options.window.isDirty = true;
+        }
         currentValue = newValue;
       }
     };
 
-    if (options.onRender) {
-      postRenderCallback = (time: number) => {
-        options.onRender?.(currentValue);
-        if (currentValue === options.to) {
-          postRenderCallback = undefined;
+    postRenderCallback = () => {
+      options.onRender(currentValue);
+      if (currentValue === options.to) {
+        postRenderCallback = undefined;
+        if (options.window) {
+          options.window.isDirty = true;
         }
-      };
-    }
+      }
+    };
   });
 };
 
