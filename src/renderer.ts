@@ -552,6 +552,22 @@ export const renderMinimap = (state: GameState, player: number, screenArea: Rect
     }
   }
 
+  for (const player of state.players) {
+    for (const city of player.cities) {
+      const screenX = city.x - offsetX;
+      const screenY = city.y - offsetY;
+
+      const i = screenX * 4 + screenY * width * 4;
+
+      if (i > -1 && i < data.length) {
+        data[i] = player.civ.primaryColor[0];
+        data[i + 1] = player.civ.primaryColor[1];
+        data[i + 2] = player.civ.primaryColor[2];
+        data[i + 3] = 255;
+      }
+    }
+  }
+
   drawFrame(
     dst,
     ((screenArea.width - viewport.width) >> 1) - 1,

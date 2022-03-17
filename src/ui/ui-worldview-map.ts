@@ -160,15 +160,8 @@ export const mapWindow: UiWindow = {
         renderTileTerrain(ter257Canvas, sp257Canvas, map, x, y, screenX, screenY, !!city);
 
         if (city) {
-          renderCity(
-            sp257,
-            city,
-            screenX,
-            screenY,
-            player.civ.primaryColor,
-            player.civ.secondaryColor,
-            units.length > 0
-          );
+          const owner = gameState.players[city.owner];
+          renderCity(sp257, city, screenX, screenY, owner.civ.primaryColor, owner.civ.secondaryColor, units.length > 0);
         }
 
         if (!units.length) {
