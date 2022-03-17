@@ -1,6 +1,8 @@
 import { getImageAsset, ImageAssetKey } from './assets';
 import { Font, fonts } from './fonts';
+import { Rect } from './helpers';
 import { City } from './logic/city';
+import { GameState } from './logic/game-state';
 import {
   GameMap,
   getTerrainMaskCross,
@@ -521,21 +523,47 @@ export const renderWindow = (x: number, y: number, width: number, height: number
   screenCtx.putImageData(dst, x, y);
 };
 
-/*export const renderWindow = (destination: ImageData, fill: [number, number, number], margin = 0) => {
-  const [r, g, b] = fill;
-  const { data, width, height } = destination;
+export const renderMinimap = (state: GameState, player: number, screenArea: Rect, viewport: Rect) => {
+  const { x: screenX, y: screenY, width, height } = screenArea;
+  const dst = screenCtx.getImageData(screenX, screenY, width, height);
+  const { data } = dst;
+  const { map } = state.players[player];
+  const offsetX = viewport.x - ((screenArea.width - viewport.width) >> 1);
+  const offsetY = viewport.y - ((screenArea.height - viewport.height) >> 1);
 
-  for (let y = margin; y < height - margin; y++) {
-    const i = (y * width + margin) * 4;
-    for (let x = margin; x < width - margin; x++) {
-      data[i] = r;
-      data[i + 1] = g;
-      data[i + 2] = b;
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const i = x * 4 + y * width * 4;
+      const tile = getTileAt(map, x + offsetX, y + offsetY);
+      let color: [number, number, number];
+
+      if (tile.hidden || tile.terrain === TerrainId.Void) {
+        color = palette.black;
+      } else if (tile.terrain === TerrainId.Ocean) {
+        color = palette.blueDark;
+      } else {
+        color = palette.greenDark;
+      }
+
+      data[i] = color[0];
+      data[i + 1] = color[1];
+      data[i + 2] = color[2];
+      data[i + 3] = 255;
     }
   }
 
-  renderBorder(destination, margin);
-};*/
+  drawFrame(
+    dst,
+    ((screenArea.width - viewport.width) >> 1) - 1,
+    ((screenArea.height - viewport.height) >> 1) - 1,
+    viewport.width + 2,
+    viewport.height + 2,
+    palette.white
+  );
+
+  renderBorder(dst);
+  screenCtx.putImageData(dst, screenX, screenY);
+};
 
 export const renderGrayBox = (x: number, y: number, width: number, height: number) => {
   const sp257 = getImageAsset('sp257.pic.gif');

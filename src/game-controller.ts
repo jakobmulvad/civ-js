@@ -17,7 +17,7 @@ import { unitMoveDirection } from './input-mapping';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
 import { initUi, updateUiState } from './ui/ui-state';
-import { triggerGameEvent } from './game-controller-event';
+import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
 
 let state: GameState;

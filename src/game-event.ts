@@ -1,5 +1,5 @@
 // Events from the game the ui can listen for
-export type GameEvent = 'GameStateUpdated' | 'BlinkingStateUpdated';
+export type GameEvent = 'GameStateUpdated' | 'BlinkingStateUpdated' | 'ViewportChanged';
 
 export type GameEventCallback = {
   event: GameEvent;
@@ -8,7 +8,13 @@ export type GameEventCallback = {
 
 const listeners: GameEventCallback[] = [];
 
-export const addGameEventListener = (event: GameEvent, callback: () => void) => {
+export const addGameEventListener = (event: GameEvent | GameEvent[], callback: () => void) => {
+  if (Array.isArray(event)) {
+    for (const evt of event) {
+      listeners.push({ event: evt, callback });
+    }
+    return;
+  }
   listeners.push({ event, callback });
 };
 

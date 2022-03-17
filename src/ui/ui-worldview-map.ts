@@ -1,6 +1,6 @@
 import { startAnimation } from '../animation';
 import { getImageAsset } from '../assets';
-import { addGameEventListener } from '../game-controller-event';
+import { addGameEventListener, triggerGameEvent } from '../game-event';
 import { Rect } from '../helpers';
 import { getCityAt } from '../logic/city';
 import { UnitCombatResult, UnitMoveResult } from '../logic/civ-game';
@@ -10,7 +10,7 @@ import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../rend
 import { UiWindow } from './ui-controller';
 import { getUiState } from './ui-state';
 
-const viewport: Rect = {
+export const mapViewport: Rect = {
   x: 0,
   y: 0,
   width: 15,
@@ -20,18 +20,18 @@ const viewport: Rect = {
 const area: Rect = {
   x: 320 - 15 * 16,
   y: 200 - 12 * 16,
-  width: viewport.width * 16,
-  height: viewport.height * 16,
+  width: mapViewport.width * 16,
+  height: mapViewport.height * 16,
 };
 
 let excludeUnitInRender: Unit | undefined;
 
 const mapCoordToScreenX = (mapWidth: number, x: number): number => {
-  return area.x + Math.max(x - viewport.x, (x - viewport.x + mapWidth) % mapWidth) * 16;
+  return area.x + Math.max(x - mapViewport.x, (x - mapViewport.x + mapWidth) % mapWidth) * 16;
 };
 
 const mapCoordToScreenY = (y: number): number => {
-  return area.y + (y - viewport.y) * 16;
+  return area.y + (y - mapViewport.y) * 16;
 };
 
 export const animateUnitMoved = async (result: UnitMoveResult) => {
@@ -101,11 +101,12 @@ export const animateCombat = async (result: UnitCombatResult) => {
 
 export const centerViewport = (x: number, y: number) => {
   const { gameState } = getUiState();
-  const newX = x - (viewport.width >> 1);
-  const newY = y - (viewport.height >> 1);
-  viewport.x = (newX + gameState.masterMap.width) % gameState.masterMap.width;
-  viewport.y = Math.max(0, Math.min(gameState.masterMap.height - viewport.height, newY));
+  const newX = x - (mapViewport.width >> 1);
+  const newY = y - (mapViewport.height >> 1);
+  mapViewport.x = (newX + gameState.masterMap.width) % gameState.masterMap.width;
+  mapViewport.y = Math.max(0, Math.min(gameState.masterMap.height - mapViewport.height, newY));
   mapWindow.isDirty = true;
+  triggerGameEvent('ViewportChanged');
 };
 
 export const ensureSelectedUnitIsInViewport = (unit?: Unit) => {
@@ -116,12 +117,12 @@ export const ensureSelectedUnitIsInViewport = (unit?: Unit) => {
     return;
   }
 
-  const halfWidth = viewport.width * 0.5;
-  const halfHeight = viewport.height * 0.5;
+  const halfWidth = mapViewport.width * 0.5;
+  const halfHeight = mapViewport.height * 0.5;
 
   if (
-    Math.abs(unit.x - (viewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
-    Math.abs(unit.y - (viewport.y + halfHeight - 0.5)) > halfHeight - 1
+    Math.abs(unit.x - (mapViewport.x + halfWidth - 0.5)) > halfWidth - 1 ||
+    Math.abs(unit.y - (mapViewport.y + halfHeight - 0.5)) > halfHeight - 1
   ) {
     centerViewport(unit.x, unit.y);
   }
@@ -148,8 +149,8 @@ export const mapWindow: UiWindow = {
     const mapWidth = gameState.masterMap.width;
 
     // TODO: only draw tiles that are actually updated (dirty rect)
-    for (let x = viewport.x; x < viewport.x + viewport.width; x++) {
-      for (let y = viewport.y; y < viewport.y + viewport.height; y++) {
+    for (let x = mapViewport.x; x < mapViewport.x + mapViewport.width; x++) {
+      for (let y = mapViewport.y; y < mapViewport.y + mapViewport.height; y++) {
         const mapX = x % mapWidth;
         const city = getCityAt(gameState, mapX, y);
         const screenX = mapCoordToScreenX(mapWidth, mapX);
@@ -200,7 +201,7 @@ export const mapWindow: UiWindow = {
     }
   },
   onClick: (x: number, y: number) => {
-    centerViewport(viewport.x + (x >> 4), viewport.y + (y >> 4));
+    centerViewport(mapViewport.x + (x >> 4), mapViewport.y + (y >> 4));
   },
 };
 

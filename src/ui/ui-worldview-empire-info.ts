@@ -1,5 +1,5 @@
 import { fonts } from '../fonts';
-import { addGameEventListener } from '../game-controller-event';
+import { addGameEventListener } from '../game-event';
 import { Rect } from '../helpers';
 import { turnToYear } from '../logic/formulas';
 import { palette } from '../palette';

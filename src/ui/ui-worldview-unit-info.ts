@@ -1,5 +1,5 @@
 import { fonts } from '../fonts';
-import { addGameEventListener } from '../game-controller-event';
+import { addGameEventListener } from '../game-event';
 import { Rect } from '../helpers';
 import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from '../logic/game-state';
 import { terrainMap } from '../logic/map';
