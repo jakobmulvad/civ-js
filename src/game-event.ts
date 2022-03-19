@@ -1,5 +1,5 @@
 // Events from the game the ui can listen for
-export type GameEvent = 'GameStateUpdated' | 'BlinkingStateUpdated' | 'ViewportChanged';
+export type GameEvent = 'GameStateUpdated' | 'BlinkingStateUpdated' | 'ViewportChanged' | 'CityViewUpdated';
 
 export type GameEventCallback = {
   event: GameEvent;

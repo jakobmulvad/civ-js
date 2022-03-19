@@ -7,8 +7,9 @@ import { UnitCombatResult, UnitMoveResult } from '../logic/civ-game';
 import { getSelectedUnitForPlayer, getUnitsAt } from '../logic/game-state';
 import { Unit } from '../logic/units';
 import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../renderer';
-import { UiWindow } from './ui-controller';
-import { getUiState } from './ui-state';
+import { pushUiScreen, UiWindow } from './ui-controller';
+import { uiCityView } from './ui-screens';
+import { getUiState, updateUiState } from './ui-state';
 
 export const mapViewport: Rect = {
   x: 0,
@@ -36,7 +37,7 @@ const mapCoordToScreenY = (y: number): number => {
 
 export const animateUnitMoved = async (result: UnitMoveResult) => {
   const { gameState } = getUiState();
-  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.png').canvas;
 
   const { dx, dy, unit } = result;
 
@@ -58,7 +59,7 @@ export const animateUnitMoved = async (result: UnitMoveResult) => {
 export const animateCombat = async (result: UnitCombatResult) => {
   const { gameState } = getUiState();
   const ter257 = getImageAsset('ter257.pic.gif').canvas;
-  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.png').canvas;
   const { dx, dy, attacker, defender } = result;
 
   const loser = result.winner === 'Attacker' ? defender : attacker;
@@ -91,7 +92,7 @@ export const animateCombat = async (result: UnitCombatResult) => {
       renderTileTerrain(ter257, sp257, gameState.masterMap, loser.x, loser.y, loserScreenX, loserScreenY);
       renderUnitAt(defender);
       renderUnitAt(attacker);
-      renderSprite('sp257.pic.gif', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
+      renderSprite('sp257.pic.png', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
     },
   });
 
@@ -134,7 +135,7 @@ export const mapWindow: UiWindow = {
   onRender: (state) => {
     const { localPlayer, gameState } = state;
     const ter257Canvas = getImageAsset('ter257.pic.gif').canvas;
-    const sp257 = getImageAsset('sp257.pic.gif');
+    const sp257 = getImageAsset('sp257.pic.png');
     const sp257Canvas = sp257.canvas;
 
     // TODO: don't hardcode local player to index 0
@@ -194,7 +195,20 @@ export const mapWindow: UiWindow = {
     }
   },
   onClick: (x: number, y: number) => {
-    centerViewport(mapViewport.x + (x >> 4), mapViewport.y + (y >> 4));
+    const tileX = mapViewport.x + (x >> 4);
+    const tileY = mapViewport.y + (y >> 4);
+
+    const { gameState, localPlayer } = getUiState();
+
+    for (const city of gameState.players[localPlayer].cities) {
+      if (city.x === tileX && city.y === tileY) {
+        updateUiState('selectedCity', city);
+        pushUiScreen(uiCityView);
+        return;
+      }
+    }
+
+    centerViewport(tileX, tileY);
   },
 };
 

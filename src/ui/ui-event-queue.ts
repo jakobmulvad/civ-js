@@ -17,6 +17,7 @@ export enum UiEvent {
   UnitFortifyOrBuildFortress = 'UnitFortifyOrBuildFortress',
   UnitBuildOrJoinCity = 'UnitBuildOrJoinCity',
   EndTurn = 'EndTurn',
+  PopUiScreen = 'PopUiScreen',
 }
 
 const eventQueue: UiEvent[] = [];

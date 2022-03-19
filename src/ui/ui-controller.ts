@@ -13,6 +13,7 @@ export type UiWindow = {
 };
 
 export type UiScreen = {
+  onMount?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
   onKey?: (keyCode: string) => void;
@@ -20,12 +21,21 @@ export type UiScreen = {
 };
 
 let uiStack: UiScreen[] = [];
+let isDirty = true; // force rerender?
 
-export const pushUiScreen = (screen: UiScreen) => uiStack.push(screen);
-export const popUiScreen = () => uiStack.pop();
+export const pushUiScreen = (screen: UiScreen) => {
+  uiStack.push(screen);
+  screen.onMount?.();
+  isDirty = true;
+};
+export const popUiScreen = () => {
+  uiStack.pop();
+  isDirty = true;
+};
 export const clearUi = () => {
   uiStack = [];
   clearUiEventQueue();
+  isDirty = true;
 };
 
 export const topUiScreen = (): UiScreen | undefined => {
@@ -42,11 +52,12 @@ export const uiRender = (time: number) => {
 
   for (const window of screen.windows) {
     //if (!window.onUpdate || window.onUpdate(time, state)) {
-    if (window.isDirty) {
+    if (isDirty || window.isDirty) {
       window.onRender(state, time);
       window.isDirty = false;
     }
   }
+  isDirty = false;
 };
 
 document.addEventListener('keydown', (evt) => {

@@ -18,6 +18,8 @@ export type PlayerState = {
   selectedUnit: number | undefined;
   gold: number;
   beakers: number;
+  taxRate: number;
+  luxuryRate: number;
 };
 
 export type GameState = {
@@ -60,6 +62,9 @@ export const removeUnitFromGame = (state: GameState, unit: Unit) => {
 
     if (idx !== -1) {
       player.units.splice(idx, 1);
+      if (player.selectedUnit === idx) {
+        player.selectedUnit = undefined;
+      }
       return;
     }
   }

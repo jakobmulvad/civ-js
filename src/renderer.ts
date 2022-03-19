@@ -1,5 +1,5 @@
 import { getImageAsset, ImageAssetKey } from './assets';
-import { Font, fonts } from './fonts';
+import { Font, fonts, measureText } from './fonts';
 import { Rect } from './helpers';
 import { City } from './logic/city';
 import { GameState } from './logic/game-state';
@@ -14,6 +14,7 @@ import {
   getTilesAround,
   MapTile,
   TerrainId,
+  TerrainYield,
 } from './logic/map';
 import { Unit, UnitState } from './logic/units';
 import { palette } from './palette';
@@ -56,13 +57,7 @@ if (!canvas || !screenCtx || !unitContext) {
   throw new Error('Failed to initialise renderer');
 }
 
-export const drawHorizontalLine = (
-  dst: ImageData,
-  x: number,
-  y: number,
-  length: number,
-  color: [number, number, number]
-) => {
+const drawHorizontalLine = (dst: ImageData, x: number, y: number, length: number, color: [number, number, number]) => {
   const data = dst.data;
   const [r, g, b] = color;
   const start = (x + y * dst.width) * 4;
@@ -71,16 +66,11 @@ export const drawHorizontalLine = (
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
+    data[i + 3] = 255;
   }
 };
 
-export const drawVerticalLine = (
-  dst: ImageData,
-  x: number,
-  y: number,
-  length: number,
-  color: [number, number, number]
-) => {
+const drawVerticalLine = (dst: ImageData, x: number, y: number, length: number, color: [number, number, number]) => {
   const data = dst.data;
   const increment = dst.width * 4;
   const [r, g, b] = color;
@@ -90,10 +80,11 @@ export const drawVerticalLine = (
     data[i] = r;
     data[i + 1] = g;
     data[i + 2] = b;
+    data[i + 3] = 255;
   }
 };
 
-export const drawFrame = (
+const drawFrame = (
   dst: ImageData,
   x: number,
   y: number,
@@ -107,13 +98,51 @@ export const drawFrame = (
   drawVerticalLine(dst, x + width - 1, y + 1, height - 2, color);
 };
 
+const fillSolid = (
+  dst: ImageData,
+  color: [number, number, number],
+  x: number,
+  y: number,
+  width: number,
+  height: number
+) => {
+  const [r, g, b] = color;
+  const dstData = dst.data;
+
+  for (let dx = x; dx < x + width; dx++) {
+    for (let dy = y; dy < y + height; dy++) {
+      const dstIndex = (dx + dy * dst.width) * 4;
+      dstData[dstIndex] = r;
+      dstData[dstIndex + 1] = g;
+      dstData[dstIndex + 2] = b;
+      dstData[dstIndex + 3] = 255;
+    }
+  }
+};
+
+const fillPattern = (dst: ImageData, pattern: ImageData, x: number, y: number, width: number, height: number) => {
+  const patternData = pattern.data;
+  const dstData = dst.data;
+
+  for (let dx = x; dx < x + width; dx++) {
+    for (let dy = y; dy < y + height; dy++) {
+      const dstIndex = (dx + dy * dst.width) * 4;
+      const srcIndex = ((dx % pattern.width) + (dy % pattern.height) * pattern.width) * 4;
+      dstData[dstIndex] = patternData[srcIndex];
+      dstData[dstIndex + 1] = patternData[srcIndex + 1];
+      dstData[dstIndex + 2] = patternData[srcIndex + 2];
+      dstData[dstIndex + 3] = 255;
+    }
+  }
+};
+
 export const generateSpriteSheets = (
   colors: {
     primaryColor: [number, number, number];
     secondaryColor: [number, number, number];
   }[]
 ) => {
-  const sp257 = getImageAsset('sp257.pic.gif').canvas;
+  const sp257 = getImageAsset('sp257.pic.png').canvas;
 
   // Dimensions of the units block in sp257.pic
   const bWidth = 20 * 16;
@@ -324,9 +353,9 @@ export const renderTileTerrain = (
 
 export const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
   setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, letter, screenX + 5, screenY + 9);
+  renderText(fonts.main, letter, screenX + 7, screenY + 8, true);
   setFontColor(fonts.main, palette.white);
-  renderText(fonts.main, letter, screenX + 5, screenY + 8);
+  renderText(fonts.main, letter, screenX + 7, screenY + 7, true);
 };
 
 export const renderUnit = (
@@ -388,6 +417,7 @@ export const renderCity = (
         data[i] = 0;
         data[i + 1] = 0;
         data[i + 2] = 0;
+        data[i + 3] = 255;
       } else if (data[i + 3] === 0) {
         data[i] = pRed;
         data[i + 1] = pGreen;
@@ -403,8 +433,8 @@ export const renderCity = (
   }
 
   // Draw bevel
-  drawHorizontalLine(imageData, 2, 1, 14, secondaryColor);
-  drawHorizontalLine(imageData, 1, 14, 15, palette.white);
+  drawHorizontalLine(imageData, 2, 1, 13, secondaryColor);
+  drawHorizontalLine(imageData, 1, 14, 14, palette.white);
   drawVerticalLine(imageData, 1, 1, 13, palette.white);
   drawVerticalLine(imageData, 14, 2, 12, secondaryColor);
 
@@ -417,7 +447,7 @@ export const renderCity = (
 
   screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
   setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, city.size.toString(), screenX + 6, screenY + 5);
+  renderText(fonts.main, city.size.toString(), screenX + 8, screenY + 5, true);
 };
 
 export const setFontColor = (font: Font, color: [number, number, number]) => {
@@ -435,9 +465,13 @@ export const setFontColor = (font: Font, color: [number, number, number]) => {
   fontsCv.putImageData(fontImageData, 0, offset);
 };
 
-export const renderText = (font: Font, text: string, x: number, y: number): number => {
+export const renderText = (font: Font, text: string, x: number, y: number, center?: boolean): number => {
   const fontsCv = getImageAsset('fonts.cv.png');
   const { width, height, offset, kerning } = font;
+
+  if (center) {
+    x -= measureText(font, text) >> 1;
+  }
 
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
@@ -467,7 +501,7 @@ export const renderTextLines = (font: Font, lines: (string | undefined)[], x: nu
   }
 };
 
-const renderBorder = (destination: ImageData, margin = 0) => {
+const renderBorder = (destination: ImageData) => {
   const { width, height } = destination;
   const dstData = destination.data;
   let topRowIndex = 0;
@@ -523,11 +557,18 @@ export const renderWindow = (x: number, y: number, width: number, height: number
   screenCtx.putImageData(dst, x, y);
 };
 
-export const renderMinimap = (state: GameState, player: number, screenArea: Rect, viewport: Rect) => {
+export const renderMinimap = (
+  state: GameState,
+  playerIdx: number,
+  screenArea: Rect,
+  viewport: Rect,
+  renderSelected: boolean
+) => {
   const { x: screenX, y: screenY, width, height } = screenArea;
   const dst = screenCtx.getImageData(screenX, screenY, width, height);
   const { data } = dst;
-  const { map } = state.players[player];
+  const player = state.players[playerIdx];
+  const { map } = player;
   const offsetX = viewport.x - ((screenArea.width - viewport.width) >> 1);
   const offsetY = viewport.y - ((screenArea.height - viewport.height) >> 1);
 
@@ -553,6 +594,7 @@ export const renderMinimap = (state: GameState, player: number, screenArea: Rect
   }
 
   for (const player of state.players) {
+    const [r, g, b] = player.civ.primaryColor;
     for (const city of player.cities) {
       const screenX = city.x - offsetX;
       const screenY = city.y - offsetY;
@@ -560,11 +602,26 @@ export const renderMinimap = (state: GameState, player: number, screenArea: Rect
       const i = screenX * 4 + screenY * width * 4;
 
       if (i > -1 && i < data.length) {
-        data[i] = player.civ.primaryColor[0];
-        data[i + 1] = player.civ.primaryColor[1];
-        data[i + 2] = player.civ.primaryColor[2];
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
         data[i + 3] = 255;
       }
+    }
+  }
+
+  if (renderSelected && state.playerInTurn === playerIdx && player.selectedUnit !== undefined) {
+    const unit = player.units[player.selectedUnit];
+    const screenX = unit.x - offsetX;
+    const screenY = unit.y - offsetY;
+
+    const i = screenX * 4 + screenY * width * 4;
+
+    if (i > -1 && i < data.length) {
+      data[i] = palette.white[0];
+      data[i + 1] = palette.white[1];
+      data[i + 2] = palette.white[2];
+      data[i + 3] = 255;
     }
   }
 
@@ -582,23 +639,92 @@ export const renderMinimap = (state: GameState, player: number, screenArea: Rect
 };
 
 export const renderGrayBox = (x: number, y: number, width: number, height: number) => {
-  const sp257 = getImageAsset('sp257.pic.gif');
+  const sp257 = getImageAsset('sp257.pic.png');
 
-  const srcData = sp257.getImageData(18 * 16, 11 * 16, 32, 16).data;
+  const pattern = sp257.getImageData(18 * 16, 11 * 16, 32, 16);
   const dst = screenCtx.getImageData(x, y, width, height);
-  const dstData = dst.data;
 
-  for (let dx = 1; dx < width - 1; dx++) {
-    for (let dy = 1; dy < height - 1; dy++) {
-      const dstIndex = (dx + dy * width) * 4;
-      const srcIndex = ((dx % 32) + (dy % 16) * 32) * 4;
-      dstData[dstIndex] = srcData[srcIndex];
-      dstData[dstIndex + 1] = srcData[srcIndex + 1];
-      dstData[dstIndex + 2] = srcData[srcIndex + 2];
-      dstData[dstIndex + 3] = 255;
-    }
-  }
+  fillPattern(dst, pattern, 1, 1, width - 2, height - 2);
 
   renderBorder(dst);
   screenCtx.putImageData(dst, x, y);
+};
+
+export const renderBlueBox = (x: number, y: number, width: number, height: number) => {
+  const sp299 = getImageAsset('sp299.pic.png');
+
+  const pattern = sp299.getImageData(13 * 16, 6 * 16 + 4, 16, 16);
+  const dst = screenCtx.getImageData(x, y, width, height);
+
+  fillPattern(dst, pattern, 1, 1, width - 2, height - 2);
+
+  drawHorizontalLine(dst, 0, 0, width, palette.blueDark);
+  drawHorizontalLine(dst, 0, height - 1, width, palette.blueDark);
+  drawVerticalLine(dst, 0, 1, height - 2, palette.blueDark);
+  drawVerticalLine(dst, width - 1, 1, height - 2, palette.blueDark);
+  screenCtx.putImageData(dst, x, y);
+};
+
+export const renderSmallButton = (
+  label: string,
+  x: number,
+  y: number,
+  width: number,
+  primaryColor: [number, number, number],
+  secondaryColor: [number, number, number]
+) => {
+  const dst = screenCtx.getImageData(x, y, width, 9);
+
+  fillSolid(dst, primaryColor, 1, 1, width - 2, 7);
+  drawHorizontalLine(dst, 1, 0, width - 2, palette.grayLight);
+  drawHorizontalLine(dst, 1, 8, width - 2, secondaryColor);
+  drawVerticalLine(dst, 0, 0, 9, palette.grayLight);
+  drawVerticalLine(dst, width - 1, 0, 9, secondaryColor);
+
+  setFontColor(fonts.mainSmall, secondaryColor);
+  screenCtx.putImageData(dst, x, y);
+  renderText(fonts.mainSmall, label, x + (width >> 1) + 1, y + 2, true);
+};
+
+export const renderCitizens = (x: number, y: number, citizens: number[]) => {
+  const sp257 = getImageAsset('sp257.pic.png');
+  for (let i = 0; i < citizens.length; i++) {
+    const citizen = citizens[i];
+    screenCtx.drawImage(sp257.canvas, citizen * 8, 8 * 16, 8, 15, x, y, 8, 15);
+    x += 7;
+  }
+};
+
+export const clearScreen = () => {
+  screenCtx.fillRect(0, 0, 320, 200);
+};
+
+export const renderYield = (
+  sp257: CanvasImageSource,
+  tileYield: Required<TerrainYield>,
+  screenX: number,
+  screenY: number
+) => {
+  // eslint-disable-next-line prefer-const
+  let { food, shields, trade } = tileYield;
+  const totalYield = food + shields + trade;
+  const iconsPerLine = Math.max(2, Math.ceil(totalYield / 2));
+  const spacing = 8 - (iconsPerLine - 2) * 4;
+
+  for (let i = 0; i < totalYield; i++) {
+    const iconX = screenX + (i % iconsPerLine) * spacing;
+    const iconY = screenY + Math.floor(i / iconsPerLine) * 8;
+
+    let iconIndex;
+    if (food > 0) {
+      food--;
+      iconIndex = 0;
+    } else if (shields > 0) {
+      shields--;
+      iconIndex = 1;
+    } else {
+      iconIndex = 2;
+    }
+    screenCtx.drawImage(sp257, 8 * 16 + iconIndex * 8, 2 * 16, 8, 8, iconX, iconY, 8, 8);
+  }
 };

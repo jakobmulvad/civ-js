@@ -7,8 +7,8 @@ import {
 } from './logic/game-state';
 import { getTerrainAt, MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
-import { clearUi, pushUiScreen } from './ui/ui-controller';
-import { uiWorldView } from './ui/ui-worldview';
+import { clearUi, popUiScreen, pushUiScreen } from './ui/ui-controller';
+import { uiCityView, uiWorldView } from './ui/ui-screens';
 import { executeAction, newGame } from './logic/civ-game';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
@@ -19,14 +19,15 @@ import { Action } from './logic/action';
 import { initUi, updateUiState } from './ui/ui-state';
 import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
+import { calculateCitizens, newCity } from './logic/city';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
 
 export const startGame = async () => {
-  const newMap = await loadJson<MapTemplate>('/assets/earth.json');
+  const earthTemplate = await loadJson<MapTemplate>('/assets/earth.json');
 
-  state = newGame(newMap, [americans, egyptians]);
+  state = newGame(earthTemplate, [americans, egyptians]);
   state.players[localPlayer].controller = PlayerController.LocalHuman;
 
   // Initialize ui
@@ -35,6 +36,13 @@ export const startGame = async () => {
   initUi(state, localPlayer);
   pushUiScreen(uiWorldView);
   triggerGameEvent('GameStateUpdated');
+
+  const city = newCity(0, 'Issus', 10, 15);
+  city.size = 1;
+  city.workedTiles = [0, 2, 3];
+  calculateCitizens(state.players[localPlayer].map, city);
+  updateUiState('selectedCity', city);
+  pushUiScreen(uiCityView);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {
@@ -143,6 +151,10 @@ const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
       }
       centerViewport(selectedUnit.x, selectedUnit.y);
       return;
+
+    case UiEvent.PopUiScreen:
+      popUiScreen();
+      break;
 
     default:
       return;

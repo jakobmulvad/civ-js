@@ -2,6 +2,7 @@ import { addGameEventListener } from '../game-event';
 import { Rect } from '../helpers';
 import { renderMinimap } from '../renderer';
 import { UiWindow } from './ui-controller';
+import { getUiState } from './ui-state';
 import { centerViewport, mapViewport } from './ui-worldview-map';
 
 const area: Rect = {
@@ -15,8 +16,9 @@ export const minimapWindow: UiWindow = {
   area,
   isDirty: true,
   onRender: (state) => {
-    const { gameState, localPlayer } = state;
-    renderMinimap(gameState, localPlayer, area, mapViewport);
+    const { gameState, localPlayer, isBlinking } = state;
+
+    renderMinimap(gameState, localPlayer, area, mapViewport, isBlinking);
   },
   onClick: (x, y) => {
     const offsetX = mapViewport.x - ((area.width - mapViewport.width) >> 1);
@@ -27,4 +29,11 @@ export const minimapWindow: UiWindow = {
 
 addGameEventListener(['GameStateUpdated', 'ViewportChanged'], () => {
   minimapWindow.isDirty = true;
+});
+
+addGameEventListener('BlinkingStateUpdated', () => {
+  const { gameState, localPlayer } = getUiState();
+  if (gameState.playerInTurn === localPlayer && gameState.players[localPlayer].selectedUnit !== undefined) {
+    minimapWindow.isDirty = true;
+  }
 });

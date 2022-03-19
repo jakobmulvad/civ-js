@@ -39,21 +39,21 @@ export type ActionFailedResult = {
 
 export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | void;
 
-const discoverMapTile = (state: GameState, player: number, x: number, y: number) => {
+const exploreMap = (state: GameState, player: number, x: number, y: number) => {
   const idx = getTileIndex(state.masterMap, x, y);
   state.players[player].map.tiles[idx] = { ...state.masterMap.tiles[idx], hidden: false };
 };
 
-const discoverMapAround = (state: GameState, player: number, x: number, y: number) => {
-  discoverMapTile(state, player, x - 1, y - 1);
-  discoverMapTile(state, player, x, y - 1);
-  discoverMapTile(state, player, x + 1, y - 1);
-  discoverMapTile(state, player, x - 1, y);
-  discoverMapTile(state, player, x, y);
-  discoverMapTile(state, player, x + 1, y);
-  discoverMapTile(state, player, x - 1, y + 1);
-  discoverMapTile(state, player, x, y + 1);
-  discoverMapTile(state, player, x + 1, y + 1);
+const exploreMapAround = (state: GameState, player: number, x: number, y: number) => {
+  exploreMap(state, player, x - 1, y - 1);
+  exploreMap(state, player, x, y - 1);
+  exploreMap(state, player, x + 1, y - 1);
+  exploreMap(state, player, x - 1, y);
+  exploreMap(state, player, x, y);
+  exploreMap(state, player, x + 1, y);
+  exploreMap(state, player, x - 1, y + 1);
+  exploreMap(state, player, x, y + 1);
+  exploreMap(state, player, x + 1, y + 1);
 };
 
 export const spawnUnitForPlayer = (
@@ -66,7 +66,7 @@ export const spawnUnitForPlayer = (
   const unit = newUnit(id, x, y, player);
   state.players[player].units.push(unit);
 
-  discoverMapAround(state, player, x, y);
+  exploreMapAround(state, player, x, y);
 
   return unit;
 };
@@ -145,7 +145,7 @@ const startTurn = (state: GameState) => {
         unit.state = UnitState.Fortified;
         break;
     }
-    discoverMapAround(state, state.playerInTurn, unit.x, unit.y);
+    exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
   }
   selectNextUnit(state);
 };
@@ -268,7 +268,7 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResu
     unit.movesLeft = Math.max(0, unit.movesLeft - terrain.movementCost * 3);
   }
 
-  discoverMapAround(state, action.player, newX, newY);
+  exploreMapAround(state, action.player, newX, newY);
   if (unit.movesLeft === 0) {
     selectNextUnit(state);
   }
@@ -347,6 +347,7 @@ export const executeAction = (state: GameState, action: Action): ActionResult =>
       tile.hasRoad = true;
 
       removeUnitFromGame(state, unit);
+      exploreMapAround(state, state.playerInTurn, city.x, city.y);
       break;
     }
 
@@ -397,6 +398,8 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     selectedUnit: -1,
     gold: 0,
     beakers: 0,
+    taxRate: 5,
+    luxuryRate: 0,
   }));
 
   const state = {
@@ -426,8 +429,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
   }
 
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
-  spawnUnitForPlayer(state, 0, UnitPrototypeId.Cavalry, 9, 15);
-  spawnUnitForPlayer(state, 1, UnitPrototypeId.Cavalry, 10, 15);
+  spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 9, 15);
 
   startTurn(state);
   return state;

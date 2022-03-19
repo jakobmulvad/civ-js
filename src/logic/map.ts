@@ -236,6 +236,8 @@ export const getTileAt = (map: GameMap, x: number, y: number): MapTile => {
   return map.tiles[x + y * map.width];
 };
 
+export const wrapXAxis = (map: GameMap, x: number) => (x + map.width) % map.width;
+
 export const getTilesCross = (map: GameMap, x: number, y: number): MapTile[] => {
   return [
     getTileAt(map, x, y),
@@ -313,4 +315,31 @@ export const getTerrainMaskSouthWest = (map: GameMap, x: number, y: number, mask
     (terrainBit(map, x - 1, y + 1, mask) << 1) |
     (terrainBit(map, x - 1, y, mask) << 2)
   );
+};
+
+export const calculateTileYield = (tile: MapTile) => {
+  const terrain = terrainMap[tile.terrain];
+
+  const isSpecial =
+    tile.terrain === TerrainId.Grassland || tile.terrain === TerrainId.River ? tile.extraShield : tile.specialResource;
+
+  const tileYield: Required<TerrainYield> = {
+    food: 0,
+    shields: 0,
+    trade: 0,
+    ...(isSpecial ? terrain.specialYield : terrain.yield),
+  };
+
+  if (tile.hasIrrigation && terrain.canIrrigate) {
+    tileYield.food++;
+  }
+
+  if (tile.hasMine && terrain.mineYield) {
+    tileYield.shields += terrain.mineYield;
+  }
+
+  if (tile.hasRoad && terrain.roadYield) {
+    tileYield.trade += terrain.roadYield;
+  }
+  return tileYield;
 };

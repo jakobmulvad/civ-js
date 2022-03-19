@@ -1,6 +1,6 @@
 import { UiEvent } from './ui/ui-event-queue';
 
-export const inputMappingWorldView: Record<string, UiEvent | undefined> = {
+export const worldViewKeyboardMap: Record<string, UiEvent | undefined> = {
   ArrowUp: UiEvent.UnitMoveNorth,
   ArrowRight: UiEvent.UnitMoveEast,
   ArrowDown: UiEvent.UnitMoveSouth,
@@ -23,6 +23,10 @@ export const inputMappingWorldView: Record<string, UiEvent | undefined> = {
   KeyM: UiEvent.UnitBuildMine,
   KeyF: UiEvent.UnitFortifyOrBuildFortress,
   KeyB: UiEvent.UnitBuildOrJoinCity,
+};
+
+export const cityViewKeyboardMap: Record<string, UiEvent | undefined> = {
+  Escape: UiEvent.PopUiScreen,
 };
 
 export const unitMoveDirection = {
