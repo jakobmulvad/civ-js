@@ -6,7 +6,7 @@ import { terrainMap } from '../logic/map';
 import { palette } from '../palette';
 import { renderGrayBox, renderText, renderTextLines, setFontColor } from '../renderer';
 import { UiWindow } from './ui-controller';
-import { pushUiEvent, UiEvent } from './ui-event-queue';
+import { pushUiAction } from './ui-action-queue';
 import { getUiState, UiState } from './ui-state';
 
 const area: Rect = { x: 0, y: 97, width: 80, height: 103 };
@@ -61,7 +61,7 @@ export const unitInfoWindow: UiWindow = {
   onClick: () => {
     const { gameState, localPlayer } = getUiState();
     if (gameState.playerInTurn === localPlayer && !getSelectedUnitForPlayer(gameState, localPlayer)) {
-      pushUiEvent(UiEvent.EndTurn);
+      pushUiAction({ type: 'EndTurn', player: localPlayer });
     }
   },
 };

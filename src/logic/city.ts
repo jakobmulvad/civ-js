@@ -121,9 +121,7 @@ export const calculateCitizens = (map: GameMap, city: City) => {
   // Make sure we don't have more specialists than size-workers
   city.specialists = city.specialists.slice(0, city.size - city.workedTiles.length);
 
-  const missing = city.workedTiles.length + city.specialists.length;
-
-  console.log(city.specialists);
+  const missing = city.size - city.workedTiles.length - city.specialists.length;
 
   // Fill up with entertainers
   const entertainers = new Array(missing).fill(Specialists.Entertainer) as Specialists[];

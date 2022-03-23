@@ -1,10 +1,11 @@
 import { getImageAsset } from '../../assets';
-import { triggerGameEvent } from '../../game-event';
+import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { calculateCitizens, workedTileCoords, workedTileToIndex } from '../../logic/city';
+import { workedTileCoords, workedTileToIndex } from '../../logic/city';
 import { getUnitsAt } from '../../logic/game-state';
 import { calculateTileYield, getTileAt, wrapXAxis } from '../../logic/map';
 import { renderBlueBox, renderCity, renderTileTerrain, renderYield } from '../../renderer';
+import { pushUiAction } from '../ui-action-queue';
 import { UiWindow } from '../ui-controller';
 import { getUiState } from '../ui-state';
 
@@ -67,44 +68,36 @@ export const cityMapWindow: UiWindow = {
   },
   onClick: (x: number, y: number) => {
     const { gameState, selectedCity, localPlayer } = getUiState();
-    if (!selectedCity) {
+    const player = gameState.players[localPlayer];
+    const cityIndex = player.cities.indexOf(selectedCity!);
+    if (!selectedCity || cityIndex === -1) {
       return;
     }
-    const player = gameState.players[localPlayer];
     const map = player.map;
 
-    const relX = (x >> 4) - 2;
-    const relY = (y >> 4) - 2;
+    const dx = ((x - 1) >> 4) - 2;
+    const dy = ((y - 1) >> 4) - 2;
 
-    const mapX = wrapXAxis(map, selectedCity.x + relX);
-    const mapY = selectedCity.y + relY;
+    const mapX = wrapXAxis(map, selectedCity.x + dx);
+    const mapY = selectedCity.y + dy;
     const tile = getTileAt(map, mapX, mapY);
 
-    if (tile.hidden || Math.abs(x) + Math.abs(y) === 4) {
+    if (tile.hidden || Math.abs(dx) > 2 || Math.abs(dy) > 2 || Math.abs(dx) + Math.abs(dy) === 4) {
       return;
     }
 
-    const tileIndex = workedTileToIndex(relX, relY);
+    const tileIndex = workedTileToIndex(dx, dy);
     if (tileIndex === undefined) {
       return;
     }
 
-    const isWorked = selectedCity.workedTiles.includes(tileIndex);
-
-    if (isWorked) {
-      console.log('removing worked tile', tileIndex);
-      selectedCity.workedTiles = selectedCity.workedTiles.filter((idx) => idx !== tileIndex);
-    } else if (selectedCity.size > selectedCity.workedTiles.length) {
-      console.log('adding worked tile', tileIndex);
-      selectedCity.workedTiles.push(tileIndex);
-    } else {
-      // TODO: automatic worker placement
-    }
-
-    cityMapWindow.isDirty = true;
-    calculateCitizens(map, selectedCity);
-    triggerGameEvent('CityViewUpdated');
-
-    console.log(relX, relY);
+    pushUiAction({
+      type: 'CityToggleTileWorker',
+      player: localPlayer,
+      city: cityIndex,
+      tile: tileIndex,
+    });
   },
 };
+
+addGameEventListener('GameStateUpdated', () => (cityMapWindow.isDirty = true));

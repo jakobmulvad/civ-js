@@ -1,19 +1,12 @@
-import {
-  GameState,
-  getPlayerInTurn,
-  getPrototype,
-  getSelectedUnitForPlayer,
-  PlayerController,
-} from './logic/game-state';
-import { getTerrainAt, MapTemplate } from './logic/map';
+import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController } from './logic/game-state';
+import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
-import { clearUi, popUiScreen, pushUiScreen } from './ui/ui-controller';
-import { uiCityView, uiWorldView } from './ui/ui-screens';
+import { clearUi, pushUiScreen } from './ui/ui-controller';
+import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
 import { executeAction, newGame } from './logic/civ-game';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
-import { popUiEvent, UiEvent } from './ui/ui-event-queue';
-import { unitMoveDirection } from './input-mapping';
+import { popUiAction } from './ui/ui-action-queue';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
 import { initUi, updateUiState } from './ui/ui-state';
@@ -34,15 +27,16 @@ export const startGame = async () => {
   generateSpriteSheets(state.players.map((pl) => pl.civ));
   clearUi();
   initUi(state, localPlayer);
-  pushUiScreen(uiWorldView);
+  pushUiScreen(uiWorldScreen);
   triggerGameEvent('GameStateUpdated');
 
   const city = newCity(0, 'Issus', 10, 15);
-  city.size = 1;
+  city.size = 10;
   city.workedTiles = [0, 2, 3];
+  state.players[localPlayer].cities.push(city);
   calculateCitizens(state.players[localPlayer].map, city);
   updateUiState('selectedCity', city);
-  pushUiScreen(uiCityView);
+  pushUiScreen(uiCityScreen);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {
@@ -79,88 +73,6 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
   }
 };
 
-const uiEventToAction = (event: UiEvent | undefined): Action | undefined => {
-  // for now ignore events out of turn. There might exist exceptions in the future (like granting audience)
-  if (!event || state.playerInTurn !== localPlayer) {
-    return;
-  }
-
-  console.log('UiEvent:', event);
-
-  if (event === UiEvent.EndTurn) {
-    return { type: 'EndTurn', player: localPlayer };
-  }
-
-  const player = state.players[localPlayer];
-  const selectedUnitIdx = player.selectedUnit;
-  const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
-
-  if (!selectedUnit || selectedUnitIdx === undefined) {
-    return;
-  }
-
-  switch (event) {
-    case UiEvent.UnitMoveNorth:
-    case UiEvent.UnitMoveNorthEast:
-    case UiEvent.UnitMoveEast:
-    case UiEvent.UnitMoveSouthEast:
-    case UiEvent.UnitMoveSouth:
-    case UiEvent.UnitMoveSouthWest:
-    case UiEvent.UnitMoveWest:
-    case UiEvent.UnitMoveNorthWest: {
-      ensureSelectedUnitIsInViewport();
-      const [dx, dy] = unitMoveDirection[event];
-      return { type: 'UnitMove', dx, dy, player: localPlayer, unit: selectedUnitIdx };
-    }
-
-    case UiEvent.UnitWait:
-      return { type: 'UnitWait', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitNoOrders:
-      return { type: 'UnitNoOrders', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitFortifyOrBuildFortress:
-      return { type: 'UnitFortify', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitBuildIrrigationOrClear: {
-      const terrain = getTerrainAt(state.masterMap, selectedUnit.x, selectedUnit.y);
-      if (terrain.canIrrigate) {
-        return { type: 'UnitBuildIrrigation', player: localPlayer, unit: selectedUnitIdx };
-      }
-      if (terrain.clearsTo !== undefined) {
-        return { type: 'UnitClear', player: localPlayer, unit: selectedUnitIdx };
-      }
-      return;
-    }
-
-    case UiEvent.UnitBuildMine:
-      return { type: 'UnitBuildMine', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitBuildRoad:
-      return { type: 'UnitBuildRoad', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitBuildOrJoinCity:
-      if (!getPrototype(selectedUnit).isBuilder) {
-        return;
-      }
-      return { type: 'UnitBuildOrJoinCity', player: localPlayer, unit: selectedUnitIdx };
-
-    case UiEvent.UnitCenter:
-      if (!selectedUnit) {
-        return;
-      }
-      centerViewport(selectedUnit.x, selectedUnit.y);
-      return;
-
-    case UiEvent.PopUiScreen:
-      popUiScreen();
-      break;
-
-    default:
-      return;
-  }
-};
-
 const logicFrame = (time: number) => {
   if (!state) {
     requestAnimationFrame(logicFrame);
@@ -176,8 +88,7 @@ const logicFrame = (time: number) => {
 
   switch (playerInTurn.controller) {
     case PlayerController.LocalHuman: {
-      const event = popUiEvent();
-      action = uiEventToAction(event);
+      action = popUiAction();
       break;
     }
 

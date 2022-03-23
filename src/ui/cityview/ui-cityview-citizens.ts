@@ -1,7 +1,7 @@
 import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { numberFormatter } from '../../logic/city';
+import { Citizens, numberFormatter } from '../../logic/city';
 import { cityPopulation } from '../../logic/formulas';
 import { palette } from '../../palette';
 import { renderBlueBox, renderCitizens, renderText, setFontColor } from '../../renderer';
@@ -29,12 +29,12 @@ export const cityCitizensWindow: UiWindow = {
     setFontColor(fonts.mainSmall, palette.white);
     renderText(fonts.mainSmall, `${selectedCity.name} (POP:${numberFormatter.format(pop)})`, 104, 2, true);
 
-    //renderCitizens(7, 8, [Citizens.ContentMale]);
+    const workers = selectedCity.workedTiles.length;
+    const x = renderCitizens(7, 8, [Citizens.ContentMale, Citizens.ContentFemale], workers);
 
-    renderCitizens(7, 8, selectedCity.specialists);
+    console.log('citizens view', selectedCity.specialists);
+    renderCitizens(x + 4, 8, selectedCity.specialists);
   },
 };
 
-addGameEventListener('CityViewUpdated', () => {
-  cityCitizensWindow.isDirty = true;
-});
+addGameEventListener('GameStateUpdated', () => (cityCitizensWindow.isDirty = true));

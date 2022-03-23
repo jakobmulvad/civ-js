@@ -27,7 +27,11 @@ export const minimapWindow: UiWindow = {
   },
 };
 
-addGameEventListener(['GameStateUpdated', 'ViewportChanged'], () => {
+addGameEventListener('ViewportChanged', () => {
+  minimapWindow.isDirty = true;
+});
+
+addGameEventListener('GameStateUpdated', () => {
   minimapWindow.isDirty = true;
 });
 

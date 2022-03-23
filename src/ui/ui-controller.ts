@@ -1,7 +1,7 @@
 import { postRenderFrame, preRenderFrame } from '../animation';
 import { waitForAssets } from '../assets';
 import { isInside, Rect } from '../helpers';
-import { clearUiEventQueue } from './ui-event-queue';
+import { clearUiActionQueue } from './ui-action-queue';
 import { getUiState, UiState } from './ui-state';
 
 export type UiWindow = {
@@ -34,7 +34,7 @@ export const popUiScreen = () => {
 };
 export const clearUi = () => {
   uiStack = [];
-  clearUiEventQueue();
+  clearUiActionQueue();
   isDirty = true;
 };
 

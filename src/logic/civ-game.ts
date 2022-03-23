@@ -1,6 +1,6 @@
 import { randomIntBelow } from '../helpers';
-import { Action, ActionWithPlayer, ActionWithUnit, UnitActionMove } from './action';
-import { newCity } from './city';
+import { Action, ActionWithPlayer, ActionWithUnit, CityTileAction, UnitAction, UnitActionMove } from './action';
+import { calculateCitizens, newCity } from './city';
 import { Civilization } from './civilizations';
 import { attackStrength, defenseStrength } from './formulas';
 import {
@@ -276,21 +276,7 @@ const executeMoveUnit = (state: GameState, action: UnitActionMove): UnitMoveResu
   return { type: 'UnitMoved', unit, dx: action.dx, dy: action.dy };
 };
 
-export const executeAction = (state: GameState, action: Action): ActionResult => {
-  console.log('Executing action', action);
-
-  if (action.type === 'EndTurn') {
-    validatePlayerAction(state, action);
-    state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
-
-    if (state.playerInTurn === 0) {
-      // New turn
-      state.turn++;
-    }
-
-    return startTurn(state);
-  }
-
+export const executeUnitAction = (state: GameState, action: UnitAction | UnitActionMove): ActionResult => {
   const unit = validateUnitAction(state, action);
   const unitProto = getPrototype(unit);
   const tile = getTileAt(state.masterMap, unit.x, unit.y);
@@ -364,6 +350,47 @@ export const executeAction = (state: GameState, action: Action): ActionResult =>
       unit.state = UnitState.Fortifying;
   }
   selectNextUnit(state);
+};
+
+export const executeCityAction = (state: GameState, action: CityTileAction): ActionResult => {
+  const player = state.players[action.player];
+  const city = player.cities[action.city];
+
+  if (action.type === 'CityToggleTileWorker') {
+    const isWorked = city.workedTiles.includes(action.tile);
+
+    if (isWorked) {
+      city.workedTiles = city.workedTiles.filter((tile) => tile !== action.tile);
+    } else {
+      city.workedTiles.push(action.tile);
+    }
+
+    calculateCitizens(player.map, city);
+  }
+};
+
+export const executeAction = (state: GameState, action: Action): ActionResult => {
+  console.log('Executing action', action);
+
+  if (action.type === 'EndTurn') {
+    validatePlayerAction(state, action);
+    state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
+
+    if (state.playerInTurn === 0) {
+      // New turn
+      state.turn++;
+    }
+
+    return startTurn(state);
+  }
+
+  if ('unit' in action) {
+    return executeUnitAction(state, action);
+  }
+
+  if ('city' in action) {
+    return executeCityAction(state, action);
+  }
 };
 
 export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameState => {

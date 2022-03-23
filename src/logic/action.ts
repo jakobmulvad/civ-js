@@ -6,6 +6,10 @@ export type ActionWithUnit = {
   unit: number;
 } & ActionWithPlayer;
 
+export type ActionWithCity = {
+  city: number;
+} & ActionWithPlayer;
+
 export type PlayerAction = {
   type: 'EndTurn';
 } & ActionWithPlayer;
@@ -28,4 +32,9 @@ export type UnitActionMove = {
   dy: number;
 } & ActionWithUnit;
 
-export type Action = PlayerAction | UnitAction | UnitActionMove;
+export type CityTileAction = {
+  type: 'CityToggleTileWorker';
+  tile: number;
+} & ActionWithCity;
+
+export type Action = PlayerAction | UnitAction | UnitActionMove | CityTileAction;

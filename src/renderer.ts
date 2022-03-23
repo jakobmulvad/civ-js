@@ -686,13 +686,15 @@ export const renderSmallButton = (
   renderText(fonts.mainSmall, label, x + (width >> 1) + 1, y + 2, true);
 };
 
-export const renderCitizens = (x: number, y: number, citizens: number[]) => {
+export const renderCitizens = (x: number, y: number, citizens: number[], count?: number): number => {
   const sp257 = getImageAsset('sp257.pic.png');
-  for (let i = 0; i < citizens.length; i++) {
-    const citizen = citizens[i];
+  count = count ?? citizens.length;
+  for (let i = 0; i < count; i++) {
+    const citizen = citizens[i % citizens.length];
     screenCtx.drawImage(sp257.canvas, citizen * 8, 8 * 16, 8, 15, x, y, 8, 15);
     x += 7;
   }
+  return x;
 };
 
 export const clearScreen = () => {

@@ -8,7 +8,7 @@ import { getSelectedUnitForPlayer, getUnitsAt } from '../logic/game-state';
 import { Unit } from '../logic/units';
 import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../renderer';
 import { pushUiScreen, UiWindow } from './ui-controller';
-import { uiCityView } from './ui-screens';
+import { uiCityScreen } from './ui-screens';
 import { getUiState, updateUiState } from './ui-state';
 
 export const mapViewport: Rect = {
@@ -203,7 +203,7 @@ export const mapWindow: UiWindow = {
     for (const city of gameState.players[localPlayer].cities) {
       if (city.x === tileX && city.y === tileY) {
         updateUiState('selectedCity', city);
-        pushUiScreen(uiCityView);
+        pushUiScreen(uiCityScreen);
         return;
       }
     }
