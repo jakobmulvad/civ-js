@@ -32,7 +32,6 @@ export const cityCitizensWindow: UiWindow = {
     const workers = selectedCity.workedTiles.length;
     const x = renderCitizens(7, 8, [Citizens.ContentMale, Citizens.ContentFemale], workers);
 
-    console.log('citizens view', selectedCity.specialists);
     renderCitizens(x + 4, 8, selectedCity.specialists);
   },
 };

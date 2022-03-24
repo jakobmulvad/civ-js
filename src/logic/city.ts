@@ -128,12 +128,24 @@ export const calculateCitizens = (map: GameMap, city: City) => {
   city.specialists = [...entertainers, ...city.specialists];
 };
 
+export const totalCityYield = (state: GameState, map: GameMap, city: City): CityYield => {
+  const tileYield = cityYieldFromTiles(map, city);
+
+  const { luxuryRate, taxRate } = state.players[city.owner];
+
+  tileYield.luxury += Math.round(luxuryRate * tileYield.trade * 0.1);
+  tileYield.gold += Math.floor(taxRate * tileYield.trade * 0.1);
+  tileYield.beakers = tileYield.trade - tileYield.gold - tileYield.luxury;
+
+  return tileYield;
+};
+
 export const cityYieldFromTiles = (map: GameMap, city: City): CityYield => {
   const centerTile = getTileAt(map, city.x, city.y);
   const centerYield = toCityYield(calculateTileYield(centerTile));
   return city.workedTiles.reduce<CityYield>((accYield, workedTile) => {
     const [x, y] = workedTileCoords[workedTile];
-    const tile = getTileAt(map, x, y);
+    const tile = getTileAt(map, city.x + x, city.y + y);
     const tileYield = calculateTileYield(tile);
     accYield.food += tileYield.food;
     accYield.shields += tileYield.shields;

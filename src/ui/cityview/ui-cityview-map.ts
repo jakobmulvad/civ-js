@@ -4,7 +4,7 @@ import { Rect } from '../../helpers';
 import { workedTileCoords, workedTileToIndex } from '../../logic/city';
 import { getUnitsAt } from '../../logic/game-state';
 import { calculateTileYield, getTileAt, wrapXAxis } from '../../logic/map';
-import { renderBlueBox, renderCity, renderTileTerrain, renderYield } from '../../renderer';
+import { renderBlueBox, renderCity, renderTileTerrain, renderTileYield } from '../../renderer';
 import { pushUiAction } from '../ui-action-queue';
 import { UiWindow } from '../ui-controller';
 import { getUiState } from '../ui-state';
@@ -50,7 +50,7 @@ export const cityMapWindow: UiWindow = {
         if (isCenter) {
           renderCity(sp257, selectedCity, screenX, screenY, primaryColor, secondaryColor, units.length > 0);
           const tileYield = calculateTileYield(tile);
-          renderYield(sp257.canvas, tileYield, screenX, screenY);
+          renderTileYield(sp257.canvas, tileYield, screenX, screenY);
         }
       }
     }
@@ -63,7 +63,7 @@ export const cityMapWindow: UiWindow = {
       const tileYield = calculateTileYield(tile);
       const screenX = area.x + 32 + x * 16 + 1;
       const screenY = area.y + 32 + y * 16 + 1;
-      renderYield(sp257.canvas, tileYield, screenX, screenY);
+      renderTileYield(sp257.canvas, tileYield, screenX, screenY);
     }
   },
   onClick: (x: number, y: number) => {

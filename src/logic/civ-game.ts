@@ -1,6 +1,6 @@
 import { randomIntBelow } from '../helpers';
 import { Action, ActionWithPlayer, ActionWithUnit, CityTileAction, UnitAction, UnitActionMove } from './action';
-import { calculateCitizens, newCity } from './city';
+import { calculateCitizens, City, newCity, totalCityYield } from './city';
 import { Civilization } from './civilizations';
 import { attackStrength, defenseStrength } from './formulas';
 import {
@@ -71,6 +71,28 @@ export const spawnUnitForPlayer = (
   return unit;
 };
 
+const decreateCityPopulation = (state: GameState, city: City, amount: number) => {
+  city.size -= amount;
+  city.food = 0;
+
+  if (city.size > 0) {
+    return;
+  }
+
+  const player = state.players[city.owner];
+  player.cities = player.cities.filter((c) => c !== city);
+
+  // TODO destroy any unit maintained by this city
+  // TODO clean up traderoutes to this city
+};
+
+const increaseCityPopulation = (state: GameState, city: City, amount: number) => {
+  city.size += amount;
+  city.food = 0;
+  // TODO check for aquaduct
+  // TODO check for granary
+};
+
 const selectNextUnit = (state: GameState) => {
   const player = state.players[state.playerInTurn];
   const unitsWithMoves = player.units.filter((unit) => unit.movesLeft > 0 && unit.state === UnitState.Idle);
@@ -91,6 +113,7 @@ const selectNextUnit = (state: GameState) => {
 const startTurn = (state: GameState) => {
   const player = state.players[state.playerInTurn];
 
+  // Process each unit
   for (const unit of player.units) {
     const unitProto = unitPrototypeMap[unit.prototypeId];
     unit.movesLeft = unitProto.moves * 3;
@@ -147,6 +170,25 @@ const startTurn = (state: GameState) => {
     }
     exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
   }
+
+  // Process each city
+  for (const city of player.cities) {
+    const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
+    city.food += cityYield.food - city.size * 2;
+
+    if (city.food < 0) {
+      // Famine!
+      decreateCityPopulation(state, city, 1);
+    } else if (city.food > city.size * 10) {
+      // Grow!
+      increaseCityPopulation(state, city, 1);
+    }
+
+    city.shields += cityYield.shields;
+    player.gold += cityYield.gold;
+    player.beakers += cityYield.beakers;
+  }
+
   selectNextUnit(state);
 };
 
@@ -426,7 +468,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     gold: 0,
     beakers: 0,
     taxRate: 5,
-    luxuryRate: 0,
+    luxuryRate: 5,
   }));
 
   const state = {

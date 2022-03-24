@@ -19,6 +19,16 @@ import {
 import { Unit, UnitState } from './logic/units';
 import { palette } from './palette';
 
+export enum YieldIcon {
+  Food = 0,
+  Shield = 1,
+  Trade = 2,
+  Coin = 3,
+  Beaker = 4,
+  Void = 5,
+  Luxury = 6,
+}
+
 const terrainSpriteMapIndex = {
   [TerrainId.Desert]: 0,
   [TerrainId.Plains]: 1,
@@ -650,18 +660,21 @@ export const renderGrayBox = (x: number, y: number, width: number, height: numbe
   screenCtx.putImageData(dst, x, y);
 };
 
-export const renderBlueBox = (x: number, y: number, width: number, height: number) => {
+export const renderBlueBox = (
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  margins: [number, number, number, number] = [1, 1, 1, 1]
+) => {
   const sp299 = getImageAsset('sp299.pic.png');
 
   const pattern = sp299.getImageData(13 * 16, 6 * 16 + 4, 16, 16);
   const dst = screenCtx.getImageData(x, y, width, height);
 
-  fillPattern(dst, pattern, 1, 1, width - 2, height - 2);
+  fillSolid(dst, palette.blueDark, 0, 0, width, height);
+  fillPattern(dst, pattern, margins[3], margins[0], width - margins[1] - margins[3], height - margins[0] - margins[2]);
 
-  drawHorizontalLine(dst, 0, 0, width, palette.blueDark);
-  drawHorizontalLine(dst, 0, height - 1, width, palette.blueDark);
-  drawVerticalLine(dst, 0, 1, height - 2, palette.blueDark);
-  drawVerticalLine(dst, width - 1, 1, height - 2, palette.blueDark);
   screenCtx.putImageData(dst, x, y);
 };
 
@@ -702,6 +715,29 @@ export const clearScreen = () => {
 };
 
 export const renderYield = (
+  sp257: CanvasImageSource,
+  yieldIcon: YieldIcon,
+  count: number,
+  screenX: number,
+  screenY: number,
+  increment: number
+) => {
+  for (let i = 0; i < count; i++) {
+    screenCtx.drawImage(
+      sp257,
+      1 + 8 * 16 + (yieldIcon % 4) * 8,
+      2 * 16 + (yieldIcon >> 2) * 8,
+      8,
+      8,
+      screenX + i * increment,
+      screenY,
+      8,
+      8
+    );
+  }
+};
+
+export const renderTileYield = (
   sp257: CanvasImageSource,
   tileYield: Required<TerrainYield>,
   screenX: number,

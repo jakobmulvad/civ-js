@@ -18,8 +18,8 @@ export type PlayerState = {
   selectedUnit: number | undefined;
   gold: number;
   beakers: number;
-  taxRate: number;
-  luxuryRate: number;
+  taxRate: number; // 0...10
+  luxuryRate: number; // 0...10
 };
 
 export type GameState = {
