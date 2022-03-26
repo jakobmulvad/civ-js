@@ -1,10 +1,11 @@
 import { getImageAsset } from '../../assets';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { workedTileCoords, workedTileToIndex } from '../../logic/city';
+import { getCityAt, workedTileCoords, workedTileToIndex } from '../../logic/city';
 import { getUnitsAt } from '../../logic/game-state';
 import { calculateTileYield, getTileAt, wrapXAxis } from '../../logic/map';
-import { renderBlueBox, renderCity, renderTileTerrain, renderTileYield } from '../../renderer';
+import { palette } from '../../palette';
+import { renderBlueBox, renderCity, renderFrame, renderTileTerrain, renderTileYield, renderUnit } from '../../renderer';
 import { pushUiAction } from '../ui-action-queue';
 import { UiWindow } from '../ui-controller';
 import { getUiState } from '../ui-state';
@@ -47,10 +48,27 @@ export const cityMapWindow: UiWindow = {
         const screenY = area.y + 32 + y * 16 + 1;
         const isCenter = x === 0 && y === 0;
         renderTileTerrain(ter257, sp257.canvas, map, mapX, mapY, screenX, screenY, isCenter);
+
         if (isCenter) {
           renderCity(sp257, selectedCity, screenX, screenY, primaryColor, secondaryColor, units.length > 0);
           const tileYield = calculateTileYield(tile);
           renderTileYield(sp257.canvas, tileYield, screenX, screenY);
+          continue;
+        }
+
+        const tileCity = getCityAt(gameState, mapX, mapY);
+        const tileUnits = getUnitsAt(gameState, mapX, mapY);
+
+        if (tileCity && tileCity.owner !== localPlayer) {
+          const { primaryColor, secondaryColor } = gameState.players[tileCity.owner].civ;
+          renderCity(sp257, tileCity, screenX, screenY, primaryColor, secondaryColor, tileUnits.length > 0);
+          renderFrame(screenX, screenY, 16, 16, palette.red);
+          continue;
+        }
+
+        if (tileUnits.length && tileUnits[0].owner !== localPlayer) {
+          renderUnit(sp257.canvas, tileUnits[0], screenX, screenY, tileUnits.length > 1);
+          renderFrame(screenX, screenY, 16, 16, palette.red);
         }
       }
     }

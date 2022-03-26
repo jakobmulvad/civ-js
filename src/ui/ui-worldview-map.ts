@@ -2,8 +2,8 @@ import { startAnimation } from '../animation';
 import { getImageAsset } from '../assets';
 import { addGameEventListener, triggerGameEvent } from '../game-event';
 import { Rect } from '../helpers';
+import { UnitCombatResult, UnitMoveResult } from '../logic/action-result';
 import { getCityAt } from '../logic/city';
-import { UnitCombatResult, UnitMoveResult } from '../logic/civ-game';
 import { getSelectedUnitForPlayer, getUnitsAt } from '../logic/game-state';
 import { Unit } from '../logic/units';
 import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../renderer';
@@ -59,7 +59,7 @@ export const animateUnitMoved = async (result: UnitMoveResult) => {
 export const animateCombat = async (result: UnitCombatResult) => {
   const { gameState } = getUiState();
   const ter257 = getImageAsset('ter257.pic.gif').canvas;
-  const sp257 = getImageAsset('sp257.pic.png').canvas;
+  const sp257 = getImageAsset('sp257.pic.png');
   const { dx, dy, attacker, defender } = result;
 
   const loser = result.winner === 'Attacker' ? defender : attacker;
@@ -68,10 +68,26 @@ export const animateCombat = async (result: UnitCombatResult) => {
   const loserScreenX = mapCoordToScreenX(mapWidth, loser.x);
   const loserScreenY = mapCoordToScreenY(loser.y);
 
+  const loserPlayer = gameState.players[loser.owner];
+  const cityAtLoser = getCityAt(gameState, loser.x, loser.y);
+
   excludeUnitInRender = winner;
 
   const renderUnitAt = (unit: Unit, offsetX = 0, offsetY = 0) => {
-    renderUnit(sp257, unit, mapCoordToScreenX(mapWidth, unit.x) + offsetX, mapCoordToScreenY(unit.y) + offsetY);
+    renderUnit(sp257.canvas, unit, mapCoordToScreenX(mapWidth, unit.x) + offsetX, mapCoordToScreenY(unit.y) + offsetY);
+  };
+  const renderCityAtLoser = () => {
+    if (cityAtLoser) {
+      renderCity(
+        sp257,
+        cityAtLoser,
+        loserScreenX,
+        loserScreenY,
+        loserPlayer.civ.primaryColor,
+        loserPlayer.civ.secondaryColor,
+        true
+      );
+    }
   };
 
   await startAnimation({
@@ -79,6 +95,7 @@ export const animateCombat = async (result: UnitCombatResult) => {
     to: 10,
     window: mapWindow,
     onRender: (value) => {
+      renderCityAtLoser();
       renderUnitAt(defender);
       renderUnitAt(attacker, value * dx, value * dy);
     },
@@ -89,7 +106,8 @@ export const animateCombat = async (result: UnitCombatResult) => {
     to: 7,
     window: mapWindow,
     onRender: (value) => {
-      renderTileTerrain(ter257, sp257, gameState.masterMap, loser.x, loser.y, loserScreenX, loserScreenY);
+      renderTileTerrain(ter257, sp257.canvas, gameState.masterMap, loser.x, loser.y, loserScreenX, loserScreenY);
+      renderCityAtLoser();
       renderUnitAt(defender);
       renderUnitAt(attacker);
       renderSprite('sp257.pic.png', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);

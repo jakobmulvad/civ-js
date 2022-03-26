@@ -2,8 +2,7 @@ import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController 
 import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
-import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
-import { executeAction, newGame } from './logic/civ-game';
+import { uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
@@ -13,6 +12,7 @@ import { initUi, updateUiState } from './ui/ui-state';
 import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
 import { calculateCitizens, newCity } from './logic/city';
+import { executeAction, newGame } from './logic/game-rules/civ-game';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -32,11 +32,12 @@ export const startGame = async () => {
 
   const city = newCity(0, 'Issus', 10, 15);
   city.size = 10;
-  city.workedTiles = [0, 2, 3];
+  city.workedTiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   state.players[localPlayer].cities.push(city);
   calculateCitizens(state.players[localPlayer].map, city);
-  updateUiState('selectedCity', city);
-  pushUiScreen(uiCityScreen);
+
+  /*  updateUiState('selectedCity', city);
+  pushUiScreen(uiCityScreen);*/
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {

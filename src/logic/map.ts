@@ -1,3 +1,5 @@
+import { GameState } from './game-state';
+
 export enum TerrainId {
   Void = 0,
   Ocean = 1,
@@ -342,4 +344,21 @@ export const calculateTileYield = (tile: MapTile) => {
     tileYield.trade += terrain.roadYield;
   }
   return tileYield;
+};
+
+export const exploreMap = (state: GameState, player: number, x: number, y: number) => {
+  const idx = getTileIndex(state.masterMap, x, y);
+  state.players[player].map.tiles[idx] = { ...state.masterMap.tiles[idx], hidden: false };
+};
+
+export const exploreMapAround = (state: GameState, player: number, x: number, y: number) => {
+  exploreMap(state, player, x - 1, y - 1);
+  exploreMap(state, player, x, y - 1);
+  exploreMap(state, player, x + 1, y - 1);
+  exploreMap(state, player, x - 1, y);
+  exploreMap(state, player, x, y);
+  exploreMap(state, player, x + 1, y);
+  exploreMap(state, player, x - 1, y + 1);
+  exploreMap(state, player, x, y + 1);
+  exploreMap(state, player, x + 1, y + 1);
 };

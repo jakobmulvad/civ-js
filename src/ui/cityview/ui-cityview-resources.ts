@@ -34,24 +34,34 @@ export const cityResourcesWindow: UiWindow = {
 
     const gab = 4;
     const foodConsumption = selectedCity.size * 2;
-    if (totalYield.food > foodConsumption) {
-      const inc = incrementPerIcon(totalYield.food, 119 + gab); // add space for a gab before surplus
-      const surplus = totalYield.food - foodConsumption;
-      renderYield(sp257.canvas, YieldIcon.Food, foodConsumption, 4, 32, inc);
-      renderYield(sp257.canvas, YieldIcon.Food, surplus, 4 + inc * foodConsumption + gab, 32, inc);
+    const inc = incrementPerIcon(Math.max(totalYield.food, foodConsumption), 119 - gab); // add space for a gab before surplus
+    const surplus = totalYield.food - foodConsumption;
+
+    renderYield(sp257, YieldIcon.Food, Math.min(foodConsumption, totalYield.food), 4, 32, inc);
+
+    if (surplus > 0) {
+      renderYield(sp257, YieldIcon.Food, surplus, 4 + inc * foodConsumption + gab, 32, inc);
     } else {
-      renderYield(sp257.canvas, YieldIcon.Food, totalYield.food, 4, 32, incrementPerIcon(totalYield.food, 119));
+      renderYield(sp257, YieldIcon.Food, -surplus, 4 + inc * totalYield.food + gab, 32, inc, true);
     }
 
-    renderYield(sp257.canvas, YieldIcon.Shield, totalYield.shields, 4, 40, incrementPerIcon(totalYield.shields, 119));
-    renderYield(sp257.canvas, YieldIcon.Trade, totalYield.trade, 4, 48, incrementPerIcon(totalYield.trade, 119));
+    renderYield(sp257, YieldIcon.Shield, totalYield.shields, 4, 40, incrementPerIcon(totalYield.shields, 119));
+    renderYield(sp257, YieldIcon.Trade, totalYield.trade, 4, 48, incrementPerIcon(totalYield.trade, 119));
 
     const tradeInc = incrementPerIcon(totalYield.luxury + totalYield.gold + totalYield.beakers, 119 + gab * 2);
-    const coinOffset = tradeInc * totalYield.luxury + gab;
-    const beakerOffset = coinOffset + tradeInc * totalYield.gold + gab;
-    renderYield(sp257.canvas, YieldIcon.Luxury, totalYield.luxury, 4, 56, tradeInc);
-    renderYield(sp257.canvas, YieldIcon.Coin, totalYield.gold, 4 + coinOffset, 56, tradeInc);
-    renderYield(sp257.canvas, YieldIcon.Beaker, totalYield.beakers, 4 + beakerOffset, 56, tradeInc);
+    let tradeOffset = 4;
+
+    if (totalYield.luxury > 0) {
+      renderYield(sp257, YieldIcon.Luxury, totalYield.luxury, tradeOffset, 56, tradeInc);
+      tradeOffset += tradeInc * totalYield.luxury + gab;
+    }
+
+    if (totalYield.gold > 0) {
+      renderYield(sp257, YieldIcon.Coin, totalYield.gold, tradeOffset, 56, tradeInc);
+      tradeOffset += tradeInc * totalYield.gold + gab;
+    }
+
+    renderYield(sp257, YieldIcon.Beaker, totalYield.beakers, tradeOffset, 56, tradeInc);
   },
 };
 

@@ -55,16 +55,16 @@ const direction = [
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const screenCtx = canvas?.getContext('2d');
-const unitCanvas = document.createElement('canvas');
-const unitContext = unitCanvas.getContext('2d');
 const centerRoadImageData = new ImageData(
   new Uint8ClampedArray([...palette.brown, 255, ...palette.brown, 255, ...palette.brown, 255, ...palette.brown, 255]),
   2,
   2
 );
+const unitContext = document.createElement('canvas').getContext('2d');
+const altSp257Context = document.createElement('canvas').getContext('2d');
 
-if (!canvas || !screenCtx || !unitContext) {
-  throw new Error('Failed to initialise renderer');
+if (!canvas || !screenCtx || !unitContext || !altSp257Context) {
+  throw new Error('Failed to initialize renderer');
 }
 
 const drawHorizontalLine = (dst: ImageData, x: number, y: number, length: number, color: [number, number, number]) => {
@@ -152,17 +152,17 @@ export const generateSpriteSheets = (
     secondaryColor: [number, number, number];
   }[]
 ) => {
-  const sp257 = getImageAsset('sp257.pic.png').canvas;
+  const sp257 = getImageAsset('sp257.pic.png');
 
   // Dimensions of the units block in sp257.pic
   const bWidth = 20 * 16;
   const bHeight = 2 * 16;
 
-  unitCanvas.width = bWidth;
-  unitCanvas.height = bHeight * colors.length;
+  unitContext.canvas.width = bWidth;
+  unitContext.canvas.height = bHeight * colors.length;
 
   colors.forEach((color, index) => {
-    unitContext.drawImage(sp257, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
+    unitContext.drawImage(sp257.canvas, 0, 10 * 16, bWidth, bHeight, 0, index * bHeight, bWidth, bHeight);
 
     const imageData = unitContext.getImageData(0, index * bHeight, bWidth, bHeight);
     const { data } = imageData;
@@ -204,6 +204,23 @@ export const generateSpriteSheets = (
 
     unitContext.putImageData(imageData, 0, index * bHeight);
   });
+
+  // Draw alternative versions of sprites in sp257 on a seperate offscreen context
+  const imageData = sp257.getImageData(0, 0, sp257.canvas.width, sp257.canvas.height);
+  const data = imageData.data;
+
+  altSp257Context.canvas.width = imageData.width;
+  altSp257Context.canvas.height = imageData.height;
+
+  // replace white with black for "negative" icons
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i] === palette.white[0] && data[i + 1] === palette.white[1] && data[i + 2] === palette.white[2]) {
+      data[i] = 0;
+      data[i + 1] = 0;
+      data[i + 2] = 0;
+    }
+  }
+  altSp257Context.putImageData(imageData, 0, 0);
 };
 
 export const renderSprite = (
@@ -378,9 +395,9 @@ export const renderUnit = (
   const unitOffset = unit.prototypeId * 16;
   const ownerOffset = unit.owner * 16 * 2;
   if (stacked) {
-    screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
+    screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
   }
-  screenCtx.drawImage(unitCanvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
+  screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (unit.state) {
@@ -457,7 +474,7 @@ export const renderCity = (
 
   screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
   setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, city.size.toString(), screenX + 8, screenY + 5, true);
+  renderText(fonts.main, city.size.toString(), screenX + 9, screenY + 5, true);
 };
 
 export const setFontColor = (font: Font, color: [number, number, number]) => {
@@ -480,7 +497,7 @@ export const renderText = (font: Font, text: string, x: number, y: number, cente
   const { width, height, offset, kerning } = font;
 
   if (center) {
-    x -= measureText(font, text) >> 1;
+    x -= Math.round(measureText(font, text) / 2);
   }
 
   for (let i = 0; i < text.length; i++) {
@@ -715,16 +732,19 @@ export const clearScreen = () => {
 };
 
 export const renderYield = (
-  sp257: CanvasImageSource,
+  sp257: CanvasRenderingContext2D,
   yieldIcon: YieldIcon,
   count: number,
   screenX: number,
   screenY: number,
-  increment: number
+  increment: number,
+  negative = false
 ) => {
+  const source = negative ? altSp257Context : sp257;
+
   for (let i = 0; i < count; i++) {
     screenCtx.drawImage(
-      sp257,
+      source.canvas,
       1 + 8 * 16 + (yieldIcon % 4) * 8,
       2 * 16 + (yieldIcon >> 2) * 8,
       8,
@@ -765,4 +785,10 @@ export const renderTileYield = (
     }
     screenCtx.drawImage(sp257, 8 * 16 + iconIndex * 8, 2 * 16, 8, 8, iconX, iconY, 8, 8);
   }
+};
+
+export const renderFrame = (x: number, y: number, width: number, height: number, color: [number, number, number]) => {
+  const imageData = screenCtx.getImageData(x, y, width, height);
+  drawFrame(imageData, 0, 0, width, height, color);
+  screenCtx.putImageData(imageData, x, y);
 };
