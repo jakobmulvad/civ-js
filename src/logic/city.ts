@@ -115,6 +115,44 @@ export const workedTileToIndex = (relX: number, relY: number) => {
   return workedTileCoords.findIndex(([x, y]) => x === relX && y === relY);
 };
 
+const addWorkedTileIndex = (tiles: number[], relX: number, relY: number) => {
+  const workedTile = workedTileToIndex(relX, relY);
+  if (workedTile !== -1) {
+    tiles.push(workedTile);
+  }
+};
+
+export const getOccupiedTiles = (state: GameState, city: City) => {
+  const result: number[] = [];
+
+  for (let i = 0; i < state.players.length; i++) {
+    const player = state.players[i];
+    for (const otherCity of player.cities) {
+      if (otherCity === city) {
+        continue;
+      }
+      const relX = otherCity.x - city.x;
+      const relY = otherCity.y - city.y;
+      addWorkedTileIndex(result, relX, relY);
+      for (const workedTile of otherCity.workedTiles) {
+        const [tileX, tileY] = workedTileCoords[workedTile];
+        addWorkedTileIndex(result, relX + tileX, relY + tileY);
+      }
+    }
+
+    if (i === city.owner) {
+      continue; // Own units doesn't occupy tiles
+    }
+
+    for (const unit of player.units) {
+      const relX = unit.x - city.x;
+      const relY = unit.y - city.y;
+      addWorkedTileIndex(result, relX, relY);
+    }
+  }
+  return result;
+};
+
 export const calculateCitizens = (map: GameMap, city: City) => {
   // Make sure we are not working more tiles than city size
   city.workedTiles = city.workedTiles.slice(0, city.size);

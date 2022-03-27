@@ -1,7 +1,7 @@
 import { getImageAsset } from '../../assets';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { getCityAt, workedTileCoords, workedTileToIndex } from '../../logic/city';
+import { getCityAt, getOccupiedTiles, workedTileCoords, workedTileToIndex } from '../../logic/city';
 import { getUnitsAt } from '../../logic/game-state';
 import { calculateTileYield, getTileAt, wrapXAxis } from '../../logic/map';
 import { palette } from '../../palette';
@@ -31,6 +31,7 @@ export const cityMapWindow: UiWindow = {
     const { primaryColor, secondaryColor } = player.civ;
     const map = player.map;
     const units = getUnitsAt(gameState, selectedCity.x, selectedCity.y);
+    const occupiedTiles = getOccupiedTiles(gameState, selectedCity);
 
     const ter257 = getImageAsset('ter257.pic.gif').canvas;
     const sp257 = getImageAsset('sp257.pic.png');
@@ -59,15 +60,15 @@ export const cityMapWindow: UiWindow = {
         const tileCity = getCityAt(gameState, mapX, mapY);
         const tileUnits = getUnitsAt(gameState, mapX, mapY);
 
-        if (tileCity && tileCity.owner !== localPlayer) {
+        if (tileCity) {
           const { primaryColor, secondaryColor } = gameState.players[tileCity.owner].civ;
           renderCity(sp257, tileCity, screenX, screenY, primaryColor, secondaryColor, tileUnits.length > 0);
-          renderFrame(screenX, screenY, 16, 16, palette.red);
-          continue;
+        } else if (tileUnits.length && tileUnits[0].owner !== localPlayer) {
+          renderUnit(sp257.canvas, tileUnits[0], screenX, screenY, tileUnits.length > 1);
         }
 
-        if (tileUnits.length && tileUnits[0].owner !== localPlayer) {
-          renderUnit(sp257.canvas, tileUnits[0], screenX, screenY, tileUnits.length > 1);
+        const tileIndex = workedTileToIndex(x, y);
+        if (occupiedTiles.includes(tileIndex)) {
           renderFrame(screenX, screenY, 16, 16, palette.red);
         }
       }
@@ -75,7 +76,7 @@ export const cityMapWindow: UiWindow = {
 
     for (const i of selectedCity.workedTiles) {
       const [x, y] = workedTileCoords[i];
-      const mapX = (selectedCity.x + x + map.width) % map.width; // wrap-around on x-axis
+      const mapX = wrapXAxis(map, selectedCity.x + x);
       const mapY = selectedCity.y + y;
       const tile = getTileAt(map, mapX, mapY);
       const tileYield = calculateTileYield(tile);

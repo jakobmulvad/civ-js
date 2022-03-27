@@ -13,6 +13,8 @@ import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
 import { calculateCitizens, newCity } from './logic/city';
 import { executeAction, newGame } from './logic/game-rules/civ-game';
+import { spawnUnitForPlayer } from './logic/game-rules/civ-game-units';
+import { UnitPrototypeId } from './logic/units';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -31,10 +33,18 @@ export const startGame = async () => {
   triggerGameEvent('GameStateUpdated');
 
   const city = newCity(0, 'Issus', 10, 15);
-  city.size = 10;
+  city.size = 20;
+  city.food = 30;
   city.workedTiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   state.players[localPlayer].cities.push(city);
   calculateCitizens(state.players[localPlayer].map, city);
+
+  const c = newCity(0, 'Enemy', 12, 15);
+  c.workedTiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  state.players[localPlayer].cities.push(c);
+  calculateCitizens(state.players[localPlayer].map, c);
+
+  spawnUnitForPlayer(state, 1, UnitPrototypeId.Musketeers, 11, 16);
 
   /*  updateUiState('selectedCity', city);
   pushUiScreen(uiCityScreen);*/

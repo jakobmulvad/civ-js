@@ -1,26 +1,10 @@
 import { randomIntBelow } from '../../helpers';
 import { Action, CityTileAction } from '../action';
 import { ActionResult } from '../action-result';
-import { calculateCitizens, getCityAt, totalCityYield, workedTileCoords } from '../city';
+import { calculateCitizens, getOccupiedTiles, totalCityYield } from '../city';
 import { Civilization } from '../civilizations';
-import {
-  GameState,
-  getSelectedUnitForPlayer,
-  getTileAtUnit,
-  getUnitsAt,
-  PlayerController,
-  PlayerState,
-} from '../game-state';
-import {
-  exploreMapAround,
-  GameMap,
-  getTileAt,
-  getTileIndex,
-  MapTemplate,
-  TerrainId,
-  terrainMap,
-  wrapXAxis,
-} from '../map';
+import { GameState, getSelectedUnitForPlayer, getTileAtUnit, PlayerController, PlayerState } from '../game-state';
+import { exploreMapAround, GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainMap } from '../map';
 import { jobsDone, UnitPrototypeId, unitPrototypeMap, UnitState } from '../units';
 import { validatePlayerAction } from './action-validation';
 import { decreaseCityPopulation, increaseCityPopulation } from './civ-game-cities';
@@ -106,6 +90,10 @@ const startTurn = (state: GameState) => {
 
   // Process each city
   for (const city of player.cities) {
+    // If enemy units moved on a worked tile, stop working it
+    const occupiedTiles = getOccupiedTiles(state, city);
+    city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
+
     const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
     city.food += cityYield.food - city.size * 2;
 
@@ -135,20 +123,10 @@ export const executeCityAction = (state: GameState, action: CityTileAction): Act
     if (isWorked) {
       city.workedTiles = city.workedTiles.filter((tile) => tile !== action.tile);
     } else {
-      const [dx, dy] = workedTileCoords[action.tile];
-      const mapX = wrapXAxis(state.masterMap, city.x + dx);
-      const mapY = city.y + dy;
+      const occupiedTiles = getOccupiedTiles(state, city);
 
-      const tileUnits = getUnitsAt(state, mapX, mapY);
-      if (tileUnits.length > 0 && tileUnits[0].owner !== action.player) {
-        // cannot work a tile occupied by enemy units
-        return;
-      }
-
-      const tileCity = getCityAt(state, mapX, mapY);
-      if (tileCity && tileCity.owner !== action.player) {
-        // cannot work a tile occupied by enemy city
-        return;
+      if (occupiedTiles.includes(action.tile)) {
+        return; // tile is occupied
       }
 
       city.workedTiles.push(action.tile);

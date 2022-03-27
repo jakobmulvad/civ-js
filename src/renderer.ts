@@ -380,9 +380,9 @@ export const renderTileTerrain = (
 
 export const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
   setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, letter, screenX + 7, screenY + 8, true);
+  renderText(fonts.main, letter, screenX + 8, screenY + 8, true);
   setFontColor(fonts.main, palette.white);
-  renderText(fonts.main, letter, screenX + 7, screenY + 7, true);
+  renderText(fonts.main, letter, screenX + 8, screenY + 7, true);
 };
 
 export const renderUnit = (
@@ -732,7 +732,6 @@ export const clearScreen = () => {
 };
 
 export const renderYield = (
-  sp257: CanvasRenderingContext2D,
   yieldIcon: YieldIcon,
   count: number,
   screenX: number,
@@ -740,7 +739,7 @@ export const renderYield = (
   increment: number,
   negative = false
 ) => {
-  const source = negative ? altSp257Context : sp257;
+  const source = negative ? altSp257Context : getImageAsset('sp257.pic.png');
 
   for (let i = 0; i < count; i++) {
     screenCtx.drawImage(

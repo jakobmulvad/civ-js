@@ -1,5 +1,7 @@
-import { Rect } from '../../helpers';
-import { renderBlueBox } from '../../renderer';
+import { fonts } from '../../fonts';
+import { incrementPerIcon, Rect } from '../../helpers';
+import { palette } from '../../palette';
+import { renderBlueBox, renderText, renderYield, setFontColor, YieldIcon } from '../../renderer';
 import { UiWindow } from '../ui-controller';
 
 const area: Rect = {
@@ -17,6 +19,21 @@ export const cityFoodWindow: UiWindow = {
     if (!selectedCity) {
       return;
     }
-    renderBlueBox(area.x, area.y, area.width, area.height);
+
+    const foodPerRow = selectedCity.size + 1;
+    const inc = incrementPerIcon(foodPerRow, 89);
+    const actualWidth = inc * (foodPerRow - 1) + 8;
+
+    renderBlueBox(area.x, area.y, area.width, area.height, [9, 89 - actualWidth, 1, 1]);
+    setFontColor(fonts.mainSmall, palette.white);
+    renderText(fonts.mainSmall, 'Food Storage', 8, 108);
+
+    let food = selectedCity.food;
+    let offsetY = area.y + 9;
+    while (food > 0) {
+      renderYield(YieldIcon.Food, Math.min(foodPerRow, food), 4, offsetY, inc);
+      food -= selectedCity.size + 1;
+      offsetY += 8;
+    }
   },
 };
