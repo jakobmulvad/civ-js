@@ -1,4 +1,4 @@
-export enum Keys {
+export enum KeyCode {
   ArrowUp = 'ArrowUp',
   ArrowRight = 'ArrowRight',
   ArrowDown = 'ArrowDown',

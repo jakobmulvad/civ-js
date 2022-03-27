@@ -2,7 +2,7 @@ import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController 
 import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
-import { uiWorldScreen } from './ui/ui-screens';
+import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
@@ -35,6 +35,7 @@ export const startGame = async () => {
   const city = newCity(0, 'Issus', 10, 15);
   city.size = 20;
   city.food = 30;
+  city.shields = 10;
   city.workedTiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
   state.players[localPlayer].cities.push(city);
   calculateCitizens(state.players[localPlayer].map, city);
@@ -46,8 +47,8 @@ export const startGame = async () => {
 
   spawnUnitForPlayer(state, 1, UnitPrototypeId.Musketeers, 11, 16);
 
-  /*  updateUiState('selectedCity', city);
-  pushUiScreen(uiCityScreen);*/
+  updateUiState('selectedCity', city);
+  pushUiScreen(uiCityScreen);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {

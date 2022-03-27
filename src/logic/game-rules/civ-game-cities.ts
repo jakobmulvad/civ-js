@@ -1,4 +1,6 @@
-import { calculateCitizens, City } from '../city';
+import { CityAction } from '../action';
+import { ActionResult } from '../action-result';
+import { calculateCitizens, City, getOccupiedTiles } from '../city';
 import { GameState } from '../game-state';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
@@ -34,4 +36,35 @@ export const increaseCityPopulation = (state: GameState, city: City, amount: num
   calculateCitizens(state.masterMap, city);
   // TODO check for aquaduct
   // TODO check for granary
+};
+
+export const executeCityAction = (state: GameState, action: CityAction): ActionResult => {
+  const player = state.players[action.player];
+  const city = player.cities[action.city];
+
+  switch (action.type) {
+    case 'CityToggleTileWorker': {
+      const isWorked = city.workedTiles.includes(action.tile);
+
+      if (isWorked) {
+        city.workedTiles = city.workedTiles.filter((tile) => tile !== action.tile);
+      } else {
+        const occupiedTiles = getOccupiedTiles(state, city);
+
+        if (occupiedTiles.includes(action.tile)) {
+          return; // tile is occupied
+        }
+
+        city.workedTiles.push(action.tile);
+      }
+
+      calculateCitizens(player.map, city);
+      break;
+    }
+
+    case 'CitySelectProduction': {
+      city.producing = action.newProduction;
+      break;
+    }
+  }
 };

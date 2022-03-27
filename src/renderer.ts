@@ -16,7 +16,7 @@ import {
   TerrainId,
   TerrainYield,
 } from './logic/map';
-import { Unit, UnitState } from './logic/units';
+import { Unit, UnitPrototypeId, UnitState } from './logic/units';
 import { palette } from './palette';
 
 export enum YieldIcon {
@@ -378,11 +378,26 @@ export const renderTileTerrain = (
   }
 };
 
-export const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
+const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
   setFontColor(fonts.main, palette.black);
   renderText(fonts.main, letter, screenX + 8, screenY + 8, true);
   setFontColor(fonts.main, palette.white);
   renderText(fonts.main, letter, screenX + 8, screenY + 7, true);
+};
+
+export const renderUnitPrototype = (
+  prototypeId: UnitPrototypeId,
+  owner: number,
+  screenX: number,
+  screenY: number,
+  stacked?: boolean
+) => {
+  const unitOffset = prototypeId * 16;
+  const ownerOffset = owner * 16 * 2;
+  if (stacked) {
+    screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
+  }
+  screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
 };
 
 export const renderUnit = (
@@ -392,12 +407,7 @@ export const renderUnit = (
   screenY: number,
   stacked?: boolean
 ) => {
-  const unitOffset = unit.prototypeId * 16;
-  const ownerOffset = unit.owner * 16 * 2;
-  if (stacked) {
-    screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
-  }
-  screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX - 1, screenY - 1, 16, 16);
+  renderUnitPrototype(unit.prototypeId, unit.owner, screenX, screenY, stacked);
 
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (unit.state) {

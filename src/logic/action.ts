@@ -1,3 +1,5 @@
+import { UnitPrototypeId } from './units';
+
 export type ActionWithPlayer = {
   player: number;
 };
@@ -37,4 +39,11 @@ export type CityTileAction = {
   tile: number;
 } & ActionWithCity;
 
-export type Action = PlayerAction | UnitAction | UnitActionMove | CityTileAction;
+export type CityProductionAction = {
+  type: 'CitySelectProduction';
+  newProduction: UnitPrototypeId;
+} & ActionWithCity;
+
+export type CityAction = CityTileAction | CityProductionAction;
+
+export type Action = PlayerAction | UnitAction | UnitActionMove | CityAction;

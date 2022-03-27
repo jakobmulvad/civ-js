@@ -34,8 +34,9 @@ export type UnitPrototype = {
   defense: number;
   moves: number;
   type: UnitType;
+  cost: number;
   isBuilder?: boolean;
-  isCivil?: boolean; // cannot be fortified
+  isCivil?: boolean; // cannot be fortified - ignores zoc
 };
 
 export type Unit = {
@@ -55,6 +56,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 0,
     defense: 1,
     moves: 1,
+    cost: 40,
     type: UnitType.Land,
     isBuilder: true,
     isCivil: true,
@@ -64,6 +66,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 1,
     defense: 1,
     moves: 1,
+    cost: 10,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Phalanx]: {
@@ -71,6 +74,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 1,
     defense: 2,
     moves: 1,
+    cost: 20,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Legion]: {
@@ -78,6 +82,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 3,
     defense: 1,
     moves: 1,
+    cost: 20,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Musketeers]: {
@@ -85,6 +90,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 2,
     defense: 3,
     moves: 1,
+    cost: 30,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Riflemen]: {
@@ -92,6 +98,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 3,
     defense: 5,
     moves: 1,
+    cost: 30,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Cavalry]: {
@@ -99,6 +106,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 2,
     defense: 1,
     moves: 2,
+    cost: 20,
     type: UnitType.Land,
   },
   [UnitPrototypeId.Knight]: {
@@ -106,6 +114,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     attack: 4,
     defense: 2,
     moves: 2,
+    cost: 40,
     type: UnitType.Land,
   },
 };

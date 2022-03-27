@@ -1,13 +1,13 @@
 import { randomIntBelow } from '../../helpers';
-import { Action, CityTileAction } from '../action';
+import { Action } from '../action';
 import { ActionResult } from '../action-result';
-import { calculateCitizens, getOccupiedTiles, totalCityYield } from '../city';
+import { getOccupiedTiles, totalCityYield } from '../city';
 import { Civilization } from '../civilizations';
 import { GameState, getSelectedUnitForPlayer, getTileAtUnit, PlayerController, PlayerState } from '../game-state';
 import { exploreMapAround, GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainMap } from '../map';
 import { jobsDone, UnitPrototypeId, unitPrototypeMap, UnitState } from '../units';
 import { validatePlayerAction } from './action-validation';
-import { decreaseCityPopulation, increaseCityPopulation } from './civ-game-cities';
+import { decreaseCityPopulation, executeCityAction, increaseCityPopulation } from './civ-game-cities';
 import { executeUnitAction, spawnUnitForPlayer } from './civ-game-units';
 
 const selectNextUnit = (state: GameState) => {
@@ -106,34 +106,20 @@ const startTurn = (state: GameState) => {
     }
 
     city.shields += cityYield.shields;
+
+    const cost = unitPrototypeMap[city.producing].cost;
+
+    if (city.shields >= cost) {
+      // Production done!
+      city.shields = 0;
+      spawnUnitForPlayer(state, city.owner, city.producing, city.x, city.y);
+    }
+
     player.gold += cityYield.gold;
     player.beakers += cityYield.beakers;
   }
 
   selectNextUnit(state);
-};
-
-export const executeCityAction = (state: GameState, action: CityTileAction): ActionResult => {
-  const player = state.players[action.player];
-  const city = player.cities[action.city];
-
-  if (action.type === 'CityToggleTileWorker') {
-    const isWorked = city.workedTiles.includes(action.tile);
-
-    if (isWorked) {
-      city.workedTiles = city.workedTiles.filter((tile) => tile !== action.tile);
-    } else {
-      const occupiedTiles = getOccupiedTiles(state, city);
-
-      if (occupiedTiles.includes(action.tile)) {
-        return; // tile is occupied
-      }
-
-      city.workedTiles.push(action.tile);
-    }
-
-    calculateCitizens(player.map, city);
-  }
 };
 
 export const executeAction = (state: GameState, action: Action): ActionResult => {

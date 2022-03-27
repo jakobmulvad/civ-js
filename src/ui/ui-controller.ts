@@ -1,31 +1,33 @@
 import { postRenderFrame, preRenderFrame } from '../animation';
 import { waitForAssets } from '../assets';
 import { isInside, Rect } from '../helpers';
+import { KeyCode } from '../key-codes';
 import { clearUiActionQueue } from './ui-action-queue';
 import { getUiState, UiState } from './ui-state';
 
 export type UiWindow = {
-  area: Rect;
+  area?: Rect;
   isDirty: boolean;
-  //onUpdate?: (time: number, state: UiState) => boolean;
   onRender: (state: UiState, time: number) => void;
+  onKey?: (keyCode: KeyCode) => void;
+  onMouseDown?: (x: number, y: number) => void;
+  onMouseDrag?: (x: number, y: number) => void;
+  onMouseUp?: (x: number, y: number) => void;
   onClick?: (x: number, y: number) => void;
 };
 
 export type UiScreen = {
-  onMount?: () => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  onKey?: (keyCode: string) => void;
+  onKey?: (keyCode: KeyCode) => void;
   windows: UiWindow[];
 };
 
 let uiStack: UiScreen[] = [];
 let isDirty = true; // force rerender?
+let mouseLock: UiWindow | undefined = undefined;
 
 export const pushUiScreen = (screen: UiScreen) => {
   uiStack.push(screen);
-  screen.onMount?.();
+  //screen.onMount?.();
   isDirty = true;
 };
 export const popUiScreen = () => {
@@ -51,7 +53,6 @@ export const uiRender = (time: number) => {
   const state = getUiState();
 
   for (const window of screen.windows) {
-    //if (!window.onUpdate || window.onUpdate(time, state)) {
     if (isDirty || window.isDirty) {
       window.onRender(state, time);
       window.isDirty = false;
@@ -61,28 +62,64 @@ export const uiRender = (time: number) => {
 };
 
 document.addEventListener('keydown', (evt) => {
-  console.log('keydown', evt.code);
   const screen = topUiScreen();
-  screen?.onKey?.(evt.code);
+
+  if (screen) {
+    screen.onKey?.(evt.code as KeyCode);
+    for (const window of screen.windows) {
+      window.onKey?.(evt.code as KeyCode);
+    }
+  }
 });
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 
-canvas?.addEventListener('mousedown', (evt) => {
+if (!canvas) {
+  throw new Error('Could not find game canvas');
+}
+
+const toIngameCoords = (canvasX: number, canvasY: number): [number, number] => {
+  const canvasBounds = canvas.getBoundingClientRect();
+  const screenX = Math.floor((canvasX * 320) / canvasBounds.width);
+  const screenY = Math.floor((canvasY * 200) / canvasBounds.height);
+  return [screenX, screenY];
+};
+
+canvas.addEventListener('mousedown', (evt) => {
   const screen = topUiScreen();
   if (!screen) {
     return;
   }
 
-  const canvasBounds = canvas.getBoundingClientRect();
-  const screenX = Math.floor((evt.offsetX * 320) / canvasBounds.width);
-  const screenY = Math.floor((evt.offsetY * 200) / canvasBounds.height);
+  const [x, y] = toIngameCoords(evt.offsetX, evt.offsetY);
 
   for (const window of screen.windows) {
-    if (window.onClick && isInside(window.area, screenX, screenY)) {
-      window.onClick(screenX - window.area.x, screenY - window.area.y);
+    if (window.area && isInside(window.area, x, y)) {
+      window.onMouseDown?.(x - window.area.x, y - window.area.y);
+      mouseLock = window;
+      return;
     }
   }
+});
+
+canvas.addEventListener('mousemove', (evt) => {
+  if (mouseLock && mouseLock.area) {
+    const [x, y] = toIngameCoords(evt.offsetX, evt.offsetY);
+    mouseLock.onMouseDrag?.(x - mouseLock.area.x, y - mouseLock.area.y);
+  }
+});
+
+canvas.addEventListener('mouseup', (evt) => {
+  if (!mouseLock || !mouseLock.area) {
+    return;
+  }
+
+  const [x, y] = toIngameCoords(evt.offsetX, evt.offsetY);
+  mouseLock.onMouseUp?.(x - mouseLock.area.x, y - mouseLock.area.y);
+  if (mouseLock.onClick && isInside(mouseLock.area, x, y)) {
+    mouseLock.onClick(x - mouseLock.area.x, y - mouseLock.area.y);
+  }
+  mouseLock = undefined;
 });
 
 const frameHandler = (time: number) => {

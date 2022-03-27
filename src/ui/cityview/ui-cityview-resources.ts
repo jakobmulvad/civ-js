@@ -28,8 +28,6 @@ export const cityResourcesWindow: UiWindow = {
 
     const totalYield = totalCityYield(gameState, gameState.players[selectedCity.owner].map, selectedCity);
 
-    console.log(totalYield);
-
     const gab = 4;
     const foodConsumption = selectedCity.size * 2;
     const inc = incrementPerIcon(Math.max(totalYield.food, foodConsumption), 119 - gab); // add space for a gab before surplus
