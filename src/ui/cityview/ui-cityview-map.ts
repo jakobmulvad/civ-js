@@ -1,7 +1,7 @@
 import { getImageAsset } from '../../assets';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { getCityAt, getOccupiedTiles, workedTileCoords, workedTileToIndex } from '../../logic/city';
+import { getBlockedWorkableTiles, getCityAt, workedTileToCoord, workedTileToIndex } from '../../logic/city';
 import { getUnitsAt } from '../../logic/game-state';
 import { calculateTileYield, getTileAt, wrapXAxis } from '../../logic/map';
 import { palette } from '../../palette';
@@ -31,7 +31,7 @@ export const cityMapWindow: UiWindow = {
     const { primaryColor, secondaryColor } = player.civ;
     const map = player.map;
     const units = getUnitsAt(gameState, selectedCity.x, selectedCity.y);
-    const occupiedTiles = getOccupiedTiles(gameState, selectedCity);
+    const occupiedTiles = getBlockedWorkableTiles(gameState, selectedCity);
 
     const ter257 = getImageAsset('ter257.pic.gif').canvas;
     const sp257 = getImageAsset('sp257.pic.png');
@@ -75,7 +75,7 @@ export const cityMapWindow: UiWindow = {
     }
 
     for (const i of selectedCity.workedTiles) {
-      const [x, y] = workedTileCoords[i];
+      const [x, y] = workedTileToCoord(i);
       const mapX = wrapXAxis(map, selectedCity.x + x);
       const mapY = selectedCity.y + y;
       const tile = getTileAt(map, mapX, mapY);

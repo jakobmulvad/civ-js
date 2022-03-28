@@ -1,6 +1,6 @@
 import { CityAction } from '../action';
 import { ActionResult } from '../action-result';
-import { calculateCitizens, City, getOccupiedTiles } from '../city';
+import { calculateCitizens, City, getBlockedWorkableTiles, optimizeWorkedTiles } from '../city';
 import { GameState } from '../game-state';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
@@ -49,13 +49,17 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
       if (isWorked) {
         city.workedTiles = city.workedTiles.filter((tile) => tile !== action.tile);
       } else {
-        const occupiedTiles = getOccupiedTiles(state, city);
+        const occupiedTiles = getBlockedWorkableTiles(state, city);
 
         if (occupiedTiles.includes(action.tile)) {
           return; // tile is occupied
         }
 
-        city.workedTiles.push(action.tile);
+        if (city.workedTiles.length === city.size) {
+          optimizeWorkedTiles(state, city);
+        } else {
+          city.workedTiles.push(action.tile);
+        }
       }
 
       calculateCitizens(player.map, city);

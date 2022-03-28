@@ -1,7 +1,7 @@
 import { randomIntBelow } from '../../helpers';
 import { Action } from '../action';
 import { ActionResult } from '../action-result';
-import { getOccupiedTiles, totalCityYield } from '../city';
+import { getBlockedWorkableTiles, totalCityYield } from '../city';
 import { Civilization } from '../civilizations';
 import { GameState, getSelectedUnitForPlayer, getTileAtUnit, PlayerController, PlayerState } from '../game-state';
 import { exploreMapAround, GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainMap } from '../map';
@@ -91,7 +91,7 @@ const startTurn = (state: GameState) => {
   // Process each city
   for (const city of player.cities) {
     // If enemy units moved on a worked tile, stop working it
-    const occupiedTiles = getOccupiedTiles(state, city);
+    const occupiedTiles = getBlockedWorkableTiles(state, city);
     city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
 
     const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
@@ -113,6 +113,10 @@ const startTurn = (state: GameState) => {
       // Production done!
       city.shields = 0;
       spawnUnitForPlayer(state, city.owner, city.producing, city.x, city.y);
+      const prototype = unitPrototypeMap[city.producing];
+      if (prototype.isBuilder) {
+        decreaseCityPopulation(state, city, 1);
+      }
     }
 
     player.gold += cityYield.gold;

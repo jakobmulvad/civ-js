@@ -1,5 +1,5 @@
 import { GameState } from './game-state';
-import { calculateTileYield, GameMap, getTileAt, TerrainYield } from './map';
+import { calculateTileYield, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
 import { UnitPrototypeId } from './units';
 
 // Use browser to format numbers
@@ -29,7 +29,7 @@ export enum Citizens {
 // 08 09 XX 10 11
 // 12 13 14 15 16
 //    17 18 19
-export const workedTileCoords = [
+const workedTileCoords = [
   [-1, -2],
   [0, -2],
   [1, -2],
@@ -115,16 +115,30 @@ export const workedTileToIndex = (relX: number, relY: number) => {
   return workedTileCoords.findIndex(([x, y]) => x === relX && y === relY);
 };
 
-const addWorkedTileIndex = (tiles: number[], relX: number, relY: number) => {
-  const workedTile = workedTileToIndex(relX, relY);
-  if (workedTile !== -1) {
-    tiles.push(workedTile);
-  }
+export const workedTileToCoord = (index: number) => {
+  return workedTileCoords[index];
 };
 
-export const getOccupiedTiles = (state: GameState, city: City) => {
-  const result: number[] = [];
+export const workedTileToMapCoord = (map: GameMap, city: City, index: number) => {
+  const [dx, dy] = workedTileCoords[index];
+  return [wrapXAxis(map, city.x + dx), city.y + dy];
+};
 
+export const getBlockedWorkableTiles = (state: GameState, city: City) => {
+  const result = new Set<number>();
+  const map = state.players[city.owner].map;
+
+  // Remove tiles not yet discovered
+  for (let i = 0; i < 20; i++) {
+    const [x, y] = workedTileToMapCoord(map, city, i);
+    const tile = getTileAt(map, x, y);
+
+    if (tile.hidden) {
+      result.add(i);
+    }
+  }
+
+  // Remove tiles blocked by other cities or enemy units
   for (let i = 0; i < state.players.length; i++) {
     const player = state.players[i];
     for (const otherCity of player.cities) {
@@ -133,10 +147,10 @@ export const getOccupiedTiles = (state: GameState, city: City) => {
       }
       const relX = otherCity.x - city.x;
       const relY = otherCity.y - city.y;
-      addWorkedTileIndex(result, relX, relY);
+      result.add(workedTileToIndex(relX, relY));
       for (const workedTile of otherCity.workedTiles) {
         const [tileX, tileY] = workedTileCoords[workedTile];
-        addWorkedTileIndex(result, relX + tileX, relY + tileY);
+        result.add(workedTileToIndex(relX + tileX, relY + tileY));
       }
     }
 
@@ -147,10 +161,11 @@ export const getOccupiedTiles = (state: GameState, city: City) => {
     for (const unit of player.units) {
       const relX = unit.x - city.x;
       const relY = unit.y - city.y;
-      addWorkedTileIndex(result, relX, relY);
+      result.add(workedTileToIndex(relX, relY));
     }
   }
-  return result;
+  result.delete(-1);
+  return Array.from(result);
 };
 
 export const calculateCitizens = (map: GameMap, city: City) => {
@@ -164,6 +179,25 @@ export const calculateCitizens = (map: GameMap, city: City) => {
   // Fill up with entertainers
   const entertainers = new Array(missing).fill(Specialists.Entertainer) as Specialists[];
   city.specialists = [...entertainers, ...city.specialists];
+};
+
+export const optimizeWorkedTiles = (state: GameState, city: City) => {
+  const map = state.players[city.owner].map;
+  // There are 20 tiles that can be worked in a city
+  const allTiles = new Array(20).fill(undefined).map((_, i) => i);
+  const occupiedTiles = getBlockedWorkableTiles(state, city);
+  const availableTiles = allTiles.filter((tile) => !occupiedTiles.includes(tile));
+
+  const indexValue = (tileIndex: number) => {
+    const [x, y] = workedTileToMapCoord(map, city, tileIndex);
+    const tile = getTileAt(map, x, y);
+    const tileYield = calculateTileYield(tile);
+    return tileYield.food * 3 + tileYield.shields * 2 + tileYield.trade;
+  };
+
+  availableTiles.sort((indexA, indexB) => indexValue(indexB) - indexValue(indexA));
+
+  city.workedTiles = availableTiles.slice(0, city.size);
 };
 
 export const totalCityYield = (state: GameState, map: GameMap, city: City): CityYield => {
