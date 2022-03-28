@@ -146,6 +146,31 @@ const fillPattern = (dst: ImageData, pattern: ImageData, x: number, y: number, w
   }
 };
 
+const replaceColor = (
+  dst: ImageData,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  colorFrom: [number, number, number],
+  colorTo: [number, number, number]
+) => {
+  const data = dst.data;
+  const [rFrom, gFrom, bFrom] = colorFrom;
+  const [rTo, gTo, bTo] = colorTo;
+
+  for (let dx = x; dx < x + width; dx++) {
+    for (let dy = y; dy < y + height; dy++) {
+      const i = (dx + dy * dst.width) * 4;
+      if (data[i] === rFrom && data[i + 1] === gFrom && data[i + 2] === bFrom) {
+        data[i] = rTo;
+        data[i + 1] = gTo;
+        data[i + 2] = bTo;
+      }
+    }
+  }
+};
+
 export const generateSpriteSheets = (
   colors: {
     primaryColor: [number, number, number];
@@ -207,19 +232,17 @@ export const generateSpriteSheets = (
 
   // Draw alternative versions of sprites in sp257 on a seperate offscreen context
   const imageData = sp257.getImageData(0, 0, sp257.canvas.width, sp257.canvas.height);
-  const data = imageData.data;
 
   altSp257Context.canvas.width = imageData.width;
   altSp257Context.canvas.height = imageData.height;
 
   // replace white with black for "negative" icons
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i] === palette.white[0] && data[i + 1] === palette.white[1] && data[i + 2] === palette.white[2]) {
-      data[i] = 0;
-      data[i + 1] = 0;
-      data[i + 2] = 0;
-    }
-  }
+  replaceColor(imageData, 8 * 16, 2 * 16, 32, 16, palette.white, palette.black);
+
+  // replace gray background with cyan for "selection" background
+  replaceColor(imageData, 18 * 16, 11 * 16, 32, 16, palette.grayLight, palette.cyanDark);
+  replaceColor(imageData, 18 * 16, 11 * 16, 32, 16, palette.grayLighter, palette.cyan);
+
   altSp257Context.putImageData(imageData, 0, 0);
 };
 
@@ -800,4 +823,12 @@ export const renderFrame = (x: number, y: number, width: number, height: number,
   const imageData = screenCtx.getImageData(x, y, width, height);
   drawFrame(imageData, 0, 0, width, height, color);
   screenCtx.putImageData(imageData, x, y);
+};
+
+export const renderSelectionBox = (x: number, y: number, width: number, height: number) => {
+  const pattern = altSp257Context.getImageData(18 * 16, 11 * 16, 32, 16);
+  const dst = screenCtx.getImageData(x, y, width, height);
+
+  fillPattern(dst, pattern, 0, 0, width, height);
+  screenCtx.putImageData(dst, x, y);
 };

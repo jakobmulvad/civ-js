@@ -1,6 +1,7 @@
 const untypedPalette = {
   black: [0, 0, 0],
   white: [235, 235, 235],
+  grayLighter: [154, 154, 154],
   grayLight: [138, 138, 142],
   grayDark: [77, 77, 77],
   cyan: [12, 227, 235],

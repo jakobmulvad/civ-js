@@ -2,7 +2,7 @@ import { Font, fonts, measureText } from '../../fonts';
 import { clamp, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { palette } from '../../palette';
-import { renderFrame, renderGrayBox, renderText, setFontColor } from '../../renderer';
+import { renderFrame, renderGrayBox, renderSelectionBox, renderText, setFontColor } from '../../renderer';
 import { popUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
 export type UiSelectOption<T = number | string> = {
@@ -45,7 +45,7 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
       renderFrame(x, y, boxRect.width, boxRect.height, palette.black);
       renderGrayBox(x + 1, y + 1, maxLength + 13, (options.length + 2) * font.height);
 
-      renderFrame(x + 3, y + 4 + (selectedIndex + 1) * font.height, boxRect.width - 6, font.height, palette.red);
+      renderSelectionBox(x + 3, y + 3 + (selectedIndex + 1) * font.height, boxRect.width - 6, font.height);
 
       setFontColor(font, palette.white);
       renderText(font, title, x + 4, y + 4);
@@ -54,6 +54,9 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
         renderText(font, options[i].label, x + 10, y + 4 + font.height * (i + 1));
       }
     },
+    onMouseDown: (x, y) => {
+      window.onMouseDrag?.(x, y);
+    },
     onClick: (x, y) => {
       if (!isInside(boxRect, x, y)) {
         onCancel?.();
@@ -61,10 +64,8 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
         return;
       }
 
-      window.onMouseDrag?.(x, y);
       onSelect(options[selectedIndex].key);
       popUiScreen();
-      window.isDirty = true;
     },
     onMouseDrag: (x, y) => {
       if (!isInside(boxRect, x, y)) {
