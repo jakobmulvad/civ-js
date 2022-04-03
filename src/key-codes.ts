@@ -7,6 +7,7 @@ export enum KeyCode {
   Escape = 'Escape',
   KeyB = 'KeyB',
   KeyC = 'KeyC',
+  KeyD = 'KeyD',
   KeyF = 'KeyF',
   KeyI = 'KeyI',
   KeyM = 'KeyM',

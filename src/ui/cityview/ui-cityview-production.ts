@@ -1,3 +1,4 @@
+import { addGameEventListener } from '../../game-event';
 import { incrementPerIcon, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { totalCityYield } from '../../logic/city';
@@ -124,3 +125,5 @@ export const cityProductionWindow: UiWindow = {
     }
   },
 };
+
+addGameEventListener('GameStateUpdated', () => (cityProductionWindow.isDirty = true));

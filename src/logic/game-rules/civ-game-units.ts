@@ -188,11 +188,12 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
       break;
 
     case 'UnitBuildRoad':
-      if (unitProto.isBuilder && tile.terrain !== TerrainId.Ocean && !tile.hasRailroad) {
-        // TODO: check for railroad tech
-        // TODO: check for bridge building tech
-        unit.state = UnitState.BuildingRoad;
+      // TODO: check for railroad tech
+      // TODO: check for bridge building tech
+      if (!unitProto.isBuilder || tile.terrain === TerrainId.Ocean || tile.hasRailroad) {
+        return;
       }
+      unit.state = UnitState.BuildingRoad;
       break;
 
     case 'UnitBuildOrJoinCity': {
@@ -224,6 +225,11 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
         return;
       }
       unit.state = UnitState.Fortifying;
+      break;
+
+    case 'UnitDisband':
+      removeUnitFromGame(state, unit);
+      break;
   }
   selectNextUnit(state);
 };

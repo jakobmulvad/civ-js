@@ -1,6 +1,6 @@
 import { getImageAsset, ImageAssetKey } from './assets';
 import { Font, fonts, measureText } from './fonts';
-import { Rect } from './helpers';
+import { Rect, direction8 } from './helpers';
 import { City } from './logic/city';
 import { GameState } from './logic/game-state';
 import {
@@ -41,17 +41,6 @@ const terrainSpriteMapIndex = {
   [TerrainId.Swamp]: 8,
   [TerrainId.Jungle]: 9,
 };
-
-const direction = [
-  [0, -1],
-  [1, -1],
-  [1, 0],
-  [1, 1],
-  [0, 1],
-  [-1, 1],
-  [-1, 0],
-  [-1, -1],
-];
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const screenCtx = canvas?.getContext('2d');
@@ -280,8 +269,8 @@ export const renderTileRoads = (
         6 * 16,
         16,
         16,
-        screenX + direction[i][0],
-        screenY + direction[i][1],
+        screenX + direction8[i][0],
+        screenY + direction8[i][1],
         16,
         16
       );

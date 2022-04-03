@@ -25,7 +25,8 @@ export type UnitAction = {
     | 'UnitBuildMine'
     | 'UnitClear'
     | 'UnitFortify'
-    | 'UnitBuildOrJoinCity';
+    | 'UnitBuildOrJoinCity'
+    | 'UnitDisband';
 } & ActionWithUnit;
 
 export type UnitActionMove = {

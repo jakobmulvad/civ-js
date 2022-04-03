@@ -2,7 +2,7 @@ import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController 
 import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
-import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
+import { uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
@@ -11,10 +11,8 @@ import { Action } from './logic/action';
 import { initUi, updateUiState } from './ui/ui-state';
 import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
-import { calculateCitizens, newCity } from './logic/city';
 import { executeAction, newGame } from './logic/game-rules/civ-game';
-import { spawnUnitForPlayer } from './logic/game-rules/civ-game-units';
-import { UnitPrototypeId } from './logic/units';
+import { generateMapTemplate, Temperature } from './logic/map-generation';
 
 let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
@@ -22,7 +20,12 @@ const localPlayer = 0; // todo don't use hardcoded index for local player
 export const startGame = async () => {
   const earthTemplate = await loadJson<MapTemplate>('/assets/earth.json');
 
-  state = newGame(earthTemplate, [americans, egyptians]);
+  state = newGame(
+    generateMapTemplate({
+      temperature: Temperature.Cool,
+    }),
+    [americans, egyptians]
+  );
   state.players[localPlayer].controller = PlayerController.LocalHuman;
 
   // Initialize ui
@@ -32,7 +35,7 @@ export const startGame = async () => {
   pushUiScreen(uiWorldScreen);
   triggerGameEvent('GameStateUpdated');
 
-  const city = newCity(0, 'Issus', 10, 15);
+  /*const city = newCity(0, 'Issus', 10, 15);
   city.size = 20;
   city.food = 30;
   city.shields = 10;
@@ -48,7 +51,7 @@ export const startGame = async () => {
   spawnUnitForPlayer(state, 1, UnitPrototypeId.Musketeers, 11, 16);
 
   updateUiState('selectedCity', city);
-  pushUiScreen(uiCityScreen);
+  pushUiScreen(uiCityScreen);*/
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {

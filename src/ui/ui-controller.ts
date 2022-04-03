@@ -9,7 +9,7 @@ export type UiWindow = {
   area?: Rect;
   isDirty: boolean;
   onRender: (state: UiState, time: number) => void;
-  onKey?: (keyCode: KeyCode) => void;
+  onKey?: (keyCode: KeyCode, shift: boolean) => void;
   onMouseDown?: (x: number, y: number) => void;
   onMouseDrag?: (x: number, y: number) => void;
   onMouseUp?: (x: number, y: number) => void;
@@ -17,7 +17,7 @@ export type UiWindow = {
 };
 
 export type UiScreen = {
-  onKey?: (keyCode: KeyCode) => void;
+  onKey?: (keyCode: KeyCode, shift: boolean) => void;
   windows: UiWindow[];
 };
 
@@ -65,9 +65,9 @@ document.addEventListener('keydown', (evt) => {
   const screen = topUiScreen();
 
   if (screen) {
-    screen.onKey?.(evt.code as KeyCode);
+    screen.onKey?.(evt.code as KeyCode, evt.shiftKey);
     for (const window of screen.windows) {
-      window.onKey?.(evt.code as KeyCode);
+      window.onKey?.(evt.code as KeyCode, evt.shiftKey);
     }
   }
 });

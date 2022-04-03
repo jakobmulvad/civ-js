@@ -207,13 +207,13 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
       x = randomIntBelow(map.width);
       y = randomIntBelow(map.height);
       terrain = getTileAt(map, x, y).terrain;
-    } while (!suitableStartTerrain.includes(terrain) || tries < 100);
+    } while (!suitableStartTerrain.includes(terrain) && tries < 100);
 
-    //spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
   }
 
   //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
-  spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 9, 15);
+  //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 9, 15);
 
   startTurn(state);
   return state;

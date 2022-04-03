@@ -19,7 +19,7 @@ import { getTerrainAt } from '../logic/map';
 import { clearScreenWindow } from './components/ui-clear-screen';
 
 export const uiWorldScreen: UiScreen = {
-  onKey: (keyCode: KeyCode) => {
+  onKey: (keyCode, shift) => {
     const { localPlayer: player, gameState } = getUiState();
     const unit = gameState.players[player].selectedUnit;
 
@@ -82,6 +82,12 @@ export const uiWorldScreen: UiScreen = {
 
       case KeyCode.KeyF:
         pushUiAction({ type: 'UnitFortify', player, unit });
+        return;
+
+      case KeyCode.KeyD:
+        if (shift) {
+          pushUiAction({ type: 'UnitDisband', player, unit });
+        }
         return;
 
       case KeyCode.KeyI: {
