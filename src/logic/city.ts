@@ -1,3 +1,4 @@
+import { convertTradeToYield } from './formulas';
 import { GameState } from './game-state';
 import { calculateTileYield, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
 import { UnitPrototypeId } from './units';
@@ -205,9 +206,11 @@ export const totalCityYield = (state: GameState, map: GameMap, city: City): City
 
   const { luxuryRate, taxRate } = state.players[city.owner];
 
-  tileYield.luxury += Math.round(luxuryRate * tileYield.trade * 0.1);
-  tileYield.gold += Math.floor(taxRate * tileYield.trade * 0.1);
-  tileYield.beakers = tileYield.trade - tileYield.gold - tileYield.luxury;
+  const tradeYield = convertTradeToYield(luxuryRate, taxRate, tileYield.trade);
+
+  tileYield.luxury += tradeYield.luxury;
+  tileYield.gold += tradeYield.gold;
+  tileYield.beakers += tradeYield.beakers;
 
   return tileYield;
 };

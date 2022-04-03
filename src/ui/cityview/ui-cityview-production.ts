@@ -83,7 +83,7 @@ export const cityProductionWindow: UiWindow = {
     let offsetY = area.y + 17;
     while (shields > 0) {
       renderYield(YieldIcon.Shield, Math.min(shieldsPerRow, shields), area.x + 2, offsetY, inc);
-      shields -= selectedCity.size + 1;
+      shields -= shieldsPerRow;
       offsetY += 8;
     }
 

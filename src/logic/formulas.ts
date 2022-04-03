@@ -66,3 +66,21 @@ export const defenseStrength = (unit: Unit, terrain: Terrain, applyCitywalls: bo
 
   return defense;
 };
+
+export const convertTradeToYield = (
+  luxuryRate: number,
+  taxRate: number,
+  trade: number
+): {
+  luxury: number;
+  gold: number;
+  beakers: number;
+} => {
+  const luxury = Math.round(luxuryRate * trade * 0.1);
+  const luxuryAndGold = Math.round((luxuryRate + taxRate) * trade * 0.1);
+  return {
+    luxury,
+    gold: luxuryAndGold - luxury,
+    beakers: trade - luxuryAndGold,
+  };
+};
