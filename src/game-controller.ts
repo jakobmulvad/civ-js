@@ -2,7 +2,7 @@ import { GameState, getPlayerInTurn, getSelectedUnitForPlayer, PlayerController 
 import { MapTemplate } from './logic/map';
 import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
-import { uiWorldScreen } from './ui/ui-screens';
+import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
 import { americans, egyptians } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
@@ -84,6 +84,11 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
     case 'ActionFailed':
       // TODO: handle failed actions
       console.log('Action failed:', result.reason);
+      return;
+
+    case 'CityBuilt':
+      updateUiState('selectedCity', result.city);
+      pushUiScreen(uiCityScreen);
       return;
   }
 };

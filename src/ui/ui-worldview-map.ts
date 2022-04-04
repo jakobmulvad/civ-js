@@ -5,6 +5,7 @@ import { Rect } from '../helpers';
 import { UnitCombatResult, UnitMoveResult } from '../logic/action-result';
 import { getCityAt } from '../logic/city';
 import { getSelectedUnitForPlayer, getUnitsAt } from '../logic/game-state';
+import { wrapXAxis } from '../logic/map';
 import { Unit } from '../logic/units';
 import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../renderer';
 import { pushUiScreen, UiWindow } from './ui-controller';
@@ -110,7 +111,17 @@ export const animateCombat = async (result: UnitCombatResult) => {
       renderCityAtLoser();
       renderUnitAt(defender);
       renderUnitAt(attacker);
-      renderSprite('sp257.pic.png', value * 16 + 1, 6 * 16 + 1, loserScreenX + 1, loserScreenY + 1, 15, 15);
+      renderSprite(
+        {
+          asset: 'sp257.pic.png',
+          x: value * 16 + 1,
+          y: 6 * 16 + 1,
+          width: 15,
+          height: 15,
+        },
+        loserScreenX + 1,
+        loserScreenY + 1
+      );
     },
   });
 
@@ -213,10 +224,9 @@ export const mapWindow: UiWindow = {
     }
   },
   onClick: (x: number, y: number) => {
-    const tileX = mapViewport.x + (x >> 4);
-    const tileY = mapViewport.y + (y >> 4);
-
     const { gameState, localPlayer } = getUiState();
+    const tileX = wrapXAxis(gameState.masterMap, mapViewport.x + (x >> 4));
+    const tileY = mapViewport.y + (y >> 4);
 
     for (const city of gameState.players[localPlayer].cities) {
       if (city.x === tileX && city.y === tileY) {

@@ -1,7 +1,7 @@
 import { randomIntBelow } from '../../helpers';
 import { Action } from '../action';
 import { ActionResult } from '../action-result';
-import { getBlockedWorkableTiles, totalCityYield } from '../city';
+import { CityProductionType, getBlockedWorkableTiles, getProductionCost, totalCityYield } from '../city';
 import { Civilization } from '../civilizations';
 import { GameState, getSelectedUnitForPlayer, getTileAtUnit, PlayerController, PlayerState } from '../game-state';
 import { exploreMapAround, GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainMap } from '../map';
@@ -99,23 +99,37 @@ const startTurn = (state: GameState) => {
 
     if (city.food < 0) {
       // Famine!
-      decreaseCityPopulation(state, city, 1);
-    } else if (city.food > city.size * 10) {
+      decreaseCityPopulation(state, city);
+    } else if (city.food > (city.size + 1) * 10) {
       // Grow!
-      increaseCityPopulation(state, city, 1);
+      increaseCityPopulation(state, city);
     }
 
     city.shields += cityYield.shields;
 
-    const cost = unitPrototypeMap[city.producing].cost;
+    const cost = getProductionCost(city.producing);
 
     if (city.shields >= cost) {
       // Production done!
-      city.shields = 0;
-      spawnUnitForPlayer(state, city.owner, city.producing, city.x, city.y);
-      const prototype = unitPrototypeMap[city.producing];
-      if (prototype.isBuilder) {
-        decreaseCityPopulation(state, city, 1);
+
+      switch (city.producing.type) {
+        case CityProductionType.Unit: {
+          city.shields = 0;
+          spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y);
+          const prototype = unitPrototypeMap[city.producing.id];
+          if (prototype.isBuilder) {
+            decreaseCityPopulation(state, city);
+          }
+          break;
+        }
+
+        case CityProductionType.Building: {
+          if (city.buildings.includes(city.producing.id)) {
+            break;
+          }
+          city.shields = 0;
+          city.buildings.push(city.producing.id);
+        }
       }
     }
 

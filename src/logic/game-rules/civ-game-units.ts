@@ -1,7 +1,8 @@
 import { randomIntBelow } from '../../helpers';
 import { UnitAction, UnitActionMove } from '../action';
 import { ActionResult, UnitCombatResult, UnitMoveResult } from '../action-result';
-import { getCityAt, newCity } from '../city';
+import { BuildingId } from '../buildings';
+import { getCityAt, newCity, optimizeWorkedTiles } from '../city';
 import { attackStrength, defenseStrength } from '../formulas';
 import {
   GameState,
@@ -202,6 +203,15 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
       }
 
       const city = newCity(state.playerInTurn, 'Test', unit.x, unit.y);
+      if (player.cities.length === 0) {
+        // Free palace for first city
+        city.buildings.push(BuildingId.Palace);
+        city.buildings.push(BuildingId.Barracks);
+        city.buildings.push(BuildingId.Granary);
+        city.buildings.push(BuildingId.Marketplace);
+      }
+
+      optimizeWorkedTiles(state, city);
       player.cities.push(city);
 
       if (terrain.canIrrigate) {
@@ -211,7 +221,11 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
 
       removeUnitFromGame(state, unit);
       exploreMapAround(state, state.playerInTurn, city.x, city.y);
-      break;
+      selectNextUnit(state);
+      return {
+        type: 'CityBuilt',
+        city,
+      };
     }
 
     case 'UnitClear':

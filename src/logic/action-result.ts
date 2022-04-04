@@ -1,3 +1,4 @@
+import { City } from './city';
 import { Unit } from './units';
 
 export type UnitMoveResult = {
@@ -16,9 +17,14 @@ export type UnitCombatResult = {
   winner: 'Attacker' | 'Defender';
 };
 
-export type ActionFailedResult = {
-  type: 'ActionFailed';
-  reason: 'MissingWaterSupply' | 'UnitNotBuilder';
+export type UnitCityBuiltResult = {
+  type: 'CityBuilt';
+  city: City;
 };
 
-export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | void;
+export type ActionFailedResult = {
+  type: 'ActionFailed';
+  reason: 'MissingWaterSupply' | 'UnitNotBuilder' | 'NotEnoughGold';
+};
+
+export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | UnitCityBuiltResult | void;

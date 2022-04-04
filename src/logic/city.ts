@@ -1,7 +1,8 @@
+import { BuildingId, buildings } from './buildings';
 import { convertTradeToYield } from './formulas';
 import { GameState } from './game-state';
 import { calculateTileYield, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
-import { UnitPrototypeId } from './units';
+import { UnitPrototypeId, unitPrototypeMap } from './units';
 
 // Use browser to format numbers
 export const numberFormatter = new Intl.NumberFormat('en-US');
@@ -53,6 +54,22 @@ const workedTileCoords = [
   [1, 2],
 ];
 
+export enum CityProductionType {
+  Unit = 'Unit',
+  Building = 'Building',
+  Wonder = 'Wonder',
+}
+
+export type CityProduction =
+  | {
+      type: CityProductionType.Unit;
+      id: UnitPrototypeId;
+    }
+  | {
+      type: CityProductionType.Building;
+      id: BuildingId;
+    };
+
 export type City = {
   owner: number;
   name: string;
@@ -63,7 +80,8 @@ export type City = {
   workedTiles: number[]; // either tile index
   food: number;
   shields: number;
-  producing: UnitPrototypeId;
+  buildings: BuildingId[];
+  producing: CityProduction;
   hasBought: boolean;
   hasSold: boolean;
 };
@@ -96,7 +114,11 @@ export const newCity = (owner: number, name: string, x: number, y: number): City
     workedTiles: [],
     food: 0,
     shields: 0,
-    producing: UnitPrototypeId.Militia,
+    buildings: [],
+    producing: {
+      type: CityProductionType.Unit,
+      id: UnitPrototypeId.Militia,
+    },
     hasBought: false,
     hasSold: false,
   };
@@ -182,7 +204,7 @@ export const calculateCitizens = (map: GameMap, city: City) => {
   city.specialists = [...entertainers, ...city.specialists];
 };
 
-export const optimizeWorkedTiles = (state: GameState, city: City) => {
+export const bestWorkableTiles = (state: GameState, city: City) => {
   const map = state.players[city.owner].map;
   // There are 20 tiles that can be worked in a city
   const allTiles = new Array(20).fill(undefined).map((_, i) => i);
@@ -197,22 +219,41 @@ export const optimizeWorkedTiles = (state: GameState, city: City) => {
   };
 
   availableTiles.sort((indexA, indexB) => indexValue(indexB) - indexValue(indexA));
+  return availableTiles;
+};
 
-  city.workedTiles = availableTiles.slice(0, city.size);
+export const optimizeWorkedTiles = (state: GameState, city: City) => {
+  const bestTiles = bestWorkableTiles(state, city);
+  city.workedTiles = bestTiles.slice(0, city.size);
+  city.specialists = city.specialists.slice(0, city.size - city.workedTiles.length);
 };
 
 export const totalCityYield = (state: GameState, map: GameMap, city: City): CityYield => {
-  const tileYield = cityYieldFromTiles(map, city);
+  const cityYield = cityYieldFromTiles(map, city);
+
+  for (const specialist of city.specialists) {
+    switch (specialist) {
+      case Specialists.Entertainer:
+        cityYield.luxury += 2;
+        break;
+      case Specialists.TaxAgent:
+        cityYield.gold += 2;
+        break;
+      case Specialists.Scientist:
+        cityYield.beakers += 2;
+        break;
+    }
+  }
 
   const { luxuryRate, taxRate } = state.players[city.owner];
 
-  const tradeYield = convertTradeToYield(luxuryRate, taxRate, tileYield.trade);
+  const tradeYield = convertTradeToYield(luxuryRate, taxRate, cityYield.trade);
 
-  tileYield.luxury += tradeYield.luxury;
-  tileYield.gold += tradeYield.gold;
-  tileYield.beakers += tradeYield.beakers;
+  cityYield.luxury += tradeYield.luxury;
+  cityYield.gold += tradeYield.gold;
+  cityYield.beakers += tradeYield.beakers;
 
-  return tileYield;
+  return cityYield;
 };
 
 export const cityYieldFromTiles = (map: GameMap, city: City): CityYield => {
@@ -230,4 +271,36 @@ export const cityYieldFromTiles = (map: GameMap, city: City): CityYield => {
   }, centerYield);
 };
 
-//export const calculate;
+export const getProductionCost = (production: CityProduction) => {
+  switch (production.type) {
+    case CityProductionType.Unit:
+      return unitPrototypeMap[production.id].cost;
+    case CityProductionType.Building:
+      return buildings[production.id].cost;
+  }
+};
+
+export const getProductionName = (production: CityProduction) => {
+  switch (production.type) {
+    case CityProductionType.Unit:
+      return unitPrototypeMap[production.id].name;
+    case CityProductionType.Building:
+      return buildings[production.id].name;
+  }
+};
+
+// source: https://forums.civfanatics.com/threads/buy-unit-building-wonder-price.576026/#post-14490920
+export const buyCost = (production: CityProduction, shields: number) => {
+  const multiplier = 2 - Math.sign(shields);
+  const cost = getProductionCost(production);
+  switch (production.type) {
+    case CityProductionType.Unit: {
+      const remaining = Math.max(0, (cost - shields) / 10);
+      return Math.floor((5 * remaining * remaining + 20 * remaining) * multiplier);
+    }
+    case CityProductionType.Building:
+      return Math.max(0, (cost - shields) * 2);
+    /*case CityProductionType.Wonder:
+      return Math.max(0, (cost - shields) * 4);*/
+  }
+};

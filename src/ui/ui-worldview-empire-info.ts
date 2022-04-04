@@ -24,7 +24,7 @@ export const empireInfoWindow: UiWindow = {
     renderGrayBox(area.x, area.y, area.width, area.height);
     renderText(fonts.main, `${numberFormatter.format(empirePopulation)}#`, 2, 73); // todo: add population calculations
     const textOffset = renderText(fonts.main, turnToYear(gameState.turn), 2, 81);
-    renderSprite('sp299.pic.png', 20 * 8, 15 * 8, textOffset + 2, 80, 8, 8); // todo: change light bulb based on research progress
+    renderSprite({ asset: 'sp299.pic.png', x: 20 * 8, y: 15 * 8, width: 8, height: 8 }, textOffset + 2, 80); // todo: change light bulb based on research progress
     renderText(fonts.main, `${player.gold}$ ${player.luxuryRate}.${scienceRate}.${player.taxRate}`, 2, 89);
   },
 };

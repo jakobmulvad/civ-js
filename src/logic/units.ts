@@ -1,12 +1,12 @@
 export enum UnitPrototypeId {
-  Settlers = 0,
-  Militia = 1,
-  Phalanx = 2,
-  Legion = 3,
-  Musketeers = 4,
-  Riflemen = 5,
-  Cavalry = 6,
-  Knight = 7,
+  Settlers = 'settlers',
+  Militia = 'militia',
+  Phalanx = 'phalanx',
+  Legion = 'legion',
+  Musketeers = 'musketeers',
+  Riflemen = 'riflemen',
+  Cavalry = 'cavalry',
+  Knight = 'knight',
 }
 
 export enum UnitType {
@@ -48,6 +48,17 @@ export type Unit = {
   state: UnitState;
   progress: number;
   owner: number;
+};
+
+export const unitSpriteSheetOffsetMap: Record<UnitPrototypeId, number> = {
+  [UnitPrototypeId.Settlers]: 0,
+  [UnitPrototypeId.Militia]: 1,
+  [UnitPrototypeId.Phalanx]: 2,
+  [UnitPrototypeId.Legion]: 3,
+  [UnitPrototypeId.Musketeers]: 4,
+  [UnitPrototypeId.Riflemen]: 5,
+  [UnitPrototypeId.Cavalry]: 6,
+  [UnitPrototypeId.Knight]: 7,
 };
 
 export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {

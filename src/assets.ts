@@ -1,6 +1,12 @@
+import { Rect } from './helpers';
+
 const imageAssets = ['ter257.pic.gif', 'sp257.pic.png', 'sp299.pic.png', 'fonts.cv.png'] as const;
 
 export type ImageAssetKey = typeof imageAssets[number];
+
+export type Sprite = {
+  asset: ImageAssetKey;
+} & Rect;
 
 const imageCache: { [key: string]: CanvasRenderingContext2D } = {};
 

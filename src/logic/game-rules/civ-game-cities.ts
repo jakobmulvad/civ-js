@@ -1,10 +1,19 @@
 import { CityAction } from '../action';
 import { ActionResult } from '../action-result';
-import { calculateCitizens, City, getBlockedWorkableTiles, optimizeWorkedTiles } from '../city';
+import {
+  bestWorkableTiles,
+  buyCost,
+  calculateCitizens,
+  City,
+  getBlockedWorkableTiles,
+  getProductionCost,
+  optimizeWorkedTiles,
+  Specialists,
+} from '../city';
 import { GameState } from '../game-state';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
-  decreaseCityPopulation(state, city, 1);
+  decreaseCityPopulation(state, city);
   if (city.size > 0) {
     const ownerPlayer = state.players[city.owner];
     ownerPlayer.cities = ownerPlayer.cities.filter((c) => c !== city);
@@ -14,26 +23,34 @@ export const captureCity = (state: GameState, city: City, newOwner: number) => {
   // TODO steal tech
 };
 
-export const decreaseCityPopulation = (state: GameState, city: City, amount: number) => {
-  city.size -= amount;
+export const decreaseCityPopulation = (state: GameState, city: City) => {
+  city.size--;
   city.food = 0;
 
-  if (city.size > 0) {
-    calculateCitizens(state.masterMap, city);
+  if (city.size === 0) {
+    // Destroy city
+    const player = state.players[city.owner];
+    player.cities = player.cities.filter((c) => c !== city);
+    // TODO destroy any unit maintained by this city
+    // TODO clean up traderoutes to this city
     return;
   }
 
-  const player = state.players[city.owner];
-  player.cities = player.cities.filter((c) => c !== city);
-
-  // TODO destroy any unit maintained by this city
-  // TODO clean up traderoutes to this city
+  calculateCitizens(state.masterMap, city);
 };
 
-export const increaseCityPopulation = (state: GameState, city: City, amount: number) => {
-  city.size += amount;
+export const increaseCityPopulation = (state: GameState, city: City) => {
+  city.size++;
   city.food = 0;
-  calculateCitizens(state.masterMap, city);
+  //calculateCitizens(state.masterMap, city);
+  const bestTiles = bestWorkableTiles(state, city);
+  const availableTiles = bestTiles.filter((t) => !city.workedTiles.includes(t));
+  if (availableTiles.length) {
+    city.workedTiles.push(availableTiles[0]);
+  } else {
+    city.specialists.push(Specialists.Entertainer);
+  }
+
   // TODO check for aquaduct
   // TODO check for granary
 };
@@ -66,8 +83,21 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
       break;
     }
 
-    case 'CitySelectProduction': {
-      city.producing = action.newProduction;
+    case 'CityChangeProduction': {
+      city.producing = action.production;
+      break;
+    }
+
+    case 'CityBuy': {
+      const price = buyCost(city.producing, city.shields);
+      if (price > player.gold) {
+        return {
+          type: 'ActionFailed',
+          reason: 'NotEnoughGold',
+        };
+      }
+      player.gold -= price;
+      city.shields = getProductionCost(city.producing);
       break;
     }
   }

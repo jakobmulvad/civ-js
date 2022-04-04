@@ -1,4 +1,4 @@
-import { getImageAsset, ImageAssetKey } from './assets';
+import { getImageAsset, Sprite } from './assets';
 import { Font, fonts, measureText } from './fonts';
 import { Rect, direction8 } from './helpers';
 import { City } from './logic/city';
@@ -16,7 +16,7 @@ import {
   TerrainId,
   TerrainYield,
 } from './logic/map';
-import { Unit, UnitPrototypeId, UnitState } from './logic/units';
+import { Unit, UnitPrototypeId, unitSpriteSheetOffsetMap, UnitState } from './logic/units';
 import { palette } from './palette';
 
 export enum YieldIcon {
@@ -235,17 +235,19 @@ export const generateSpriteSheets = (
   altSp257Context.putImageData(imageData, 0, 0);
 };
 
-export const renderSprite = (
-  asset: ImageAssetKey,
-  sx: number,
-  sy: number,
-  dx: number,
-  dy: number,
-  width: number,
-  height: number
-) => {
-  const spriteContext = getImageAsset(asset);
-  screenCtx.drawImage(spriteContext.canvas, sx, sy, width, height, dx, dy, width, height);
+export const renderSprite = (sprite: Sprite, dx: number, dy: number) => {
+  const spriteContext = getImageAsset(sprite.asset);
+  screenCtx.drawImage(
+    spriteContext.canvas,
+    sprite.x,
+    sprite.y,
+    sprite.width,
+    sprite.height,
+    dx,
+    dy,
+    sprite.width,
+    sprite.height
+  );
 };
 
 export const renderTileRoads = (
@@ -404,7 +406,7 @@ export const renderUnitPrototype = (
   screenY: number,
   stacked?: boolean
 ) => {
-  const unitOffset = prototypeId * 16;
+  const unitOffset = unitSpriteSheetOffsetMap[prototypeId] * 16;
   const ownerOffset = owner * 16 * 2;
   if (stacked) {
     screenCtx.drawImage(unitContext.canvas, unitOffset, ownerOffset, 16, 16, screenX, screenY, 16, 16);
@@ -787,6 +789,11 @@ export const renderTileYield = (
   // eslint-disable-next-line prefer-const
   let { food, shields, trade } = tileYield;
   const totalYield = food + shields + trade;
+  if (totalYield === 0) {
+    screenCtx.drawImage(sp257, 8 * 16 + 8, 2 * 16 + 8, 8, 8, screenX + 4, screenY + 4, 8, 8);
+    return;
+  }
+
   const iconsPerLine = Math.max(2, Math.ceil(totalYield / 2));
   const spacing = 8 - (iconsPerLine - 2) * 4;
 

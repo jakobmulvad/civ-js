@@ -5,37 +5,56 @@ import { palette } from '../../palette';
 import { renderFrame, renderGrayBox, renderSelectionBox, renderText, setFontColor } from '../../renderer';
 import { popUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
-export type UiSelectOption<T = number | string> = {
-  key: T;
+export type UiSelectValuePair<T = any> = {
+  value: T;
   label: string;
 };
 
-export type UiSelectConfig<T = number | string> = {
+export type UiSelectOption<T = any> = UiSelectValuePair<T> | string | number;
+
+export type UiSelectConfig<T = any> = {
   x: number;
   y: number;
-  title: string;
-  options: UiSelectOption<T>[];
-  onSelect: (key: T) => void;
-  onCancel?: () => void;
+  title: string | string[];
+  options?: UiSelectOption<T>[];
+  onSelect?: (value: T) => void;
+  onClose?: () => void;
   font?: Font;
   selectedIndex?: number;
 };
 
+const getOptionLabel = (option: UiSelectOption) => {
+  if (typeof option === 'object') {
+    return option.label;
+  }
+  return option.toString();
+};
+
 export const newSelect = (config: UiSelectConfig): UiScreen => {
-  const { x, y, title, options, onSelect, onCancel } = config;
+  const { x, y, options, onSelect, onClose } = config;
   const font = config.font ?? fonts.main;
   let selectedIndex = config.selectedIndex ?? 0;
 
-  let maxLength = measureText(font, title);
-  for (const { label } of options) {
-    maxLength = Math.max(maxLength, measureText(font, label));
+  const titles = Array.isArray(config.title) ? config.title : [config.title];
+
+  let maxLength = 0;
+  let height = 0;
+  for (const title of titles) {
+    maxLength = Math.max(maxLength, measureText(font, title));
+    height += font.height;
+  }
+  if (options) {
+    for (const option of options) {
+      maxLength = Math.max(maxLength, measureText(font, getOptionLabel(option)));
+      height += font.height;
+    }
   }
 
   const boxRect: Rect = {
     x,
     y,
     width: maxLength + 15,
-    height: (options.length + 2) * font.height + 2,
+    height: height + font.height + 2,
   };
 
   const window: UiWindow = {
@@ -43,36 +62,53 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
     isDirty: true,
     onRender: () => {
       renderFrame(x, y, boxRect.width, boxRect.height, palette.black);
-      renderGrayBox(x + 1, y + 1, maxLength + 13, (options.length + 2) * font.height);
-
-      renderSelectionBox(x + 3, y + 3 + (selectedIndex + 1) * font.height, boxRect.width - 6, font.height);
+      renderGrayBox(x + 1, y + 1, boxRect.width - 2, boxRect.height - 2);
 
       setFontColor(font, palette.white);
-      renderText(font, title, x + 4, y + 4);
-      setFontColor(font, palette.black);
-      for (let i = 0; i < options.length; i++) {
-        renderText(font, options[i].label, x + 10, y + 4 + font.height * (i + 1));
+      let yOffset = y + 4;
+      for (const title of titles) {
+        renderText(font, title, x + 4, yOffset);
+        yOffset += font.height;
+      }
+      if (options) {
+        renderSelectionBox(
+          x + 3,
+          y + 3 + (selectedIndex + titles.length) * font.height,
+          boxRect.width - 6,
+          font.height
+        );
+        setFontColor(font, palette.black);
+        for (let i = 0; i < options.length; i++) {
+          renderText(font, getOptionLabel(options[i]), x + 10, yOffset + font.height * i);
+        }
       }
     },
     onMouseDown: (x, y) => {
       window.onMouseDrag?.(x, y);
     },
     onClick: (x, y) => {
-      if (!isInside(boxRect, x, y)) {
-        onCancel?.();
+      if (!isInside(boxRect, x, y) || !options) {
+        onClose?.();
         popUiScreen();
         return;
       }
 
-      onSelect(options[selectedIndex].key);
+      const option = options[selectedIndex];
+
+      if (typeof option === 'object') {
+        onSelect?.(option.value);
+      } else {
+        onSelect?.(option);
+      }
+
       popUiScreen();
     },
     onMouseDrag: (x, y) => {
-      if (!isInside(boxRect, x, y)) {
+      if (!isInside(boxRect, x, y) || !options) {
         return;
       }
 
-      const offsetY = y - boxRect.y - 4 - font.height;
+      const offsetY = y - boxRect.y - 4 - titles.length * font.height;
       selectedIndex = clamp(0, Math.floor(offsetY / font.height), options.length - 1);
       window.isDirty = true;
     },
@@ -81,6 +117,20 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
   return {
     windows: [window],
     onKey: (keyCode: KeyCode) => {
+      if (!options) {
+        // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+        switch (keyCode) {
+          case KeyCode.Enter:
+          case KeyCode.Escape:
+          case KeyCode.NumpadEnter:
+          case KeyCode.Space:
+            onClose?.();
+            popUiScreen();
+            break;
+        }
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
       switch (keyCode) {
         case KeyCode.ArrowUp:
@@ -92,12 +142,19 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
           window.isDirty = true;
           break;
         case KeyCode.Enter:
-        case KeyCode.NumpadEnter:
-          onSelect(options[selectedIndex].key);
+        case KeyCode.NumpadEnter: {
+          const option = options[selectedIndex];
+
+          if (typeof option === 'object') {
+            onSelect?.(option.value);
+          } else {
+            onSelect?.(option);
+          }
           popUiScreen();
           break;
+        }
         case KeyCode.Escape:
-          onCancel?.();
+          onClose?.();
           popUiScreen();
           break;
       }

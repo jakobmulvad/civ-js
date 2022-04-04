@@ -1,4 +1,4 @@
-import { UnitPrototypeId } from './units';
+import { CityProduction } from './city';
 
 export type ActionWithPlayer = {
   player: number;
@@ -41,10 +41,10 @@ export type CityTileAction = {
 } & ActionWithCity;
 
 export type CityProductionAction = {
-  type: 'CitySelectProduction';
-  newProduction: UnitPrototypeId;
+  type: 'CityChangeProduction';
+  production: CityProduction;
 } & ActionWithCity;
 
-export type CityAction = CityTileAction | CityProductionAction;
+export type CityAction = ({ type: 'CityBuy' } & ActionWithCity) | CityTileAction | CityProductionAction;
 
 export type Action = PlayerAction | UnitAction | UnitActionMove | CityAction;
