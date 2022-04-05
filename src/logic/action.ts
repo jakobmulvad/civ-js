@@ -1,3 +1,4 @@
+import { BuildingId } from './buildings';
 import { CityProduction } from './city';
 
 export type ActionWithPlayer = {
@@ -40,11 +41,20 @@ export type CityTileAction = {
   tile: number;
 } & ActionWithCity;
 
-export type CityProductionAction = {
+export type CityChangeProductionAction = {
   type: 'CityChangeProduction';
   production: CityProduction;
 } & ActionWithCity;
 
-export type CityAction = ({ type: 'CityBuy' } & ActionWithCity) | CityTileAction | CityProductionAction;
+export type CitySellAction = {
+  type: 'CitySell';
+  building: BuildingId;
+} & ActionWithCity;
+
+export type CityAction =
+  | ({ type: 'CityBuy' } & ActionWithCity)
+  | CityTileAction
+  | CityChangeProductionAction
+  | CitySellAction;
 
 export type Action = PlayerAction | UnitAction | UnitActionMove | CityAction;

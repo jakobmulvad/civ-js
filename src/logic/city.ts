@@ -1,4 +1,4 @@
-import { BuildingId, buildings } from './buildings';
+import { Building, BuildingId, buildings } from './buildings';
 import { convertTradeToYield } from './formulas';
 import { GameState } from './game-state';
 import { calculateTileYield, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
@@ -303,4 +303,8 @@ export const buyCost = (production: CityProduction, shields: number) => {
     /*case CityProductionType.Wonder:
       return Math.max(0, (cost - shields) * 4);*/
   }
+};
+
+export const sellPrice = (building: Building) => {
+  return building.cost;
 };

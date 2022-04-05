@@ -225,8 +225,11 @@ export const generateSpriteSheets = (
   altSp257Context.canvas.width = imageData.width;
   altSp257Context.canvas.height = imageData.height;
 
-  // replace white with black for "negative" icons
-  replaceColor(imageData, 8 * 16, 2 * 16, 32, 16, palette.white, palette.black);
+  // replace white with black for "negative" yield icons
+  replaceColor(imageData, 8 * 16, 2 * 16, 3 * 8, 8, palette.white, palette.black);
+
+  // replace yellow with red for sell button
+  replaceColor(imageData, 9 * 16 + 8, 2 * 16, 8, 8, palette.yellow, palette.red);
 
   // replace gray background with cyan for "selection" background
   replaceColor(imageData, 18 * 16, 11 * 16, 32, 16, palette.grayLight, palette.cyanDark);

@@ -48,12 +48,13 @@ const buyButton = {
   height: 9,
 };
 
+let changeButtonColor = palette.blue;
+
 const change = () => {
   const { gameState, selectedCity, localPlayer } = getUiState();
   if (!selectedCity) {
     return;
   }
-
   const shieldYield = totalCityYield(gameState, gameState.players[selectedCity.owner].map, selectedCity).shields;
 
   // Add units
@@ -162,7 +163,7 @@ export const cityProductionWindow: UiWindow = {
       area.x + changeButton.x,
       area.y + changeButton.y,
       changeButton.width,
-      palette.blue,
+      changeButtonColor,
       palette.blueDark
     );
     renderSmallButton(
@@ -212,3 +213,21 @@ export const cityProductionWindow: UiWindow = {
 };
 
 addGameEventListener('GameStateUpdated', () => (cityProductionWindow.isDirty = true));
+addGameEventListener('BlinkingStateUpdated', () => {
+  const { selectedCity, isBlinking } = getUiState();
+  if (!selectedCity) {
+    return;
+  }
+
+  // Blink yellow button if producing building that city already has
+  if (
+    selectedCity.producing.type === CityProductionType.Building &&
+    selectedCity.buildings.includes(selectedCity.producing.id)
+  ) {
+    changeButtonColor = isBlinking ? palette.yellow : palette.blue;
+    cityProductionWindow.isDirty = true;
+  } else if (changeButtonColor !== palette.blue) {
+    changeButtonColor = palette.blue;
+    cityProductionWindow.isDirty = true;
+  }
+});

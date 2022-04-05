@@ -3,9 +3,9 @@ import { City } from '../logic/city';
 
 export type UiState = {
   gameState: GameState;
+  selectedCity: City | undefined;
   localPlayer: number;
   isBlinking: boolean;
-  selectedCity: City | undefined;
 };
 
 let uiState: UiState = {
@@ -17,10 +17,9 @@ let uiState: UiState = {
 
 export const initUi = (gameState: GameState, localPlayer: number) => {
   uiState = {
+    ...uiState,
     gameState,
-    selectedCity: undefined,
     localPlayer,
-    isBlinking: false,
   };
 };
 

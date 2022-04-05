@@ -4,6 +4,7 @@ export enum BuildingId {
   Palace = 'palace',
   Barracks = 'barracks',
   Granary = 'granary',
+  Temple = 'temple',
   Marketplace = 'marketplace',
 }
 
@@ -51,6 +52,18 @@ export const buildings: Record<BuildingId, Building> = {
       height: 10,
     },
   },
+  [BuildingId.Temple]: {
+    name: 'Temple',
+    cost: 40,
+    maintenance: 1,
+    sprite: {
+      asset: 'sp299.pic.png',
+      x: 20 * 8 + 1,
+      y: 8 * 10,
+      width: 18,
+      height: 10,
+    },
+  },
   [BuildingId.Marketplace]: {
     name: 'Marketplace',
     cost: 80,
@@ -58,7 +71,7 @@ export const buildings: Record<BuildingId, Building> = {
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,
-      y: 8 * 10,
+      y: 9 * 10,
       width: 18,
       height: 10,
     },

@@ -1,5 +1,6 @@
 import { CityAction } from '../action';
 import { ActionResult } from '../action-result';
+import { buildings } from '../buildings';
 import {
   bestWorkableTiles,
   buyCost,
@@ -8,6 +9,7 @@ import {
   getBlockedWorkableTiles,
   getProductionCost,
   optimizeWorkedTiles,
+  sellPrice,
   Specialists,
 } from '../city';
 import { GameState } from '../game-state';
@@ -98,7 +100,22 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
       }
       player.gold -= price;
       city.shields = getProductionCost(city.producing);
+      city.hasBought = true;
       break;
+    }
+
+    case 'CitySell': {
+      if (city.hasSold) {
+        return {
+          type: 'ActionFailed',
+          reason: 'CityAllreadySold',
+        };
+      }
+
+      const building = buildings[action.building];
+      player.gold += sellPrice(building);
+      city.hasSold = true;
+      city.buildings = city.buildings.filter((b) => b !== action.building);
     }
   }
 };

@@ -24,7 +24,7 @@ export type UnitCityBuiltResult = {
 
 export type ActionFailedResult = {
   type: 'ActionFailed';
-  reason: 'MissingWaterSupply' | 'UnitNotBuilder' | 'NotEnoughGold';
+  reason: 'MissingWaterSupply' | 'UnitNotBuilder' | 'NotEnoughGold' | 'CityAllreadySold';
 };
 
 export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | UnitCityBuiltResult | void;

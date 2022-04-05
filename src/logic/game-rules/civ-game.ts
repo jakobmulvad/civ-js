@@ -135,6 +135,8 @@ const startTurn = (state: GameState) => {
 
     player.gold += cityYield.gold;
     player.beakers += cityYield.beakers;
+    city.hasBought = false;
+    city.hasSold = false;
   }
 
   selectNextUnit(state);
