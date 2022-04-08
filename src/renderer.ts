@@ -429,7 +429,7 @@ export const renderUnit = (
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (unit.state) {
     case UnitState.Fortified:
-      screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, screenX + 1, screenY + 1, 15, 15);
+      screenCtx.drawImage(sp257, 13 * 16 + 1, 7 * 16 + 1, 15, 15, screenX, screenY, 15, 15);
       break;
     case UnitState.Fortifying:
       renderUnitLetter('F', screenX, screenY);
@@ -798,8 +798,7 @@ export const renderTileYield = (
   }
 
   const iconsPerLine = Math.max(2, Math.ceil(totalYield / 2));
-  const spacing = 8 - (iconsPerLine - 2) * 4;
-
+  const spacing = Math.max(2, 8 - (iconsPerLine - 2) * 4);
   for (let i = 0; i < totalYield; i++) {
     const iconX = screenX + (i % iconsPerLine) * spacing;
     const iconY = screenY + Math.floor(i / iconsPerLine) * 8;

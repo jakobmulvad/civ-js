@@ -1,3 +1,4 @@
+import { direction8 } from '../helpers';
 import { GameState } from './game-state';
 
 export enum TerrainId {
@@ -352,13 +353,8 @@ export const exploreMap = (state: GameState, player: number, x: number, y: numbe
 };
 
 export const exploreMapAround = (state: GameState, player: number, x: number, y: number) => {
-  exploreMap(state, player, x - 1, y - 1);
-  exploreMap(state, player, x, y - 1);
-  exploreMap(state, player, x + 1, y - 1);
-  exploreMap(state, player, x - 1, y);
+  for (const [dx, dy] of direction8) {
+    exploreMap(state, player, x + dx, y + dy);
+  }
   exploreMap(state, player, x, y);
-  exploreMap(state, player, x + 1, y);
-  exploreMap(state, player, x - 1, y + 1);
-  exploreMap(state, player, x, y + 1);
-  exploreMap(state, player, x + 1, y + 1);
 };

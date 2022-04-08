@@ -30,6 +30,57 @@ const selectNextUnit = (state: GameState) => {
 const startTurn = (state: GameState) => {
   const player = state.players[state.playerInTurn];
 
+  // Process each city
+  for (const city of player.cities) {
+    // If enemy units moved on a worked tile, stop working it
+    const occupiedTiles = getBlockedWorkableTiles(state, city);
+    city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
+
+    const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
+    city.food += cityYield.food - city.size * 2;
+
+    if (city.food < 0) {
+      // Famine!
+      decreaseCityPopulation(state, city);
+    } else if (city.food > (city.size + 1) * 10) {
+      // Grow!
+      increaseCityPopulation(state, city);
+    }
+
+    city.shields += cityYield.shields;
+
+    const cost = getProductionCost(city.producing);
+
+    if (city.shields >= cost) {
+      // Production done!
+
+      switch (city.producing.type) {
+        case CityProductionType.Unit: {
+          city.shields = 0;
+          const prototype = unitPrototypeMap[city.producing.id];
+          if (prototype.isBuilder) {
+            decreaseCityPopulation(state, city);
+          }
+          spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y);
+          break;
+        }
+
+        case CityProductionType.Building: {
+          if (city.buildings.includes(city.producing.id)) {
+            break;
+          }
+          city.shields = 0;
+          city.buildings.push(city.producing.id);
+        }
+      }
+    }
+
+    player.gold += cityYield.gold;
+    player.beakers += cityYield.beakers;
+    city.hasBought = false;
+    city.hasSold = false;
+  }
+
   // Process each unit
   for (const unit of player.units) {
     const unitProto = unitPrototypeMap[unit.prototypeId];
@@ -86,57 +137,6 @@ const startTurn = (state: GameState) => {
         break;
     }
     exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
-  }
-
-  // Process each city
-  for (const city of player.cities) {
-    // If enemy units moved on a worked tile, stop working it
-    const occupiedTiles = getBlockedWorkableTiles(state, city);
-    city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
-
-    const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
-    city.food += cityYield.food - city.size * 2;
-
-    if (city.food < 0) {
-      // Famine!
-      decreaseCityPopulation(state, city);
-    } else if (city.food > (city.size + 1) * 10) {
-      // Grow!
-      increaseCityPopulation(state, city);
-    }
-
-    city.shields += cityYield.shields;
-
-    const cost = getProductionCost(city.producing);
-
-    if (city.shields >= cost) {
-      // Production done!
-
-      switch (city.producing.type) {
-        case CityProductionType.Unit: {
-          city.shields = 0;
-          spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y);
-          const prototype = unitPrototypeMap[city.producing.id];
-          if (prototype.isBuilder) {
-            decreaseCityPopulation(state, city);
-          }
-          break;
-        }
-
-        case CityProductionType.Building: {
-          if (city.buildings.includes(city.producing.id)) {
-            break;
-          }
-          city.shields = 0;
-          city.buildings.push(city.producing.id);
-        }
-      }
-    }
-
-    player.gold += cityYield.gold;
-    player.beakers += cityYield.beakers;
-    city.hasBought = false;
-    city.hasSold = false;
   }
 
   selectNextUnit(state);
@@ -226,6 +226,15 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     } while (!suitableStartTerrain.includes(terrain) && tries < 100);
 
     spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    const unit = spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
+    unit.state = UnitState.Fortified;
   }
 
   //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);

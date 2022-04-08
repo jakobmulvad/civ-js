@@ -66,31 +66,28 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
 
   const result = executeAction(state, action);
   triggerGameEvent('GameStateUpdated');
-  ensureSelectedUnitIsInViewport();
 
-  if (!result) {
-    return;
-  }
-
-  switch (result.type) {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (result?.type) {
     case 'UnitMoved':
       await animateUnitMoved(result);
-      return;
+      break;
 
     case 'Combat':
       await animateCombat(result);
-      return;
+      break;
 
     case 'ActionFailed':
       // TODO: handle failed actions
       console.log('Action failed:', result.reason);
-      return;
+      break;
 
     case 'CityBuilt':
       updateUiState('selectedCity', result.city);
       pushUiScreen(uiCityScreen);
-      return;
+      break;
   }
+  ensureSelectedUnitIsInViewport();
 };
 
 const logicFrame = (time: number) => {

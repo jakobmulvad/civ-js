@@ -13,6 +13,7 @@ import {
   Specialists,
 } from '../city';
 import { GameState } from '../game-state';
+import { getTileAt } from '../map';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
   decreaseCityPopulation(state, city);
@@ -33,6 +34,11 @@ export const decreaseCityPopulation = (state: GameState, city: City) => {
     // Destroy city
     const player = state.players[city.owner];
     player.cities = player.cities.filter((c) => c !== city);
+    const tile = getTileAt(state.masterMap, city.x, city.y);
+    tile.hasIrrigation = false;
+    tile.hasRoad = false;
+    tile.hasRailroad = false;
+    tile.hasMine = false;
     // TODO destroy any unit maintained by this city
     // TODO clean up traderoutes to this city
     return;
@@ -86,6 +92,12 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
     }
 
     case 'CityChangeProduction': {
+      if (city.hasBought) {
+        return {
+          type: 'ActionFailed',
+          reason: 'CityCannotChangeProductionAfterBuy',
+        };
+      }
       city.producing = action.production;
       break;
     }

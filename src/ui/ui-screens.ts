@@ -9,7 +9,7 @@ import { cityBottomButtonsWindow } from './cityview/ui-cityview-bottom-buttons';
 import { cityCitizensWindow } from './cityview/ui-cityview-citizens';
 import { cityResourcesWindow } from './cityview/ui-cityview-resources';
 import { cityFoodWindow } from './cityview/ui-cityview-food';
-import { cityUnitsWindow } from './cityview/ui-cityview-units';
+import { citySupplyWindow } from './cityview/ui-cityview-supply';
 import { cityInfoWindow } from './cityview/ui-cityview-info';
 import { cityMapWindow } from './cityview/ui-cityview-map';
 import { cityBuildingsWindow } from './cityview/ui-cityview-buildings';
@@ -138,7 +138,7 @@ export const uiCityScreen: UiScreen = {
     clearScreenWindow,
     cityCitizensWindow,
     cityResourcesWindow,
-    cityUnitsWindow,
+    citySupplyWindow,
     cityFoodWindow,
     cityMapWindow,
     cityInfoWindow,

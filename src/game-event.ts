@@ -24,6 +24,7 @@ export const addGameEventListener = (events: GameEvent | GameEvent[], callback: 
 };
 
 export const triggerGameEvent = (event: GameEvent) => {
+  console.log('Event triggered', event);
   for (const listener of listeners) {
     if (listener.event === event) {
       listener.callback();

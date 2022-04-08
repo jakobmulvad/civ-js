@@ -215,7 +215,7 @@ export const bestWorkableTiles = (state: GameState, city: City) => {
     const [x, y] = workedTileToMapCoord(map, city, tileIndex);
     const tile = getTileAt(map, x, y);
     const tileYield = calculateTileYield(tile);
-    return tileYield.food * 3 + tileYield.shields * 2 + tileYield.trade;
+    return tileYield.food * 4 + tileYield.shields * 2 + tileYield.trade;
   };
 
   availableTiles.sort((indexA, indexB) => indexValue(indexB) - indexValue(indexA));
@@ -299,7 +299,7 @@ export const buyCost = (production: CityProduction, shields: number) => {
       return Math.floor((5 * remaining * remaining + 20 * remaining) * multiplier);
     }
     case CityProductionType.Building:
-      return Math.max(0, (cost - shields) * 2);
+      return Math.max(0, (cost - shields) * 2 * multiplier);
     /*case CityProductionType.Wonder:
       return Math.max(0, (cost - shields) * 4);*/
   }

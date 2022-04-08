@@ -9,7 +9,7 @@ const area: Rect = {
   height: 38,
 };
 
-export const cityUnitsWindow: UiWindow = {
+export const citySupplyWindow: UiWindow = {
   area,
   isDirty: true,
   onRender: (state) => {

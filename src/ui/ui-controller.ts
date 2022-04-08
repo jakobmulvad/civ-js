@@ -14,6 +14,7 @@ export type UiWindow = {
   onMouseDrag?: (x: number, y: number) => void;
   onMouseUp?: (x: number, y: number) => void;
   onClick?: (x: number, y: number) => void;
+  onMount?: () => void;
 };
 
 export type UiScreen = {
@@ -27,7 +28,11 @@ let mouseLock: UiWindow | undefined = undefined;
 
 export const pushUiScreen = (screen: UiScreen) => {
   uiStack.push(screen);
-  //screen.onMount?.();
+
+  for (const window of screen.windows) {
+    window.onMount?.();
+  }
+
   isDirty = true;
 };
 export const popUiScreen = () => {
@@ -93,7 +98,8 @@ canvas.addEventListener('mousedown', (evt) => {
 
   const [x, y] = toIngameCoords(evt.offsetX, evt.offsetY);
 
-  for (const window of screen.windows) {
+  for (let i = screen.windows.length - 1; i >= 0; i--) {
+    const window = screen.windows[i];
     if (window.area && isInside(window.area, x, y)) {
       window.onMouseDown?.(x - window.area.x, y - window.area.y);
       mouseLock = window;

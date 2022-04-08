@@ -2,7 +2,7 @@ import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
 import { incrementPerIcon, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
-import { BuildingId, buildings } from '../../logic/buildings';
+import { Building, BuildingId, buildings } from '../../logic/buildings';
 import {
   buyCost,
   CityProduction,
@@ -52,7 +52,7 @@ let changeButtonColor = palette.blue;
 
 const change = () => {
   const { gameState, selectedCity, localPlayer } = getUiState();
-  if (!selectedCity) {
+  if (!selectedCity || selectedCity.hasBought) {
     return;
   }
   const shieldYield = totalCityYield(gameState, gameState.players[selectedCity.owner].map, selectedCity).shields;
@@ -71,17 +71,19 @@ const change = () => {
   });
 
   // Add buildings
-  const buildingEntries = Object.entries(buildings);
-  const buildingOptions: UiSelectValuePair<CityProduction>[] = buildingEntries.map(([key, building]) => {
-    const turns = Math.max(1, Math.ceil((building.cost - selectedCity.shields) / shieldYield));
-    return {
-      value: {
-        type: CityProductionType.Building,
-        id: key as BuildingId,
-      },
-      label: `${building.name} (${turns} turns)`,
-    };
-  });
+  const buildingEntries = Object.entries(buildings) as [BuildingId, Building][];
+  const buildingOptions: UiSelectValuePair<CityProduction>[] = buildingEntries
+    .filter(([key]) => !selectedCity.buildings.includes(key))
+    .map(([key, building]) => {
+      const turns = Math.max(1, Math.ceil((building.cost - selectedCity.shields) / shieldYield));
+      return {
+        value: {
+          type: CityProductionType.Building,
+          id: key,
+        },
+        label: `${building.name} (${turns} turns)`,
+      };
+    });
 
   const options = [...unitOptions, ...buildingOptions];
 
@@ -108,7 +110,7 @@ const change = () => {
 
 const buy = () => {
   const { gameState, selectedCity, localPlayer } = getUiState();
-  if (!selectedCity) {
+  if (!selectedCity || selectedCity.hasBought) {
     return;
   }
   const cityIndex = gameState.players[localPlayer].cities.indexOf(selectedCity);
@@ -139,6 +141,7 @@ export const cityProductionWindow: UiWindow = {
   area,
   isDirty: true,
   onRender: (state) => {
+    console.log('Render production');
     const { selectedCity } = state;
     if (!selectedCity) {
       return;
@@ -149,6 +152,7 @@ export const cityProductionWindow: UiWindow = {
     const inc = incrementPerIcon(shieldsPerRow, area.width);
 
     renderBlueBox(area.x, area.y, 3 + 8 + inc * (shieldsPerRow - 1), 19 + rows * 8, [17, 1, 1, 1]);
+    area.height = 19 + rows * 8;
 
     let shields = selectedCity.shields;
     let offsetY = area.y + 17;
@@ -163,16 +167,16 @@ export const cityProductionWindow: UiWindow = {
       area.x + changeButton.x,
       area.y + changeButton.y,
       changeButton.width,
-      changeButtonColor,
-      palette.blueDark
+      selectedCity.hasBought ? palette.grayLight : changeButtonColor,
+      selectedCity.hasBought ? palette.grayLighter : palette.blueDark
     );
     renderSmallButton(
       'Buy',
       area.x + buyButton.x,
       area.y + buyButton.y,
       buyButton.width,
-      palette.blue,
-      palette.blueDark
+      selectedCity.hasBought ? palette.grayLight : palette.blue,
+      selectedCity.hasBought ? palette.grayLighter : palette.blueDark
     );
 
     switch (selectedCity.producing.type) {
