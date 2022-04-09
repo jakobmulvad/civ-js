@@ -244,6 +244,13 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
     case 'UnitDisband':
       removeUnitFromGame(state, unit);
       break;
+
+    case 'UnitWake':
+      unit.state = UnitState.Idle;
+      if (unit.movesLeft > 0) {
+        player.selectedUnit = action.unit;
+      }
+      return;
   }
   selectNextUnit(state);
 };

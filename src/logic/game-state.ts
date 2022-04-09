@@ -104,3 +104,7 @@ export const getUnitsAt = (state: GameState, x: number, y: number, exclude?: Uni
   }
   return result;
 };
+
+export const unitIndex = (state: GameState, unit: Unit): number => {
+  return state.players[unit.owner].units.indexOf(unit);
+};
