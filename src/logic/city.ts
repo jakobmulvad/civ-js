@@ -308,3 +308,10 @@ export const buyCost = (production: CityProduction, shields: number) => {
 export const sellPrice = (building: Building) => {
   return building.cost;
 };
+
+export const citySupplyUnits = (state: GameState, city: City) => {
+  const player = state.players[city.owner];
+  const index = player.cities.indexOf(city);
+  const units = player.units.filter((u) => u.home === index);
+  return units;
+};

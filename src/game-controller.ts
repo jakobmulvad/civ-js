@@ -4,7 +4,7 @@ import { generateSpriteSheets } from './renderer';
 import { clearUi, pushUiScreen } from './ui/ui-controller';
 import { uiCityScreen, uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
-import { americans, egyptians } from './logic/civilizations';
+import { americans } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
@@ -24,7 +24,7 @@ export const startGame = async () => {
     generateMapTemplate({
       temperature: Temperature.Cool,
     }),
-    [americans, egyptians]
+    [americans]
   );
   state.players[localPlayer].controller = PlayerController.LocalHuman;
 

@@ -48,6 +48,7 @@ export type Unit = {
   state: UnitState;
   progress: number;
   owner: number;
+  home?: number;
 };
 
 export const unitSpriteSheetOffsetMap: Record<UnitPrototypeId, number> = {
@@ -130,7 +131,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
   },
 };
 
-export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number, owner: number): Unit => {
+export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number, owner: number, home?: number): Unit => {
   const prototype = unitPrototypeMap[prototypeId];
   return {
     prototypeId,
@@ -140,6 +141,7 @@ export const newUnit = (prototypeId: UnitPrototypeId, x: number, y: number, owne
     state: UnitState.Idle,
     progress: 0,
     owner,
+    home,
   };
 };
 

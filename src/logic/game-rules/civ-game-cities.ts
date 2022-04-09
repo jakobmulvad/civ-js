@@ -6,14 +6,18 @@ import {
   buyCost,
   calculateCitizens,
   City,
+  CityProductionType,
   getBlockedWorkableTiles,
   getProductionCost,
   optimizeWorkedTiles,
   sellPrice,
   Specialists,
+  totalCityYield,
 } from '../city';
 import { GameState } from '../game-state';
 import { getTileAt } from '../map';
+import { unitPrototypeMap } from '../units';
+import { spawnUnitForPlayer } from './civ-game-units';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
   decreaseCityPopulation(state, city);
@@ -130,4 +134,56 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
       city.buildings = city.buildings.filter((b) => b !== action.building);
     }
   }
+};
+
+export const processCity = (state: GameState, city: City) => {
+  const player = state.players[city.owner];
+
+  // If enemy units moved on a worked tile, stop working it
+  const occupiedTiles = getBlockedWorkableTiles(state, city);
+  city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
+
+  const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
+  city.food += cityYield.food - city.size * 2;
+
+  if (city.food < 0) {
+    // Famine!
+    decreaseCityPopulation(state, city);
+  } else if (city.food > (city.size + 1) * 10) {
+    // Grow!
+    increaseCityPopulation(state, city);
+  }
+
+  city.shields += cityYield.shields;
+
+  const cost = getProductionCost(city.producing);
+
+  if (city.shields >= cost) {
+    // Production done!
+
+    switch (city.producing.type) {
+      case CityProductionType.Unit: {
+        city.shields = 0;
+        const prototype = unitPrototypeMap[city.producing.id];
+        if (prototype.isBuilder) {
+          decreaseCityPopulation(state, city);
+        }
+        spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y, player.cities.indexOf(city));
+        break;
+      }
+
+      case CityProductionType.Building: {
+        if (city.buildings.includes(city.producing.id)) {
+          break;
+        }
+        city.shields = 0;
+        city.buildings.push(city.producing.id);
+      }
+    }
+  }
+
+  player.gold += cityYield.gold;
+  player.beakers += cityYield.beakers;
+  city.hasBought = false;
+  city.hasSold = false;
 };

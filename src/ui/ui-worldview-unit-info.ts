@@ -1,7 +1,7 @@
 import { fonts } from '../fonts';
 import { addGameEventListener } from '../game-event';
 import { Rect } from '../helpers';
-import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit } from '../logic/game-state';
+import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit, homeCityName } from '../logic/game-state';
 import { terrainMap } from '../logic/map';
 import { palette } from '../palette';
 import { renderGrayBox, renderText, renderTextLines, setFontColor } from '../renderer';
@@ -41,7 +41,7 @@ export const unitInfoWindow: UiWindow = {
           prototype.name,
           selectedUnit.isVeteran ? ' Veteran' : undefined,
           `Moves: ${fractionMoves === 0 ? wholeMoves : `${wholeMoves}.${fractionMoves}`}`,
-          'Berlin',
+          homeCityName(gameState, selectedUnit),
           `(${terrain.name})`,
           tile.hasRoad ? `(Road)` : undefined,
           tile.hasRailroad ? `(Railroad)` : undefined,

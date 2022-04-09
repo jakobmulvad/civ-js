@@ -13,7 +13,7 @@ import {
   removeUnitFromGame,
 } from '../game-state';
 import { exploreMapAround, getTileAt, getTilesCross, TerrainId, terrainMap, wrapXAxis } from '../map';
-import { newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from '../units';
+import { jobsDone, newUnit, Unit, UnitPrototypeId, unitPrototypeMap, UnitState, UnitType } from '../units';
 import { validateUnitAction } from './action-validation';
 import { captureCity } from './civ-game-cities';
 
@@ -30,9 +30,10 @@ export const spawnUnitForPlayer = (
   player: number,
   id: UnitPrototypeId,
   x: number,
-  y: number
+  y: number,
+  home?: number
 ): Unit => {
-  const unit = newUnit(id, x, y, player);
+  const unit = newUnit(id, x, y, player, home);
   state.players[player].units.push(unit);
 
   exploreMapAround(state, player, x, y);
@@ -253,4 +254,61 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
       return;
   }
   selectNextUnit(state);
+};
+
+export const processUnit = (state: GameState, unit: Unit) => {
+  const unitProto = unitPrototypeMap[unit.prototypeId];
+  unit.movesLeft = unitProto.moves * 3;
+  const tile = getTileAtUnit(state.masterMap, unit);
+  const tileTerrain = terrainMap[tile.terrain];
+
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (unit.state) {
+    case UnitState.BuildingFortress:
+    case UnitState.CleaningPolution:
+    case UnitState.BuildingIrrigation:
+      unit.progress++;
+      // a bug in civ causes all tile improvements to complete 1 turn before intended - we explicitly add that bug here as well
+      if (unit.progress === tileTerrain.movementCost * 2 - 1) {
+        jobsDone(unit);
+        tile.hasIrrigation = true;
+      }
+      break;
+
+    case UnitState.BuildingMine:
+      unit.progress++;
+      if (unit.progress === 10 - 1) {
+        jobsDone(unit);
+        tile.hasMine = true;
+      }
+      break;
+
+    case UnitState.Clearing:
+      unit.progress++;
+      if (unit.progress === (tileTerrain.clearCost ?? 5) - 1) {
+        jobsDone(unit);
+        const proto = terrainMap[tile.terrain];
+        tile.terrain = proto.clearsTo ?? tile.terrain;
+      }
+      break;
+
+    case UnitState.BuildingRoad: {
+      unit.progress++;
+      const cost = tile.hasRoad ? tileTerrain.movementCost * 4 : tileTerrain.movementCost * 2;
+      if (unit.progress === cost - 1) {
+        jobsDone(unit);
+        if (tile.hasRoad) {
+          tile.hasRailroad = true;
+        } else {
+          tile.hasRoad = true;
+        }
+      }
+      break;
+    }
+
+    case UnitState.Fortifying:
+      unit.state = UnitState.Fortified;
+      break;
+  }
+  exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
 };

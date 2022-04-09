@@ -108,3 +108,10 @@ export const getUnitsAt = (state: GameState, x: number, y: number, exclude?: Uni
 export const unitIndex = (state: GameState, unit: Unit): number => {
   return state.players[unit.owner].units.indexOf(unit);
 };
+
+export const homeCity = (state: GameState, unit: Unit): City | undefined => {
+  return unit.home === undefined ? undefined : state.players[unit.owner].cities[unit.home];
+};
+export const homeCityName = (state: GameState, unit: Unit): string => {
+  return homeCity(state, unit)?.name ?? 'NONE';
+};

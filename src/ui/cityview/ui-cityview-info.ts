@@ -3,7 +3,7 @@ import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
 import { City } from '../../logic/city';
-import { GameState, getUnitsAt, unitIndex } from '../../logic/game-state';
+import { GameState, getUnitsAt, homeCityName, unitIndex } from '../../logic/game-state';
 import { palette } from '../../palette';
 import { renderBlueBox, renderSmallButton, renderText, renderUnit, setFontColor } from '../../renderer';
 import { pushUiAction } from '../ui-action-queue';
@@ -40,7 +40,8 @@ const tabs: Record<TabId, UiTab> = {
         const x = area.x + 5 + 17 * (i % 7);
         const y = area.y + 10 + Math.floor(i / 7) * 22;
         renderUnit(sp257, units[i], x, y);
-        renderText(fonts.mainSmall, 'NON.', x, y + 15);
+        const homeName = homeCityName(state, units[i]);
+        renderText(fonts.mainSmall, homeName.slice(0, 3) + '.', x, y + 15);
       }
     },
     onClick: (state, city, x, y) => {
@@ -60,13 +61,22 @@ const tabs: Record<TabId, UiTab> = {
     },
   },
   [TabId.Happy]: {
-    onRender: () => {},
+    onRender: () => {
+      setFontColor(fonts.mainSmall, palette.black);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+    },
   },
   [TabId.Map]: {
-    onRender: () => {},
+    onRender: () => {
+      setFontColor(fonts.mainSmall, palette.black);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+    },
   },
   [TabId.View]: {
-    onRender: () => {},
+    onRender: () => {
+      setFontColor(fonts.mainSmall, palette.black);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+    },
   },
 };
 

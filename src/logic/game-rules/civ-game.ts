@@ -1,14 +1,13 @@
 import { randomIntBelow } from '../../helpers';
 import { Action } from '../action';
 import { ActionResult } from '../action-result';
-import { CityProductionType, getBlockedWorkableTiles, getProductionCost, totalCityYield } from '../city';
 import { Civilization } from '../civilizations';
-import { GameState, getSelectedUnitForPlayer, getTileAtUnit, PlayerController, PlayerState } from '../game-state';
-import { exploreMapAround, GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId, terrainMap } from '../map';
-import { jobsDone, UnitPrototypeId, unitPrototypeMap, UnitState } from '../units';
+import { GameState, getSelectedUnitForPlayer, PlayerController, PlayerState } from '../game-state';
+import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId } from '../map';
+import { UnitPrototypeId, UnitState } from '../units';
 import { validatePlayerAction } from './action-validation';
-import { decreaseCityPopulation, executeCityAction, increaseCityPopulation } from './civ-game-cities';
-import { executeUnitAction, spawnUnitForPlayer } from './civ-game-units';
+import { executeCityAction, processCity } from './civ-game-cities';
+import { executeUnitAction, processUnit, spawnUnitForPlayer } from './civ-game-units';
 
 const selectNextUnit = (state: GameState) => {
   const player = state.players[state.playerInTurn];
@@ -32,111 +31,12 @@ const startTurn = (state: GameState) => {
 
   // Process each city
   for (const city of player.cities) {
-    // If enemy units moved on a worked tile, stop working it
-    const occupiedTiles = getBlockedWorkableTiles(state, city);
-    city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
-
-    const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
-    city.food += cityYield.food - city.size * 2;
-
-    if (city.food < 0) {
-      // Famine!
-      decreaseCityPopulation(state, city);
-    } else if (city.food > (city.size + 1) * 10) {
-      // Grow!
-      increaseCityPopulation(state, city);
-    }
-
-    city.shields += cityYield.shields;
-
-    const cost = getProductionCost(city.producing);
-
-    if (city.shields >= cost) {
-      // Production done!
-
-      switch (city.producing.type) {
-        case CityProductionType.Unit: {
-          city.shields = 0;
-          const prototype = unitPrototypeMap[city.producing.id];
-          if (prototype.isBuilder) {
-            decreaseCityPopulation(state, city);
-          }
-          spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y);
-          break;
-        }
-
-        case CityProductionType.Building: {
-          if (city.buildings.includes(city.producing.id)) {
-            break;
-          }
-          city.shields = 0;
-          city.buildings.push(city.producing.id);
-        }
-      }
-    }
-
-    player.gold += cityYield.gold;
-    player.beakers += cityYield.beakers;
-    city.hasBought = false;
-    city.hasSold = false;
+    processCity(state, city);
   }
 
   // Process each unit
   for (const unit of player.units) {
-    const unitProto = unitPrototypeMap[unit.prototypeId];
-    unit.movesLeft = unitProto.moves * 3;
-    const tile = getTileAtUnit(state.masterMap, unit);
-    const tileTerrain = terrainMap[tile.terrain];
-
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-    switch (unit.state) {
-      case UnitState.BuildingFortress:
-      case UnitState.CleaningPolution:
-      case UnitState.BuildingIrrigation:
-        unit.progress++;
-        // a bug in civ causes all tile improvements to complete 1 turn before intended - we explicitly add that bug here as well
-        if (unit.progress === tileTerrain.movementCost * 2 - 1) {
-          jobsDone(unit);
-          tile.hasIrrigation = true;
-        }
-        break;
-
-      case UnitState.BuildingMine:
-        unit.progress++;
-        if (unit.progress === 10 - 1) {
-          jobsDone(unit);
-          tile.hasMine = true;
-        }
-        break;
-
-      case UnitState.Clearing:
-        unit.progress++;
-        if (unit.progress === (tileTerrain.clearCost ?? 5) - 1) {
-          jobsDone(unit);
-          const proto = terrainMap[tile.terrain];
-          tile.terrain = proto.clearsTo ?? tile.terrain;
-        }
-        break;
-
-      case UnitState.BuildingRoad: {
-        unit.progress++;
-        const cost = tile.hasRoad ? tileTerrain.movementCost * 4 : tileTerrain.movementCost * 2;
-        if (unit.progress === cost - 1) {
-          jobsDone(unit);
-          if (tile.hasRoad) {
-            tile.hasRailroad = true;
-          } else {
-            tile.hasRoad = true;
-          }
-        }
-        break;
-      }
-
-      case UnitState.Fortifying:
-        unit.state = UnitState.Fortified;
-        break;
-    }
-    exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
+    processUnit(state, unit);
   }
 
   selectNextUnit(state);
@@ -226,15 +126,6 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     } while (!suitableStartTerrain.includes(terrain) && tries < 100);
 
     spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    const unit = spawnUnitForPlayer(state, i, UnitPrototypeId.Cavalry, x, y);
-    unit.state = UnitState.Fortified;
   }
 
   //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
