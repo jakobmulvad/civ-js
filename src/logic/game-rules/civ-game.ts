@@ -3,6 +3,7 @@ import { Action } from '../action';
 import { ActionResult } from '../action-result';
 import { Civilization } from '../civilizations';
 import { GameState, getSelectedUnitForPlayer, PlayerController, PlayerState } from '../game-state';
+import { GovernmentId } from '../government';
 import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId } from '../map';
 import { UnitPrototypeId, UnitState } from '../units';
 import { validatePlayerAction } from './action-validation';
@@ -100,6 +101,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     beakers: 0,
     taxRate: 5,
     luxuryRate: 0,
+    government: GovernmentId.Despotism,
   }));
 
   const state = {

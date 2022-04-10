@@ -309,9 +309,9 @@ export const sellPrice = (building: Building) => {
   return building.cost;
 };
 
-export const citySupplyUnits = (state: GameState, city: City) => {
+export const cityUnits = (state: GameState, city: City) => {
   const player = state.players[city.owner];
   const index = player.cities.indexOf(city);
-  const units = player.units.filter((u) => u.home === index);
+  const units = player.units.filter((u) => u.homeCity === index);
   return units;
 };

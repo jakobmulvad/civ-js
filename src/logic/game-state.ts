@@ -1,5 +1,6 @@
-import { City } from './city';
+import { City, cityUnits } from './city';
 import { Civilization } from './civilizations';
+import { GovernmentId } from './government';
 import { GameMap, getTileAt } from './map';
 import { Unit, unitPrototypeMap } from './units';
 
@@ -20,6 +21,7 @@ export type PlayerState = {
   beakers: number;
   taxRate: number; // 0...10
   luxuryRate: number; // 0...10
+  government: GovernmentId;
 };
 
 export type GameState = {
@@ -110,8 +112,60 @@ export const unitIndex = (state: GameState, unit: Unit): number => {
 };
 
 export const homeCity = (state: GameState, unit: Unit): City | undefined => {
-  return unit.home === undefined ? undefined : state.players[unit.owner].cities[unit.home];
+  return unit.homeCity === undefined ? undefined : state.players[unit.owner].cities[unit.homeCity];
 };
 export const homeCityName = (state: GameState, unit: Unit): string => {
   return homeCity(state, unit)?.name ?? 'NONE';
+};
+
+export const cityUnitSupply = (
+  government: GovernmentId,
+  state: GameState,
+  unit: Unit
+): { food: number; shields: number; unhappy: number } => {
+  const result = {
+    food: 0,
+    shields: 0,
+    unhappy: 0,
+  };
+
+  if (unit.homeCity === undefined) {
+    return result;
+  }
+  const homeCity = state.players[unit.owner].cities[unit.homeCity];
+  const proto = unitPrototypeMap[unit.prototypeId];
+
+  // Civilians are free
+  if (!proto.isBuilder && proto.isCivil) {
+    return result;
+  }
+
+  // Shields
+  if (government === GovernmentId.Anarchy || government === GovernmentId.Despotism) {
+    const units = cityUnits(state, homeCity);
+    const unitIndex = units.indexOf(unit);
+    result.shields = unitIndex > homeCity.size ? 1 : 0;
+  } else {
+    result.shields = 1;
+  }
+
+  // Food
+  if (proto.isBuilder) {
+    result.food = government === GovernmentId.Republic || government === GovernmentId.Democracy ? 2 : 1;
+  }
+
+  // Unhappy TODO: Account for womens suffrage
+  if (unit.x !== homeCity.x && unit.y !== homeCity.y) {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (government) {
+      case GovernmentId.Republic:
+        result.unhappy = 1;
+        break;
+      case GovernmentId.Democracy:
+        result.unhappy = 2;
+        break;
+    }
+  }
+
+  return result;
 };

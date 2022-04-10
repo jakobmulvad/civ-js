@@ -1,5 +1,3 @@
-import { Unit } from './units';
-
 export enum GovernmentId {
   Anarchy = 'anarchy',
   Despotism = 'despotism',
@@ -39,8 +37,4 @@ export const governments: Record<GovernmentId, Government> = {
     name: 'Democracy',
     nameAdjective: 'Democrat',
   },
-};
-
-export const cityUnitSupply = (government: GovernmentId, unit: Unit) => {
-  // asd
 };
