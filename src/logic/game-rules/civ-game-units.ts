@@ -1,6 +1,6 @@
 import { randomIntBelow } from '../../helpers';
 import { UnitAction, UnitActionMove } from '../action';
-import { ActionResult, UnitCombatResult, UnitMoveResult } from '../action-result';
+import { ActionResult, StartTurnResultEvent, UnitCombatResult, UnitMoveResult } from '../action-result';
 import { BuildingId } from '../buildings';
 import { getCityAt, newCity, optimizeWorkedTiles } from '../city';
 import { attackStrength, defenseStrength } from '../formulas';
@@ -256,7 +256,8 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
   selectNextUnit(state);
 };
 
-export const processUnit = (state: GameState, unit: Unit) => {
+export const processUnit = (state: GameState, unit: Unit): StartTurnResultEvent[] => {
+  const events: StartTurnResultEvent[] = [];
   const unitProto = unitPrototypeMap[unit.prototypeId];
   unit.movesLeft = unitProto.moves * 3;
   const tile = getTileAtUnit(state.masterMap, unit);
@@ -311,4 +312,6 @@ export const processUnit = (state: GameState, unit: Unit) => {
       break;
   }
   exploreMapAround(state, state.playerInTurn, unit.x, unit.y);
+
+  return events;
 };

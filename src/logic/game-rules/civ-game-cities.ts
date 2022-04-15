@@ -1,5 +1,5 @@
 import { CityAction } from '../action';
-import { ActionResult } from '../action-result';
+import { ActionResult, StartTurnResultEvent } from '../action-result';
 import { buildings } from '../buildings';
 import {
   bestWorkableTiles,
@@ -7,6 +7,7 @@ import {
   calculateCitizens,
   City,
   CityProductionType,
+  cityUnits,
   getBlockedWorkableTiles,
   getProductionCost,
   optimizeWorkedTiles,
@@ -14,9 +15,9 @@ import {
   Specialists,
   totalCityYield,
 } from '../city';
-import { GameState } from '../game-state';
+import { GameState, removeUnitFromGame, unitSupply } from '../game-state';
 import { getTileAt } from '../map';
-import { unitPrototypeMap } from '../units';
+import { Unit, unitPrototypeMap } from '../units';
 import { spawnUnitForPlayer } from './civ-game-units';
 
 export const captureCity = (state: GameState, city: City, newOwner: number) => {
@@ -136,7 +137,8 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
   }
 };
 
-export const processCity = (state: GameState, city: City) => {
+export const processCity = (state: GameState, city: City): StartTurnResultEvent[] => {
+  const result: StartTurnResultEvent[] = [];
   const player = state.players[city.owner];
 
   // If enemy units moved on a worked tile, stop working it
@@ -144,11 +146,38 @@ export const processCity = (state: GameState, city: City) => {
   city.workedTiles = city.workedTiles.filter((i) => !occupiedTiles.includes(i));
 
   const cityYield = totalCityYield(state, state.masterMap, city); // apply the "real" yield from master map
+  const units = cityUnits(state, city);
+
+  // Subtract supply from yield
+  let foodUnit: Unit | undefined = undefined;
+  for (const unit of units) {
+    const supply = unitSupply(state, player.government, unit);
+
+    if (supply.shields > cityYield.shields) {
+      // We don't have enough shields to supply this unit, disband it
+      removeUnitFromGame(state, unit);
+      result.push({ type: 'CannotSupportUnit', unit, city });
+    } else {
+      cityYield.shields -= supply.shields;
+    }
+
+    if (supply.food) {
+      foodUnit = unit;
+      cityYield.food -= supply.food;
+    }
+  }
+
   city.food += cityYield.food - city.size * 2;
 
   if (city.food < 0) {
     // Famine!
-    decreaseCityPopulation(state, city);
+    if (foodUnit) {
+      // Disband unit that
+      city.food = 0;
+      removeUnitFromGame(state, foodUnit);
+    } else {
+      decreaseCityPopulation(state, city);
+    }
   } else if (city.food > (city.size + 1) * 10) {
     // Grow!
     increaseCityPopulation(state, city);
@@ -160,7 +189,6 @@ export const processCity = (state: GameState, city: City) => {
 
   if (city.shields >= cost) {
     // Production done!
-
     switch (city.producing.type) {
       case CityProductionType.Unit: {
         city.shields = 0;
@@ -186,4 +214,6 @@ export const processCity = (state: GameState, city: City) => {
   player.beakers += cityYield.beakers;
   city.hasBought = false;
   city.hasSold = false;
+
+  return result;
 };

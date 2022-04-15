@@ -32,6 +32,8 @@ export type GameState = {
   turn: number;
 };
 
+export type UnitSupply = { food: number; shields: number; unhappy: number };
+
 export const getPlayerInTurn = (state: GameState) => state.players[state.playerInTurn];
 
 export const getSelectedUnitForPlayer = (state: GameState, player: number): Unit | undefined => {
@@ -118,11 +120,7 @@ export const homeCityName = (state: GameState, unit: Unit): string => {
   return homeCity(state, unit)?.name ?? 'NONE';
 };
 
-export const cityUnitSupply = (
-  government: GovernmentId,
-  state: GameState,
-  unit: Unit
-): { food: number; shields: number; unhappy: number } => {
+export const unitSupply = (state: GameState, government: GovernmentId, unit: Unit): UnitSupply => {
   const result = {
     food: 0,
     shields: 0,
@@ -140,22 +138,23 @@ export const cityUnitSupply = (
     return result;
   }
 
-  // Shields
-  if (government === GovernmentId.Anarchy || government === GovernmentId.Despotism) {
-    const units = cityUnits(state, homeCity);
-    const unitIndex = units.indexOf(unit);
-    result.shields = unitIndex > homeCity.size ? 1 : 0;
-  } else {
-    result.shields = 1;
-  }
-
   // Food
   if (proto.isBuilder) {
     result.food = government === GovernmentId.Republic || government === GovernmentId.Democracy ? 2 : 1;
   }
 
-  // Unhappy TODO: Account for womens suffrage
-  if (unit.x !== homeCity.x && unit.y !== homeCity.y) {
+  // Shields
+  if (government === GovernmentId.Anarchy || government === GovernmentId.Despotism) {
+    const units = cityUnits(state, homeCity);
+    const unitIndex = units.indexOf(unit);
+    result.shields = unitIndex + 1 > homeCity.size ? 1 : 0;
+  } else {
+    result.shields = 1;
+  }
+
+  // Unhappy
+  // TODO: Account for womens suffrage
+  if (unit.x !== homeCity.x || unit.y !== homeCity.y) {
     // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
     switch (government) {
       case GovernmentId.Republic:
@@ -168,4 +167,22 @@ export const cityUnitSupply = (
   }
 
   return result;
+};
+
+export const totalCitySupply = (state: GameState, government: GovernmentId, city: City): UnitSupply => {
+  return cityUnits(state, city)
+    .map((unit) => unitSupply(state, government, unit))
+    .reduce(
+      (acc, val) => {
+        acc.food += val.food;
+        acc.shields += val.shields;
+        acc.unhappy += val.unhappy;
+        return acc;
+      },
+      {
+        food: 0,
+        shields: 0,
+        unhappy: 0,
+      }
+    );
 };

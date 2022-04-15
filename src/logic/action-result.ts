@@ -1,3 +1,4 @@
+import { Building } from './buildings';
 import { City } from './city';
 import { Unit } from './units';
 
@@ -32,4 +33,27 @@ export type ActionFailedResult = {
     | 'CityCannotChangeProductionAfterBuy';
 };
 
-export type ActionResult = UnitMoveResult | UnitCombatResult | ActionFailedResult | UnitCityBuiltResult | void;
+export type StartTurnResultEvent =
+  | {
+      type: 'CannotSupportUnit';
+      unit: Unit;
+      city: City;
+    }
+  | {
+      type: 'CityCompletedBuilding';
+      city: City;
+      building: Building;
+    };
+
+export type StartTurnResult = {
+  type: 'StartTurn';
+  events: StartTurnResultEvent[];
+};
+
+export type ActionResult =
+  | UnitMoveResult
+  | UnitCombatResult
+  | ActionFailedResult
+  | UnitCityBuiltResult
+  | StartTurnResult
+  | void;

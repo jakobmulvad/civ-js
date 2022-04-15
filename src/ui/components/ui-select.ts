@@ -2,7 +2,7 @@ import { Font, fonts, measureText } from '../../fonts';
 import { clamp, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { palette } from '../../palette';
-import { renderFrame, renderGrayBox, renderSelectionBox, renderText, setFontColor } from '../../renderer';
+import { renderGrayBoxWithBorder, renderSelectionBox, renderText, setFontColor } from '../../renderer';
 import { popUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
 export type UiSelectValuePair<T = any> = {
@@ -61,8 +61,9 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
     area: { x: 0, y: 0, width: 320, height: 200 },
     isDirty: true,
     onRender: () => {
-      renderFrame(x, y, boxRect.width, boxRect.height, palette.black);
-      renderGrayBox(x + 1, y + 1, boxRect.width - 2, boxRect.height - 2);
+      renderGrayBoxWithBorder(x, y, boxRect.width, boxRect.height);
+      //renderFrame(x, y, boxRect.width, boxRect.height, palette.black);
+      //renderGrayBox(x + 1, y + 1, boxRect.width - 2, boxRect.height - 2);
 
       setFontColor(font, palette.white);
       let yOffset = y + 4;

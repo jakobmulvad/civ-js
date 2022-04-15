@@ -704,6 +704,23 @@ export const renderGrayBox = (x: number, y: number, width: number, height: numbe
   screenCtx.putImageData(dst, x, y);
 };
 
+export const renderGrayBoxWithBorder = (x: number, y: number, width: number, height: number) => {
+  const sp257 = getImageAsset('sp257.pic.png');
+
+  const pattern = sp257.getImageData(18 * 16, 11 * 16, 32, 16);
+  const dst = screenCtx.getImageData(x, y, width, height);
+
+  drawFrame(dst, 0, 0, width, height, palette.black);
+  drawHorizontalLine(dst, 1, 1, width - 2, palette.grayDark);
+  drawHorizontalLine(dst, 2, height - 2, width - 4, palette.white);
+  drawVerticalLine(dst, 1, 2, height - 3, palette.white);
+  drawVerticalLine(dst, width - 2, 2, height - 3, palette.grayDark);
+
+  fillPattern(dst, pattern, 2, 2, width - 4, height - 4);
+
+  screenCtx.putImageData(dst, x, y);
+};
+
 export const renderBlueBox = (
   x: number,
   y: number,
@@ -820,6 +837,12 @@ export const renderTileYield = (
 export const renderFrame = (x: number, y: number, width: number, height: number, color: [number, number, number]) => {
   const imageData = screenCtx.getImageData(x, y, width, height);
   drawFrame(imageData, 0, 0, width, height, color);
+  screenCtx.putImageData(imageData, x, y);
+};
+
+export const renderHorizontalLine = (x: number, y: number, length: number, color: [number, number, number]) => {
+  const imageData = screenCtx.getImageData(x, y, length, 1);
+  drawHorizontalLine(imageData, 0, 0, length, color);
   screenCtx.putImageData(imageData, x, y);
 };
 

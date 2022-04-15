@@ -22,6 +22,21 @@ export type UiScreen = {
   windows: UiWindow[];
 };
 
+export const modalKeyHandler = (onClose?: () => void) => {
+  return (keyCode: KeyCode) => {
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (keyCode) {
+      case KeyCode.Enter:
+      case KeyCode.Escape:
+      case KeyCode.NumpadEnter:
+      case KeyCode.Space:
+        onClose?.();
+        popUiScreen();
+        break;
+    }
+  };
+};
+
 let uiStack: UiScreen[] = [];
 let isDirty = true; // force rerender?
 let mouseLock: UiWindow | undefined = undefined;

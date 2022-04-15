@@ -299,7 +299,6 @@ const generateRivers = (map: MapTemplate, climate: Climate, landmass: Landmass) 
   let loop = 0;
 
   while (loop < 256 && riverCount < maxRivers) {
-    console.log('outer loop', loop);
     loop++;
     let riverLength = 0;
     let riverDirection = randomIntBelow(4) * 2;
@@ -319,7 +318,6 @@ const generateRivers = (map: MapTemplate, climate: Climate, landmass: Landmass) 
     let oceanNearby: boolean;
     const terminationTerrain = [TerrainId.Ocean, TerrainId.River, TerrainId.Mountains];
 
-    console.log('enter inner loop');
     do {
       map.data[tileX + tileY * map.width] = TerrainId.River;
       oceanNearby = direction4.some(([dx, dy]) => map.data[tileX + dx + (tileY + dy) * map.width] === TerrainId.Ocean);
@@ -329,7 +327,6 @@ const generateRivers = (map: MapTemplate, climate: Climate, landmass: Landmass) 
       tileX += dx;
       tileY += dy;
       riverLength++;
-      console.log(riverLength);
     } while (!oceanNearby && !terminationTerrain.some((t) => t === map.data[tileX + tileY * map.width]));
 
     if ((oceanNearby || map.data[tileX + tileY * map.width] === TerrainId.River) && riverLength > 5) {
@@ -376,7 +373,6 @@ export const generateMapTemplate = (settings?: Partial<MapGenerationSettings>): 
     for (let i = 0; i < stencil.length; i++) {
       elevation[i] += stencil[i] ? 1 : 0;
     }
-    console.log(landmassPercentage(elevation), targetLandmass);
   } while (landmassPercentage(elevation) < targetLandmass);
   fixNarrowPassage(elevation, width, height);
 

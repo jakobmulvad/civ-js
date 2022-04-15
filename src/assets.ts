@@ -1,6 +1,6 @@
 import { Rect } from './helpers';
 
-const imageAssets = ['ter257.pic.gif', 'sp257.pic.png', 'sp299.pic.png', 'fonts.cv.png'] as const;
+const imageAssets = ['ter257.pic.gif', 'sp257.pic.png', 'sp299.pic.png', 'fonts.cv.png', 'govt0a.pic.gif'] as const;
 
 export type ImageAssetKey = typeof imageAssets[number];
 

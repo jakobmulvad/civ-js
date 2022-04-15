@@ -1,6 +1,6 @@
 import { randomIntBelow } from '../../helpers';
 import { Action } from '../action';
-import { ActionResult } from '../action-result';
+import { ActionResult, StartTurnResult } from '../action-result';
 import { Civilization } from '../civilizations';
 import { GameState, getSelectedUnitForPlayer, PlayerController, PlayerState } from '../game-state';
 import { GovernmentId } from '../government';
@@ -27,20 +27,22 @@ const selectNextUnit = (state: GameState) => {
   player.selectedUnit = player.units.indexOf(newSelected);
 };
 
-const startTurn = (state: GameState) => {
+const startTurn = (state: GameState): StartTurnResult => {
+  const result: StartTurnResult = { type: 'StartTurn', events: [] };
   const player = state.players[state.playerInTurn];
 
   // Process each city
   for (const city of player.cities) {
-    processCity(state, city);
+    result.events = [...result.events, ...processCity(state, city)];
   }
 
   // Process each unit
   for (const unit of player.units) {
-    processUnit(state, unit);
+    result.events = [...result.events, ...processUnit(state, unit)];
   }
 
   selectNextUnit(state);
+  return result;
 };
 
 export const executeAction = (state: GameState, action: Action): ActionResult => {
@@ -101,7 +103,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     beakers: 0,
     taxRate: 5,
     luxuryRate: 0,
-    government: GovernmentId.Despotism,
+    government: GovernmentId.Democracy,
   }));
 
   const state = {
