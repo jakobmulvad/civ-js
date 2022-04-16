@@ -2,7 +2,7 @@ import { Font, fonts, measureText } from '../../fonts';
 import { clamp, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { palette } from '../../palette';
-import { renderGrayBoxWithBorder, renderSelectionBox, renderText, setFontColor } from '../../renderer';
+import { renderGrayBoxWithBorder, renderSelectionBox, renderText } from '../../renderer';
 import { popUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
 export type UiSelectValuePair<T = any> = {
@@ -65,10 +65,9 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
       //renderFrame(x, y, boxRect.width, boxRect.height, palette.black);
       //renderGrayBox(x + 1, y + 1, boxRect.width - 2, boxRect.height - 2);
 
-      setFontColor(font, palette.white);
       let yOffset = y + 4;
       for (const title of titles) {
-        renderText(font, title, x + 4, yOffset);
+        renderText(font, title, x + 4, yOffset, palette.white);
         yOffset += font.height;
       }
       if (options) {
@@ -78,9 +77,8 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
           boxRect.width - 6,
           font.height
         );
-        setFontColor(font, palette.black);
         for (let i = 0; i < options.length; i++) {
-          renderText(font, getOptionLabel(options[i]), x + 10, yOffset + font.height * i);
+          renderText(font, getOptionLabel(options[i]), x + 10, yOffset + font.height * i, palette.black);
         }
       }
     },

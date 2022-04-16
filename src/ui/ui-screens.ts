@@ -1,22 +1,12 @@
 import { KeyCode } from '../key-codes';
-import { popUiScreen, UiScreen } from './ui-controller';
+import { UiScreen } from './ui-controller';
 import { pushUiAction } from './ui-action-queue';
 import { unitInfoWindow } from './ui-worldview-unit-info';
 import { empireInfoWindow } from './ui-worldview-empire-info';
 import { minimapWindow } from './ui-worldview-minimap';
 import { centerViewport, ensureSelectedUnitIsInViewport, mapWindow } from './ui-worldview-map';
-import { cityBottomButtonsWindow } from './cityview/ui-cityview-bottom-buttons';
-import { cityCitizensWindow } from './cityview/ui-cityview-citizens';
-import { cityResourcesWindow } from './cityview/ui-cityview-resources';
-import { cityFoodWindow } from './cityview/ui-cityview-food';
-import { citySupplyWindow } from './cityview/ui-cityview-supply';
-import { cityInfoWindow } from './cityview/ui-cityview-info';
-import { cityMapWindow } from './cityview/ui-cityview-map';
-import { cityBuildingsWindow } from './cityview/ui-cityview-buildings';
-import { cityProductionWindow } from './cityview/ui-cityview-production';
 import { getUiState } from './ui-state';
 import { getTerrainAt } from '../logic/map';
-import { clearScreenWindow } from './components/ui-clear-screen';
 
 export const uiWorldScreen: UiScreen = {
   onKey: (keyCode, shift) => {
@@ -123,27 +113,4 @@ export const uiWorldScreen: UiScreen = {
     }
   },
   windows: [unitInfoWindow, empireInfoWindow, minimapWindow, mapWindow],
-};
-
-export const uiCityScreen: UiScreen = {
-  onKey: (keyCode: KeyCode) => {
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-    switch (keyCode) {
-      case KeyCode.Escape:
-        popUiScreen();
-        return;
-    }
-  },
-  windows: [
-    clearScreenWindow,
-    cityCitizensWindow,
-    cityResourcesWindow,
-    citySupplyWindow,
-    cityFoodWindow,
-    cityMapWindow,
-    cityInfoWindow,
-    cityBuildingsWindow,
-    cityProductionWindow,
-    cityBottomButtonsWindow,
-  ],
 };

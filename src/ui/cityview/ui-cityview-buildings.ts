@@ -3,7 +3,7 @@ import { Rect } from '../../helpers';
 import { buildings } from '../../logic/buildings';
 import { sellPrice } from '../../logic/city';
 import { palette } from '../../palette';
-import { renderBlueBox, renderSprite, renderText, renderYield, setFontColor, YieldIcon } from '../../renderer';
+import { renderBlueBox, renderSprite, renderText, renderYield, YieldIcon } from '../../renderer';
 import { newSelect } from '../components/ui-select';
 import { pushUiAction } from '../ui-action-queue';
 import { pushUiScreen, UiWindow } from '../ui-controller';
@@ -30,8 +30,6 @@ export const cityBuildingsWindow: UiWindow = {
       return;
     }
 
-    setFontColor(fonts.mainSmall, palette.white);
-
     for (let i = 0; i < selectedCity.buildings.length; i++) {
       const building = buildings[selectedCity.buildings[i]];
       if (i === 0) {
@@ -44,7 +42,7 @@ export const cityBuildingsWindow: UiWindow = {
       } else {
         renderSprite(building.sprite, area.x + 2 + 20 * ((i + 1) % 2), i * fonts.mainSmall.height);
       }
-      renderText(fonts.mainSmall, building.name, area.x + 42, 4 + i * fonts.mainSmall.height);
+      renderText(fonts.mainSmall, building.name, area.x + 42, 4 + i * fonts.mainSmall.height, palette.white);
       if (!selectedCity.hasSold) {
         renderYield(YieldIcon.Coin, 1, area.x + area.width - 9, 2 + i * fonts.mainSmall.height, 0, true);
       }

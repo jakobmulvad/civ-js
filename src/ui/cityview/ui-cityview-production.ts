@@ -19,7 +19,6 @@ import {
   renderText,
   renderUnitPrototype,
   renderYield,
-  setFontColor,
   YieldIcon,
 } from '../../renderer';
 import { newSelect, UiSelectValuePair } from '../components/ui-select';
@@ -60,7 +59,7 @@ const change = () => {
   // Add units
   const unitPrototypes = Object.entries(unitPrototypeMap);
   const unitOptions: UiSelectValuePair<CityProduction>[] = unitPrototypes.map(([key, proto]) => {
-    const turns = Math.max(1, Math.ceil((proto.cost - selectedCity.shields) / shieldYield));
+    const turns = Math.min(proto.cost, Math.ceil((proto.cost - selectedCity.shields) / shieldYield));
     return {
       value: {
         type: CityProductionType.Unit,
@@ -75,7 +74,7 @@ const change = () => {
   const buildingOptions: UiSelectValuePair<CityProduction>[] = buildingEntries
     .filter(([key]) => !selectedCity.buildings.includes(key))
     .map(([key, building]) => {
-      const turns = Math.max(1, Math.ceil((building.cost - selectedCity.shields) / shieldYield));
+      const turns = Math.min(building.cost, Math.ceil((building.cost - selectedCity.shields) / shieldYield));
       return {
         value: {
           type: CityProductionType.Building,
@@ -185,8 +184,7 @@ export const cityProductionWindow: UiWindow = {
         break;
       case CityProductionType.Building: {
         const building = buildings[selectedCity.producing.id];
-        setFontColor(fonts.mainSmall, palette.white);
-        renderText(fonts.mainSmall, building.name, area.x + (area.width >> 1), area.y + 1, true);
+        renderText(fonts.mainSmall, building.name, area.x + (area.width >> 1), area.y + 1, palette.white, true);
         break;
       }
     }

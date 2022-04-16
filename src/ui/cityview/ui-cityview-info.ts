@@ -5,7 +5,7 @@ import { Rect } from '../../helpers';
 import { City } from '../../logic/city';
 import { GameState, getUnitsAt, homeCityName, unitIndex } from '../../logic/game-state';
 import { palette } from '../../palette';
-import { renderBlueBox, renderSmallButton, renderText, renderUnit, setFontColor } from '../../renderer';
+import { renderBlueBox, renderSmallButton, renderText, renderUnit } from '../../renderer';
 import { pushUiAction } from '../ui-action-queue';
 import { UiWindow } from '../ui-controller';
 import { getUiState } from '../ui-state';
@@ -35,13 +35,12 @@ const tabs: Record<TabId, UiTab> = {
       const units = getUnitsAt(state, city.x, city.y);
 
       const sp257 = getImageAsset('sp257.pic.png').canvas;
-      setFontColor(fonts.mainSmall, palette.black);
       for (let i = 0; i < units.length; i++) {
         const x = area.x + 5 + 17 * (i % 7);
         const y = area.y + 10 + Math.floor(i / 7) * 22;
         renderUnit(sp257, units[i], x, y);
         const homeName = homeCityName(state, units[i]);
-        renderText(fonts.mainSmall, homeName.slice(0, 3) + '.', x, y + 15);
+        renderText(fonts.mainSmall, homeName.slice(0, 3) + '.', x, y + 15, palette.black);
       }
     },
     onClick: (state, city, x, y) => {
@@ -62,20 +61,17 @@ const tabs: Record<TabId, UiTab> = {
   },
   [TabId.Happy]: {
     onRender: () => {
-      setFontColor(fonts.mainSmall, palette.black);
-      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12, palette.black);
     },
   },
   [TabId.Map]: {
     onRender: () => {
-      setFontColor(fonts.mainSmall, palette.black);
-      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12, palette.black);
     },
   },
   [TabId.View]: {
     onRender: () => {
-      setFontColor(fonts.mainSmall, palette.black);
-      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12);
+      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12, palette.black);
     },
   },
 };

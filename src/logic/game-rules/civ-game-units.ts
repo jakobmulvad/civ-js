@@ -205,11 +205,8 @@ export const executeUnitAction = (state: GameState, action: UnitAction | UnitAct
 
       const city = newCity(state.playerInTurn, 'Test', unit.x, unit.y);
       if (player.cities.length === 0) {
-        // Free palace for first city
+        // Free palace in first city
         city.buildings.push(BuildingId.Palace);
-        city.buildings.push(BuildingId.Barracks);
-        city.buildings.push(BuildingId.Granary);
-        city.buildings.push(BuildingId.Marketplace);
       }
 
       optimizeWorkedTiles(state, city);

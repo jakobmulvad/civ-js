@@ -8,7 +8,7 @@ import { getUiState, UiState } from './ui-state';
 export type UiWindow = {
   area?: Rect;
   isDirty: boolean;
-  onRender: (state: UiState, time: number) => void;
+  onRender: (state: UiState) => void;
   onKey?: (keyCode: KeyCode, shift: boolean) => void;
   onMouseDown?: (x: number, y: number) => void;
   onMouseDrag?: (x: number, y: number) => void;
@@ -19,22 +19,20 @@ export type UiWindow = {
 
 export type UiScreen = {
   onKey?: (keyCode: KeyCode, shift: boolean) => void;
+  onUnmount?: () => void;
   windows: UiWindow[];
 };
 
-export const modalKeyHandler = (onClose?: () => void) => {
-  return (keyCode: KeyCode) => {
-    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-    switch (keyCode) {
-      case KeyCode.Enter:
-      case KeyCode.Escape:
-      case KeyCode.NumpadEnter:
-      case KeyCode.Space:
-        onClose?.();
-        popUiScreen();
-        break;
-    }
-  };
+export const modalKeyHandler = (keyCode: KeyCode) => {
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (keyCode) {
+    case KeyCode.Enter:
+    case KeyCode.Escape:
+    case KeyCode.NumpadEnter:
+    case KeyCode.Space:
+      popUiScreen();
+      break;
+  }
 };
 
 let uiStack: UiScreen[] = [];
@@ -51,7 +49,9 @@ export const pushUiScreen = (screen: UiScreen) => {
   isDirty = true;
 };
 export const popUiScreen = () => {
-  uiStack.pop();
+  const screen = uiStack.pop();
+  screen?.onUnmount?.();
+
   isDirty = true;
 };
 export const clearUi = () => {
@@ -64,7 +64,7 @@ export const topUiScreen = (): UiScreen | undefined => {
   return uiStack[uiStack.length - 1];
 };
 
-export const uiRender = (time: number) => {
+export const uiRender = () => {
   const screen = topUiScreen();
   if (!screen) {
     return;
@@ -74,7 +74,7 @@ export const uiRender = (time: number) => {
 
   for (const window of screen.windows) {
     if (isDirty || window.isDirty) {
-      window.onRender(state, time);
+      window.onRender(state);
       window.isDirty = false;
     }
   }
@@ -143,9 +143,9 @@ canvas.addEventListener('mouseup', (evt) => {
   mouseLock = undefined;
 });
 
-const frameHandler = (time: number) => {
+export const frameHandler = (time: number) => {
   preRenderFrame(time);
-  uiRender(time);
+  uiRender();
   postRenderFrame(time);
   requestAnimationFrame(frameHandler);
 };

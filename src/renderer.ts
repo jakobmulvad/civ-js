@@ -56,6 +56,8 @@ if (!canvas || !screenCtx || !unitContext || !altSp257Context) {
   throw new Error('Failed to initialize renderer');
 }
 
+let fontsImageData = new ImageData(1, 1);
+
 const drawHorizontalLine = (dst: ImageData, x: number, y: number, length: number, color: [number, number, number]) => {
   const data = dst.data;
   const [r, g, b] = color;
@@ -123,14 +125,17 @@ const fillPattern = (dst: ImageData, pattern: ImageData, x: number, y: number, w
   const patternData = pattern.data;
   const dstData = dst.data;
 
-  for (let dx = x; dx < x + width; dx++) {
-    for (let dy = y; dy < y + height; dy++) {
+  for (let dy = y; dy < y + height; dy++) {
+    const srcLineIndex = ((dy - y) % pattern.height) * pattern.width;
+    for (let dx = x; dx < x + width; dx++) {
       const dstIndex = (dx + dy * dst.width) * 4;
-      const srcIndex = ((dx % pattern.width) + (dy % pattern.height) * pattern.width) * 4;
-      dstData[dstIndex] = patternData[srcIndex];
-      dstData[dstIndex + 1] = patternData[srcIndex + 1];
-      dstData[dstIndex + 2] = patternData[srcIndex + 2];
-      dstData[dstIndex + 3] = 255;
+      const srcIndex = ((dx % pattern.width) + srcLineIndex) * 4;
+      if (patternData[srcIndex + 3] > 0) {
+        dstData[dstIndex] = patternData[srcIndex];
+        dstData[dstIndex + 1] = patternData[srcIndex + 1];
+        dstData[dstIndex + 2] = patternData[srcIndex + 2];
+        dstData[dstIndex + 3] = 255;
+      }
     }
   }
 };
@@ -160,7 +165,35 @@ const replaceColor = (
   }
 };
 
-export const generateSpriteSheets = (
+const fillColorAndCopy = (
+  src: ImageData,
+  dst: ImageData,
+  sx: number,
+  sy: number,
+  width: number,
+  height: number,
+  dx: number,
+  dy: number,
+  color: [number, number, number]
+) => {
+  const srcData = src.data;
+  const dstData = dst.data;
+  const [r, g, b] = color;
+
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const si = (x + sx + (y + sy) * src.width) * 4;
+      const di = (x + dx + (y + dy) * dst.width) * 4;
+      if (srcData[si + 3] > 0) {
+        dstData[di] = r;
+        dstData[di + 1] = g;
+        dstData[di + 2] = b;
+      }
+    }
+  }
+};
+
+export const initialize = (
   colors: {
     primaryColor: [number, number, number];
     secondaryColor: [number, number, number];
@@ -236,6 +269,9 @@ export const generateSpriteSheets = (
   replaceColor(imageData, 18 * 16, 11 * 16, 32, 16, palette.grayLighter, palette.cyan);
 
   altSp257Context.putImageData(imageData, 0, 0);
+
+  const fonts = getImageAsset('fonts.cv.png');
+  fontsImageData = fonts.getImageData(0, 0, fonts.canvas.width, fonts.canvas.height);
 };
 
 export const renderSprite = (sprite: Sprite, dx: number, dy: number) => {
@@ -396,10 +432,8 @@ export const renderTileTerrain = (
 };
 
 const renderUnitLetter = (letter: string, screenX: number, screenY: number) => {
-  setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, letter, screenX + 8, screenY + 8, true);
-  setFontColor(fonts.main, palette.white);
-  renderText(fonts.main, letter, screenX + 8, screenY + 7, true);
+  renderText(fonts.main, letter, screenX + 8, screenY + 8, palette.black, true);
+  renderText(fonts.main, letter, screenX + 8, screenY + 7, palette.white, true);
 };
 
 export const renderUnitPrototype = (
@@ -500,56 +534,60 @@ export const renderCity = (
   }
 
   screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
-  setFontColor(fonts.main, palette.black);
-  renderText(fonts.main, city.size.toString(), screenX + 9, screenY + 5, true);
+  renderText(fonts.main, city.size.toString(), screenX + 9, screenY + 5, palette.black, true);
 };
 
-export const setFontColor = (font: Font, color: [number, number, number]) => {
-  const fontsCv = getImageAsset('fonts.cv.png');
-  const offset = font.offset;
-  const [r, g, b] = color;
-
-  const fontImageData = fontsCv.getImageData(0, offset, 32 * font.width, 3 * font.height);
-  const { data } = fontImageData;
-  for (let i = 0; i < data.length; i += 4) {
-    data[i] = r;
-    data[i + 1] = g;
-    data[i + 2] = b;
-  }
-  fontsCv.putImageData(fontImageData, 0, offset);
-};
-
-export const renderText = (font: Font, text: string, x: number, y: number, center?: boolean): number => {
-  const fontsCv = getImageAsset('fonts.cv.png');
+export const renderText = (
+  font: Font,
+  text: string,
+  x: number,
+  y: number,
+  color: [number, number, number],
+  center?: boolean
+): number => {
   const { width, height, offset, kerning } = font;
+  const textLength = measureText(font, text);
 
   if (center) {
-    x -= Math.round(measureText(font, text) / 2);
+    x -= Math.round(textLength / 2);
   }
 
+  const imageData = screenCtx.getImageData(x, y, textLength, height);
+
+  let offsetX = 0;
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    screenCtx.drawImage(
-      fontsCv.canvas,
+    const charWidth = kerning[code - 32];
+
+    fillColorAndCopy(
+      fontsImageData,
+      imageData,
       (code % 32) * width,
       offset + ((code >> 5) - 1) * height,
-      width,
+      charWidth,
       height,
-      x,
-      y,
-      width,
-      height
+      offsetX,
+      0,
+      color
     );
-    x += kerning[code - 32] + 1;
+    offsetX += charWidth + 1;
   }
-  return x;
+
+  screenCtx.putImageData(imageData, x, y);
+  return x + offsetX;
 };
 
-export const renderTextLines = (font: Font, lines: (string | undefined)[], x: number, y: number) => {
+export const renderTextLines = (
+  font: Font,
+  lines: (string | undefined)[],
+  x: number,
+  y: number,
+  color: [number, number, number]
+) => {
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i];
     if (text !== undefined) {
-      renderText(font, text, x, y);
+      renderText(font, text, x, y, color);
       y += font.height;
     }
   }
@@ -755,9 +793,8 @@ export const renderSmallButton = (
   drawVerticalLine(dst, 0, 0, 9, palette.grayLight);
   drawVerticalLine(dst, width - 1, 0, 9, secondaryColor);
 
-  setFontColor(fonts.mainSmall, secondaryColor);
   screenCtx.putImageData(dst, x, y);
-  renderText(fonts.mainSmall, label, x + (width >> 1) + 1, y + 2, true);
+  renderText(fonts.mainSmall, label, x + (width >> 1) + 1, y + 2, secondaryColor, true);
 };
 
 export const renderCitizens = (x: number, y: number, citizens: number[], count?: number): number => {
@@ -852,4 +889,20 @@ export const renderSelectionBox = (x: number, y: number, width: number, height: 
 
   fillPattern(dst, pattern, 0, 0, width, height);
   screenCtx.putImageData(dst, x, y);
+};
+
+export const renderNewspaper = () => {
+  const imageData = screenCtx.getImageData(0, 0, 320, 109);
+  const pattern = getImageAsset('sp257.pic.png').getImageData(11 * 16, 8 * 16, 32, 16);
+
+  fillSolid(imageData, palette.white, 0, 0, 320, 99);
+  fillPattern(imageData, pattern, 0, 99, 320, 16);
+
+  drawHorizontalLine(imageData, 1, 1, 318, palette.black);
+  drawVerticalLine(imageData, 1, 2, 33, palette.black);
+  drawVerticalLine(imageData, 318, 2, 33, palette.black);
+  drawHorizontalLine(imageData, 0, 35, 320, palette.black);
+  drawHorizontalLine(imageData, 0, 95, 320, palette.black);
+
+  screenCtx.putImageData(imageData, 0, 0);
 };

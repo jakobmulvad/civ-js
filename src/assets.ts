@@ -1,6 +1,18 @@
 import { Rect } from './helpers';
 
-const imageAssets = ['ter257.pic.gif', 'sp257.pic.png', 'sp299.pic.png', 'fonts.cv.png', 'govt0a.pic.gif'] as const;
+const imageAssets = [
+  'fonts.cv.png',
+  'govt0a.pic.gif',
+  'govt0m.pic.gif',
+  'govt1a.pic.gif',
+  'govt1m.pic.gif',
+  'govt2a.pic.gif',
+  'govt2m.pic.gif',
+  'govt3a.pic.gif',
+  'ter257.pic.gif',
+  'sp257.pic.png',
+  'sp299.pic.png',
+] as const;
 
 export type ImageAssetKey = typeof imageAssets[number];
 

@@ -206,6 +206,11 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
         }
         city.shields = 0;
         city.buildings.push(city.producing.id);
+        result.push({
+          type: 'CityCompletedBuilding',
+          city,
+          building: buildings[city.producing.id],
+        });
       }
     }
   }

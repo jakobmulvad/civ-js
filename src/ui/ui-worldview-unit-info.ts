@@ -4,7 +4,7 @@ import { Rect } from '../helpers';
 import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit, homeCityName } from '../logic/game-state';
 import { terrainMap } from '../logic/map';
 import { palette } from '../palette';
-import { renderGrayBox, renderText, renderTextLines, setFontColor } from '../renderer';
+import { renderGrayBox, renderText, renderTextLines } from '../renderer';
 import { UiWindow } from './ui-controller';
 import { pushUiAction } from './ui-action-queue';
 import { getUiState, UiState } from './ui-state';
@@ -26,7 +26,6 @@ export const unitInfoWindow: UiWindow = {
     const player = gameState.players[state.localPlayer];
     const selectedUnit = getSelectedUnitForPlayer(gameState, state.localPlayer);
 
-    setFontColor(fonts.main, palette.black);
     if (selectedUnit) {
       const prototype = getPrototype(selectedUnit);
       const tile = getTileAtUnit(player.map, selectedUnit);
@@ -49,14 +48,15 @@ export const unitInfoWindow: UiWindow = {
           tile.hasMine ? `(Mine)` : undefined,
         ],
         3,
-        99
+        99,
+        palette.black
       );
       return;
     }
 
-    state.isBlinking && renderText(fonts.main, 'End of Turn', 3, 125);
-    renderText(fonts.main, 'Press Enter', 3, 138);
-    renderText(fonts.main, 'to continue', 3, 146);
+    state.isBlinking && renderText(fonts.main, 'End of Turn', 3, 125, palette.black);
+    renderText(fonts.main, 'Press Enter', 3, 138, palette.black);
+    renderText(fonts.main, 'to continue', 3, 146, palette.black);
   },
   onClick: () => {
     const { gameState, localPlayer } = getUiState();

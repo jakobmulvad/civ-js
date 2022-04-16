@@ -1,7 +1,7 @@
 import { fonts } from '../../fonts';
 import { incrementPerIcon, Rect } from '../../helpers';
 import { palette } from '../../palette';
-import { renderBlueBox, renderText, renderYield, setFontColor, YieldIcon } from '../../renderer';
+import { renderBlueBox, renderText, renderYield, YieldIcon } from '../../renderer';
 import { UiWindow } from '../ui-controller';
 
 const area: Rect = {
@@ -25,8 +25,7 @@ export const cityFoodWindow: UiWindow = {
     const actualWidth = inc * (foodPerRow - 1) + 8;
 
     renderBlueBox(area.x, area.y, area.width, area.height, [9, 89 - actualWidth, 1, 1]);
-    setFontColor(fonts.mainSmall, palette.white);
-    renderText(fonts.mainSmall, 'Food Storage', 8, 108);
+    renderText(fonts.mainSmall, 'Food Storage', 8, 108, palette.white);
 
     let food = selectedCity.food;
     let offsetY = area.y + 9;

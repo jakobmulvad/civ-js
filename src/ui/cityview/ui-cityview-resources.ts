@@ -4,7 +4,7 @@ import { incrementPerIcon, Rect } from '../../helpers';
 import { totalCityYield } from '../../logic/city';
 import { totalCitySupply } from '../../logic/game-state';
 import { palette } from '../../palette';
-import { renderBlueBox, renderText, renderYield, setFontColor, YieldIcon } from '../../renderer';
+import { renderBlueBox, renderText, renderYield, YieldIcon } from '../../renderer';
 import { UiWindow } from '../ui-controller';
 
 const area: Rect = {
@@ -19,10 +19,10 @@ const gab = 4;
 const renderYieldAndConsumption = (icon: YieldIcon, production: number, consumption: number, y: number) => {
   const inc = incrementPerIcon(Math.max(production, consumption), 119 - gab); // add space for a gab before surplus
   const surplus = production - consumption;
+  const consumed = Math.min(consumption, production);
 
   let offset = 4;
-  if (production > 0) {
-    const consumed = Math.min(consumption, production);
+  if (consumed > 0) {
     renderYield(icon, consumed, offset, y, inc);
     offset += consumed * inc + gab;
   }
@@ -44,8 +44,7 @@ export const cityResourcesWindow: UiWindow = {
     }
 
     renderBlueBox(area.x, area.y, area.width, area.height, [9, 1, 1, 1]);
-    setFontColor(fonts.mainSmall, palette.white);
-    renderText(fonts.mainSmall, 'City Resources', 8, 25);
+    renderText(fonts.mainSmall, 'City Resources', 8, 25, palette.white);
 
     const owner = gameState.players[selectedCity.owner];
     const totalYield = totalCityYield(gameState, owner.map, selectedCity);

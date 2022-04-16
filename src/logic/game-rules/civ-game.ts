@@ -132,9 +132,6 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     spawnUnitForPlayer(state, i, UnitPrototypeId.Settlers, x, y);
   }
 
-  //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 8, 15);
-  //spawnUnitForPlayer(state, 0, UnitPrototypeId.Settlers, 9, 15);
-
   startTurn(state);
   return state;
 };

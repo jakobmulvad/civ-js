@@ -4,7 +4,7 @@ import { Rect } from '../../helpers';
 import { Citizens, numberFormatter } from '../../logic/city';
 import { cityPopulation } from '../../logic/formulas';
 import { palette } from '../../palette';
-import { renderBlueBox, renderCitizens, renderText, setFontColor } from '../../renderer';
+import { renderBlueBox, renderCitizens, renderText } from '../../renderer';
 import { UiWindow } from '../ui-controller';
 
 const area: Rect = {
@@ -26,8 +26,14 @@ export const cityCitizensWindow: UiWindow = {
 
     const pop = cityPopulation(selectedCity.size);
 
-    setFontColor(fonts.mainSmall, palette.white);
-    renderText(fonts.mainSmall, `${selectedCity.name} (POP:${numberFormatter.format(pop)})`, 104, 2, true);
+    renderText(
+      fonts.mainSmall,
+      `${selectedCity.name} (POP:${numberFormatter.format(pop)})`,
+      104,
+      2,
+      palette.white,
+      true
+    );
 
     const workers = selectedCity.workedTiles.length;
     const x = renderCitizens(7, 8, [Citizens.ContentMale, Citizens.ContentFemale], workers);
