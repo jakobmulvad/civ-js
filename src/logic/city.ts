@@ -1,7 +1,8 @@
 import { Building, BuildingId, buildings } from './buildings';
 import { convertTradeToYield } from './formulas';
-import { GameState } from './game-state';
-import { calculateTileYield, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
+import { GameState, PlayerState } from './game-state';
+import { GovernmentId, governments } from './government';
+import { calculateTileYield, distanceToTile, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
 import { UnitPrototypeId, unitPrototypeMap } from './units';
 
 // Use browser to format numbers
@@ -87,6 +88,7 @@ export type City = {
 };
 
 export type CityYield = {
+  corruption: number;
   gold: number;
   beakers: number;
   luxury: number;
@@ -97,6 +99,7 @@ export const toCityYield = (terrainYield: TerrainYield): CityYield => {
     food: terrainYield.food ?? 0,
     shields: terrainYield.shields ?? 0,
     trade: terrainYield.trade ?? 0,
+    corruption: 0,
     gold: 0,
     beakers: 0,
     luxury: 0,
@@ -205,7 +208,8 @@ export const calculateCitizens = (map: GameMap, city: City) => {
 };
 
 export const bestWorkableTiles = (state: GameState, city: City) => {
-  const map = state.players[city.owner].map;
+  const { map, government } = state.players[city.owner];
+
   // There are 20 tiles that can be worked in a city
   const allTiles = new Array(20).fill(undefined).map((_, i) => i);
   const occupiedTiles = getBlockedWorkableTiles(state, city);
@@ -214,7 +218,7 @@ export const bestWorkableTiles = (state: GameState, city: City) => {
   const indexValue = (tileIndex: number) => {
     const [x, y] = workedTileToMapCoord(map, city, tileIndex);
     const tile = getTileAt(map, x, y);
-    const tileYield = calculateTileYield(tile);
+    const tileYield = calculateTileYield(tile, government);
     return tileYield.food * 4 + tileYield.shields * 2 + tileYield.trade;
   };
 
@@ -228,8 +232,30 @@ export const optimizeWorkedTiles = (state: GameState, city: City) => {
   city.specialists = city.specialists.slice(0, city.size - city.workedTiles.length);
 };
 
+export const cityCorruption = (state: GameState, city: City) => {
+  const owner = state.players[city.owner];
+  const government = governments[owner.government];
+
+  if (government.corruptionCoefficient === 0) {
+    return 0;
+  }
+
+  let distance: number;
+  if (owner.government === GovernmentId.Communism) {
+    distance = 10;
+  } else {
+    const capital = playerCapital(owner);
+    if (!capital) {
+      return 1; // 100% coruption
+    }
+    distance = distanceToTile(state.masterMap.width, city.x, city.y, capital.x, capital.y);
+  }
+  return distance * government.corruptionCoefficient;
+};
+
 export const totalCityYield = (state: GameState, map: GameMap, city: City): CityYield => {
-  const cityYield = cityYieldFromTiles(map, city);
+  const { government } = state.players[city.owner];
+  const cityYield = cityYieldFromTiles(map, city, government);
 
   for (const specialist of city.specialists) {
     switch (specialist) {
@@ -245,24 +271,30 @@ export const totalCityYield = (state: GameState, map: GameMap, city: City): City
     }
   }
 
-  const { luxuryRate, taxRate } = state.players[city.owner];
+  if (cityYield.trade > 0) {
+    const corruptionCoefficient = cityCorruption(state, city);
 
-  const tradeYield = convertTradeToYield(luxuryRate, taxRate, cityYield.trade);
+    cityYield.corruption = Math.min(cityYield.trade - 1, Math.floor(corruptionCoefficient * cityYield.trade));
+    cityYield.trade -= cityYield.corruption;
 
-  cityYield.luxury += tradeYield.luxury;
-  cityYield.gold += tradeYield.gold;
-  cityYield.beakers += tradeYield.beakers;
+    const { luxuryRate, taxRate } = state.players[city.owner];
 
+    const tradeYield = convertTradeToYield(luxuryRate, taxRate, cityYield.trade);
+
+    cityYield.luxury += tradeYield.luxury;
+    cityYield.gold += tradeYield.gold;
+    cityYield.beakers += tradeYield.beakers;
+  }
   return cityYield;
 };
 
-export const cityYieldFromTiles = (map: GameMap, city: City): CityYield => {
+export const cityYieldFromTiles = (map: GameMap, city: City, government: GovernmentId): CityYield => {
   const centerTile = getTileAt(map, city.x, city.y);
-  const centerYield = toCityYield(calculateTileYield(centerTile));
+  const centerYield = toCityYield(calculateTileYield(centerTile, government));
   return city.workedTiles.reduce<CityYield>((accYield, workedTile) => {
     const [x, y] = workedTileCoords[workedTile];
     const tile = getTileAt(map, city.x + x, city.y + y);
-    const tileYield = calculateTileYield(tile);
+    const tileYield = calculateTileYield(tile, government);
     accYield.food += tileYield.food;
     accYield.shields += tileYield.shields;
     accYield.trade += tileYield.trade;
@@ -314,4 +346,8 @@ export const cityUnits = (state: GameState, city: City) => {
   const index = player.cities.indexOf(city);
   const units = player.units.filter((u) => u.homeCity === index);
   return units;
+};
+
+export const playerCapital = (player: PlayerState): City | undefined => {
+  return player.cities.find((c) => c.buildings.some((b) => b === BuildingId.Palace));
 };

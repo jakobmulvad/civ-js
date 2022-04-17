@@ -175,8 +175,10 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
       // Disband unit that
       city.food = 0;
       removeUnitFromGame(state, foodUnit);
+      result.push({ type: 'CannotSupportUnit', unit: foodUnit, city });
     } else {
       decreaseCityPopulation(state, city);
+      result.push({ type: 'PopulationDecrease', city });
     }
   } else if (city.food > (city.size + 1) * 10) {
     // Grow!

@@ -101,6 +101,12 @@ const processStartTurnEvents = async (events: StartTurnResultEvent[]) => {
         });
         await showCityScreen(event.city);
         break;
+
+      case 'PopulationDecrease':
+        await showAdvisorModal({
+          advisor: Advisors.Domestic,
+          body: ['Population decrease', `in ${event.city.name}`],
+        });
     }
 
     // clear UI between events

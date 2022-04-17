@@ -35,6 +35,10 @@ export type ActionFailedResult = {
 
 export type StartTurnResultEvent =
   | {
+      type: 'PopulationDecrease';
+      city: City;
+    }
+  | {
       type: 'CannotSupportUnit';
       unit: Unit;
       city: City;

@@ -55,7 +55,9 @@ export const cityResourcesWindow: UiWindow = {
 
     renderYieldAndConsumption(YieldIcon.Shield, totalYield.shields, totalSupply.shields, 40);
 
-    renderYield(YieldIcon.Trade, totalYield.trade, 4, 48, incrementPerIcon(totalYield.trade, 119));
+    renderYieldAndConsumption(YieldIcon.Trade, totalYield.trade, totalYield.trade + totalYield.corruption, 48);
+
+    //renderYield(YieldIcon.Trade, totalYield.trade, 4, 48, incrementPerIcon(totalYield.trade, 119));
     const tradeInc = incrementPerIcon(totalYield.luxury + totalYield.gold + totalYield.beakers, 119 - gab * 2);
     let tradeOffset = 4;
 

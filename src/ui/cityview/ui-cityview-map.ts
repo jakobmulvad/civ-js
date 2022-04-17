@@ -52,7 +52,7 @@ export const cityMapWindow: UiWindow = {
 
         if (isCenter) {
           renderCity(sp257, selectedCity, screenX, screenY, primaryColor, secondaryColor, units.length > 0);
-          const tileYield = calculateTileYield(tile);
+          const tileYield = calculateTileYield(tile, player.government);
           renderTileYield(sp257.canvas, tileYield, screenX, screenY);
           continue;
         }
@@ -79,7 +79,7 @@ export const cityMapWindow: UiWindow = {
       const mapX = wrapXAxis(map, selectedCity.x + x);
       const mapY = selectedCity.y + y;
       const tile = getTileAt(map, mapX, mapY);
-      const tileYield = calculateTileYield(tile);
+      const tileYield = calculateTileYield(tile, player.government);
       const screenX = area.x + 32 + x * 16 + 1;
       const screenY = area.y + 32 + y * 16 + 1;
       renderTileYield(sp257.canvas, tileYield, screenX, screenY);

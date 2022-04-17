@@ -14,7 +14,7 @@ import { modalKeyHandler, pushUiScreen, UiScreen, UiWindow } from '../ui-control
 export type UiAdvisorModalConfig = {
   advisor: Advisors;
   body: string[];
-  emphasis: string;
+  emphasis?: string;
 };
 
 export const showAdvisorModal = (config: UiAdvisorModalConfig): Promise<void> => {
@@ -42,9 +42,11 @@ export const showAdvisorModal = (config: UiAdvisorModalConfig): Promise<void> =>
 
         renderTextLines(fonts.main, body, 104, 85, palette.white);
 
-        const offset = 84 + 8 * body.length;
-        renderSelectionBox(102, offset, maxWidth + 5, 8);
-        renderText(fonts.main, emphasis, 110, offset + 1, palette.black);
+        if (emphasis) {
+          const offset = 84 + 8 * body.length;
+          renderSelectionBox(102, offset, maxWidth + 5, 8);
+          renderText(fonts.main, emphasis, 110, offset + 1, palette.black);
+        }
       },
     };
     const screen: UiScreen = {

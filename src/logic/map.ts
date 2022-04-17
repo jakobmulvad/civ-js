@@ -1,5 +1,6 @@
 import { direction8 } from '../helpers';
 import { GameState } from './game-state';
+import { GovernmentId } from './government';
 
 export enum TerrainId {
   Void = 0,
@@ -320,7 +321,7 @@ export const getTerrainMaskSouthWest = (map: GameMap, x: number, y: number, mask
   );
 };
 
-export const calculateTileYield = (tile: MapTile) => {
+export const calculateTileYield = (tile: MapTile, government: GovernmentId) => {
   const terrain = terrainMap[tile.terrain];
 
   const isSpecial =
@@ -344,6 +345,20 @@ export const calculateTileYield = (tile: MapTile) => {
   if (tile.hasRoad && terrain.roadYield) {
     tileYield.trade += terrain.roadYield;
   }
+
+  // Adjust for government
+  if (government === GovernmentId.Anarchy || government === GovernmentId.Despotism) {
+    if (tileYield.food > 2) {
+      tileYield.food--;
+    }
+    if (tileYield.shields > 2) {
+      tileYield.shields--;
+    }
+  } else if (government === GovernmentId.Republic || government === GovernmentId.Democracy) {
+    if (tileYield.trade > 0) {
+      tileYield.trade++;
+    }
+  }
   return tileYield;
 };
 
@@ -357,4 +372,10 @@ export const exploreMapAround = (state: GameState, player: number, x: number, y:
     exploreMap(state, player, x + dx, y + dy);
   }
   exploreMap(state, player, x, y);
+};
+
+export const distanceToTile = (mapWidth: number, x1: number, y1: number, x2: number, y2: number) => {
+  const dx = Math.min(Math.abs(x2 - x1), Math.abs(mapWidth - (x2 - x1)));
+  const dy = Math.abs(y2 - y1);
+  return Math.max(dx, dy);
 };
