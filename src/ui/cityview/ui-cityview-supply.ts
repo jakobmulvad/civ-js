@@ -19,7 +19,6 @@ export const citySupplyWindow: UiWindow = {
     if (!selectedCity) {
       return;
     }
-    const ownerPlayer = gameState.players[selectedCity.owner];
     const units = cityUnits(gameState, selectedCity);
 
     renderBlueBox(area.x, area.y, area.width, area.height);
@@ -29,7 +28,7 @@ export const citySupplyWindow: UiWindow = {
       const column = i % 7;
       const x = area.x + 5 + column * 16;
       const y = area.y + 2 + row * 16;
-      const supply = unitSupply(gameState, ownerPlayer.government, units[i]);
+      const supply = unitSupply(gameState, units[i]);
 
       renderYield(YieldIcon.Food, supply.food, x, y + 11, 2);
       renderYield(YieldIcon.Void, supply.unhappy, x, y + 11, 2);

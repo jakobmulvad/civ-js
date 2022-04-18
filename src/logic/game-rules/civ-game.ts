@@ -2,6 +2,7 @@ import { randomIntBelow } from '../../helpers';
 import { Action } from '../action';
 import { ActionResult, StartTurnResult } from '../action-result';
 import { Civilization } from '../civilizations';
+import { Difficulty } from '../diffculty';
 import { GameState, getSelectedUnitForPlayer, PlayerController, PlayerState } from '../game-state';
 import { GovernmentId } from '../government';
 import { GameMap, getTileAt, getTileIndex, MapTemplate, TerrainId } from '../map';
@@ -102,16 +103,17 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     gold: 0,
     beakers: 0,
     taxRate: 5,
-    luxuryRate: 0,
-    government: GovernmentId.Despotism,
+    luxuryRate: 5,
+    government: GovernmentId.Democracy,
   }));
 
-  const state = {
+  const state: GameState = {
     seed,
     playerInTurn: 0,
     players,
     masterMap: map,
     turn: 0,
+    difficulty: Difficulty.Emperor,
   };
 
   // Spawn first settlers

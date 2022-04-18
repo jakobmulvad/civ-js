@@ -1,4 +1,6 @@
 import { Sprite } from '../assets';
+import { City, Happiness } from './city';
+import { GameState } from './game-state';
 
 export enum BuildingId {
   Palace = 'palace',
@@ -12,6 +14,7 @@ export type Building = {
   name: string;
   cost: number;
   maintenance: number;
+  applyHappiness?: (state: GameState, city: City, happiness: Happiness) => void;
   sprite: Sprite;
 };
 
@@ -56,6 +59,9 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Temple',
     cost: 40,
     maintenance: 1,
+    applyHappiness: (state: GameState, city: City, happiness: Happiness) => {
+      happiness.unhappy--;
+    },
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,

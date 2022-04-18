@@ -48,7 +48,7 @@ export const cityResourcesWindow: UiWindow = {
 
     const owner = gameState.players[selectedCity.owner];
     const totalYield = totalCityYield(gameState, owner.map, selectedCity);
-    const totalSupply = totalCitySupply(gameState, owner.government, selectedCity);
+    const totalSupply = totalCitySupply(gameState, selectedCity);
 
     const foodConsumption = selectedCity.size * 2 + totalSupply.food;
     renderYieldAndConsumption(YieldIcon.Food, totalYield.food, foodConsumption, 32);

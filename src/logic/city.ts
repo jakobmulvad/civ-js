@@ -1,6 +1,7 @@
+import { clamp } from '../helpers';
 import { Building, BuildingId, buildings } from './buildings';
 import { convertTradeToYield } from './formulas';
-import { GameState, PlayerState } from './game-state';
+import { GameState, PlayerController, PlayerState, totalCitySupply, UnitSupply } from './game-state';
 import { GovernmentId, governments } from './government';
 import { calculateTileYield, distanceToTile, GameMap, getTileAt, TerrainYield, wrapXAxis } from './map';
 import { UnitPrototypeId, unitPrototypeMap } from './units';
@@ -350,4 +351,73 @@ export const cityUnits = (state: GameState, city: City) => {
 
 export const playerCapital = (player: PlayerState): City | undefined => {
   return player.cities.find((c) => c.buildings.some((b) => b === BuildingId.Palace));
+};
+
+export type Happiness = {
+  happy: number;
+  unhappy: number;
+};
+
+export const adjustCitizenHappiness = (city: City, happiness: Happiness) => {
+  //seg007_6CE6:
+  happiness.happy = clamp(0, happiness.happy, city.size);
+  happiness.unhappy = clamp(0, happiness.unhappy, city.size);
+  while (city.size - city.specialists.length < happiness.happy + happiness.unhappy) {
+    //seg007_6D3A:
+    happiness.happy = clamp(0, happiness.happy - 1, city.size);
+    happiness.unhappy = clamp(0, happiness.unhappy - 1, city.size);
+  }
+};
+
+export const cityHappinessBase = (state: GameState, city: City): Happiness => {
+  const difficulty = state.difficulty;
+  const owner = state.players[city.owner];
+
+  let unhappy;
+
+  if (owner.controller === PlayerController.LocalHuman) {
+    unhappy = city.size + difficulty - 6;
+  } else {
+    unhappy = city.size - 3;
+  }
+  const happiness: Happiness = {
+    happy: 0,
+    unhappy,
+  };
+  adjustCitizenHappiness(city, happiness);
+  return happiness;
+};
+
+export const cityHappinessLuxury = (
+  state: GameState,
+  map: GameMap,
+  city: City,
+  cityYield: CityYield,
+  happiness: Happiness
+) => {
+  happiness.happy = Math.floor(cityYield.luxury * 0.5);
+  adjustCitizenHappiness(city, happiness);
+};
+
+export const cityHappinessImprovements = (state: GameState, city: City, happiness: Happiness) => {
+  for (const id of city.buildings) {
+    buildings[id].applyHappiness?.(state, city, happiness);
+  }
+  adjustCitizenHappiness(city, happiness);
+};
+
+export const cityHappinessSupply = (state: GameState, city: City, supply: UnitSupply, hapiness: Happiness) => {
+  hapiness.unhappy += supply.unhappy;
+  adjustCitizenHappiness(city, hapiness);
+};
+
+export const cityHappiness = (state: GameState, map: GameMap, city: City): Happiness => {
+  const cityYield = totalCityYield(state, map, city);
+  const supply = totalCitySupply(state, city);
+
+  const happiness = cityHappinessBase(state, city);
+  cityHappinessLuxury(state, map, city, cityYield, happiness);
+  cityHappinessImprovements(state, city, happiness);
+  cityHappinessSupply(state, city, supply, happiness);
+  return happiness;
 };

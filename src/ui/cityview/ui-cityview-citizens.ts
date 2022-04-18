@@ -1,7 +1,7 @@
 import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { Citizens, numberFormatter } from '../../logic/city';
+import { cityHappiness, numberFormatter } from '../../logic/city';
 import { cityPopulation } from '../../logic/formulas';
 import { palette } from '../../palette';
 import { renderBlueBox, renderCitizens, renderText } from '../../renderer';
@@ -18,7 +18,7 @@ export const cityCitizensWindow: UiWindow = {
   area,
   isDirty: true,
   onRender: (state) => {
-    const { selectedCity } = state;
+    const { gameState, selectedCity, localPlayer } = state;
     if (!selectedCity) {
       return;
     }
@@ -35,10 +35,8 @@ export const cityCitizensWindow: UiWindow = {
       true
     );
 
-    const workers = selectedCity.workedTiles.length;
-    const x = renderCitizens(7, 8, [Citizens.ContentMale, Citizens.ContentFemale], workers);
-
-    renderCitizens(x + 4, 8, selectedCity.specialists);
+    const happiness = cityHappiness(gameState, gameState.players[localPlayer].map, selectedCity);
+    renderCitizens(7, 8, 200, selectedCity, happiness);
   },
 };
 

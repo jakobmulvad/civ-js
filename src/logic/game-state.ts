@@ -1,5 +1,6 @@
 import { City, cityUnits } from './city';
 import { Civilization } from './civilizations';
+import { Difficulty } from './diffculty';
 import { GovernmentId } from './government';
 import { GameMap, getTileAt } from './map';
 import { Unit, unitPrototypeMap } from './units';
@@ -30,6 +31,7 @@ export type GameState = {
   players: PlayerState[];
   masterMap: GameMap;
   turn: number;
+  difficulty: Difficulty;
 };
 
 export type UnitSupply = { food: number; shields: number; unhappy: number };
@@ -120,7 +122,8 @@ export const homeCityName = (state: GameState, unit: Unit): string => {
   return homeCity(state, unit)?.name ?? 'NONE';
 };
 
-export const unitSupply = (state: GameState, government: GovernmentId, unit: Unit): UnitSupply => {
+export const unitSupply = (state: GameState, unit: Unit): UnitSupply => {
+  const { government } = state.players[unit.owner];
   const result = {
     food: 0,
     shields: 0,
@@ -169,9 +172,9 @@ export const unitSupply = (state: GameState, government: GovernmentId, unit: Uni
   return result;
 };
 
-export const totalCitySupply = (state: GameState, government: GovernmentId, city: City): UnitSupply => {
+export const totalCitySupply = (state: GameState, city: City): UnitSupply => {
   return cityUnits(state, city)
-    .map((unit) => unitSupply(state, government, unit))
+    .map((unit) => unitSupply(state, unit))
     .reduce(
       (acc, val) => {
         acc.food += val.food;

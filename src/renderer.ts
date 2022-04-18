@@ -1,7 +1,7 @@
 import { getImageAsset, Sprite } from './assets';
 import { Font, fonts, measureText } from './fonts';
 import { Rect, direction8 } from './helpers';
-import { City } from './logic/city';
+import { Citizens, City, Happiness } from './logic/city';
 import { GameState } from './logic/game-state';
 import {
   GameMap,
@@ -797,14 +797,51 @@ export const renderSmallButton = (
   renderText(fonts.mainSmall, label, x + (width >> 1) + 1, y + 2, secondaryColor, true);
 };
 
-export const renderCitizens = (x: number, y: number, citizens: number[], count?: number): number => {
+export const renderCitizens = (x: number, y: number, width: number, city: City, happiness: Happiness): number => {
   const sp257 = getImageAsset('sp257.pic.png');
-  count = count ?? citizens.length;
-  for (let i = 0; i < count; i++) {
-    const citizen = citizens[i % citizens.length];
+
+  const workers = city.size - city.specialists.length;
+  const content = workers - happiness.happy - happiness.unhappy;
+
+  const inc = Math.min(7, Math.floor((width - 12) / city.size));
+
+  // Happy
+  for (let i = 0; i < happiness.happy; i++) {
+    const citizen = i % 2 === 0 ? Citizens.HappyMale : Citizens.HappyFemale;
     screenCtx.drawImage(sp257.canvas, citizen * 8, 8 * 16, 8, 15, x, y, 8, 15);
-    x += 7;
+    x += inc;
   }
+
+  if (happiness.happy > 0) {
+    x += 2;
+  }
+
+  // Content
+  for (let i = 0; i < content; i++) {
+    const citizen = i % 2 === 0 ? Citizens.ContentMale : Citizens.ContentFemale;
+    screenCtx.drawImage(sp257.canvas, citizen * 8, 8 * 16, 8, 15, x, y, 8, 15);
+    x += inc;
+  }
+
+  if (content > 0) {
+    x += 2;
+  }
+
+  // Unhappy
+  for (let i = 0; i < happiness.unhappy; i++) {
+    const citizen = i % 2 === 0 ? Citizens.UnhappyMale : Citizens.UnhappyFemale;
+    screenCtx.drawImage(sp257.canvas, citizen * 8, 8 * 16, 8, 15, x, y, 8, 15);
+    x += inc;
+  }
+
+  x += 4;
+
+  // Specialists
+  for (let i = 0; i < city.specialists.length; i++) {
+    screenCtx.drawImage(sp257.canvas, city.specialists[i] * 8, 8 * 16, 8, 15, x, y, 8, 15);
+    x += inc;
+  }
+
   return x;
 };
 

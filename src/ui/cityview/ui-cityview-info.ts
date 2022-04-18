@@ -2,10 +2,28 @@ import { getImageAsset } from '../../assets';
 import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
 import { Rect } from '../../helpers';
-import { City } from '../../logic/city';
-import { GameState, getUnitsAt, homeCityName, unitIndex } from '../../logic/game-state';
+import { buildings } from '../../logic/buildings';
+import {
+  City,
+  cityHappinessBase,
+  cityHappinessImprovements,
+  cityHappinessLuxury,
+  cityHappinessSupply,
+  totalCityYield,
+} from '../../logic/city';
+import { GameState, getUnitsAt, homeCityName, totalCitySupply, unitIndex } from '../../logic/game-state';
 import { palette } from '../../palette';
-import { renderBlueBox, renderSmallButton, renderText, renderUnit } from '../../renderer';
+import {
+  renderBlueBox,
+  renderCitizens,
+  renderHorizontalLine,
+  renderSmallButton,
+  renderSprite,
+  renderText,
+  renderUnit,
+  renderYield,
+  YieldIcon,
+} from '../../renderer';
 import { pushUiAction } from '../ui-action-queue';
 import { UiWindow } from '../ui-controller';
 import { getUiState } from '../ui-state';
@@ -60,8 +78,47 @@ const tabs: Record<TabId, UiTab> = {
     },
   },
   [TabId.Happy]: {
-    onRender: () => {
-      renderText(fonts.mainSmall, 'Not Implemented', area.x + 5, area.y + 12, palette.black);
+    onRender: (state, city) => {
+      const { map } = state.players[city.owner];
+
+      // Base
+      let offsetY = area.y + 10;
+      const happiness = cityHappinessBase(state, city);
+      renderCitizens(area.x + 5, offsetY, 100, city, happiness);
+
+      offsetY += 16;
+      renderHorizontalLine(area.x + 5, offsetY - 2, 122, palette.blueDark);
+
+      // Luxury
+      const totalYield = totalCityYield(state, map, city);
+      if (totalYield.luxury > 0) {
+        cityHappinessLuxury(state, map, city, totalYield, happiness);
+        renderCitizens(area.x + 5, offsetY, 100, city, happiness);
+        renderYield(YieldIcon.Luxury, 1, area.x + area.width - 15, offsetY + 3, 1);
+        offsetY += 16;
+        renderHorizontalLine(area.x + 5, offsetY - 2, 122, palette.blueDark);
+      }
+
+      const happinessBuildings = city.buildings.map((id) => buildings[id]).filter((b) => b.applyHappiness);
+      if (happinessBuildings.length > 0) {
+        cityHappinessImprovements(state, city, happiness);
+        renderCitizens(area.x + 5, offsetY, 100, city, happiness);
+        const offsetX = area.x + area.width - happinessBuildings.length * 16 - 4;
+        for (let i = 0; i < happinessBuildings.length; i++) {
+          renderSprite(happinessBuildings[i].sprite, offsetX + i * 16, offsetY);
+        }
+        offsetY += 16;
+        renderHorizontalLine(area.x + 5, offsetY - 2, 122, palette.blueDark);
+      }
+
+      const supply = totalCitySupply(state, city);
+      if (supply.unhappy > 0) {
+        cityHappinessSupply(state, city, supply, happiness);
+        renderCitizens(area.x + 5, offsetY, 100, city, happiness);
+        renderYield(YieldIcon.Void, 1, area.x + area.width - 15, offsetY + 3, 1);
+        offsetY += 16;
+        renderHorizontalLine(area.x + 5, offsetY - 2, 122, palette.blueDark);
+      }
     },
   },
   [TabId.Map]: {

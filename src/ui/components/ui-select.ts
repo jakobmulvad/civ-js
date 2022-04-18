@@ -33,7 +33,7 @@ const getOptionLabel = (option: UiSelectOption) => {
 export const newSelect = (config: UiSelectConfig): UiScreen => {
   const { x, y, options, onSelect, onClose } = config;
   const font = config.font ?? fonts.main;
-  let selectedIndex = config.selectedIndex ?? 0;
+  let selectedIndex = Math.max(0, config.selectedIndex ?? 0);
 
   const titles = Array.isArray(config.title) ? config.title : [config.title];
 

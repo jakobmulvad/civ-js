@@ -151,7 +151,7 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
   // Subtract supply from yield
   let foodUnit: Unit | undefined = undefined;
   for (const unit of units) {
-    const supply = unitSupply(state, player.government, unit);
+    const supply = unitSupply(state, unit);
 
     if (supply.shields > cityYield.shields) {
       // We don't have enough shields to supply this unit, disband it

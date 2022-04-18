@@ -12,7 +12,6 @@ import { initUi, updateUiState } from './ui/ui-state';
 import { triggerGameEvent } from './game-event';
 import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
 import { executeAction, newGame } from './logic/game-rules/civ-game';
-import { generateMapTemplate, Temperature } from './logic/map-generation';
 import { UnitPrototypeId, unitPrototypeMap } from './logic/units';
 import { StartTurnResultEvent } from './logic/action-result';
 import { showAdvisorModal } from './ui/components/ui-advisor-modal';
@@ -30,9 +29,10 @@ export const startGame = async () => {
   const earthTemplate = await loadJson<MapTemplate>('/assets/earth.json');
 
   state = newGame(
-    generateMapTemplate({
+    /*generateMapTemplate({
       temperature: Temperature.Cool,
-    }),
+    })*/
+    earthTemplate,
     [americans]
   );
   state.players[localPlayer].controller = PlayerController.LocalHuman;
@@ -46,7 +46,7 @@ export const startGame = async () => {
   triggerGameEvent('GameStateUpdated');
 
   const city = newCity(0, 'Issus', 10, 15);
-  city.size = 3;
+  city.size = 20;
   city.food = 30;
   city.shields = 100;
   optimizeWorkedTiles(state, city);
@@ -72,8 +72,7 @@ export const startGame = async () => {
 
   spawnUnitForPlayer(state, 1, UnitPrototypeId.Musketeers, 11, 16);*/
 
-  /*updateUiState('selectedCity', city);
-  pushUiScreen(uiCityScreen);*/
+  void showCityScreen(city);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {
