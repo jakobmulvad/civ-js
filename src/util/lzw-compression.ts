@@ -1,6 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// Source: https://stackoverflow.com/questions/294297/javascript-implementation-of-gzip
-// LZW-compress a string
+// Source (with slight optimizations on my end): https://stackoverflow.com/questions/294297/javascript-implementation-of-gzip
+
 export const lzwEncode = (str: string): string => {
   const dict: Record<string, number | undefined> = {};
   let currChar;
@@ -25,7 +24,6 @@ export const lzwEncode = (str: string): string => {
   return out;
 };
 
-// Decompress an LZW-encoded string
 export const lzwDecode = (str: string): string => {
   const dict: Record<number, string> = {};
   let currChar = str.charAt(0);
