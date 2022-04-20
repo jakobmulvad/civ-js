@@ -86,6 +86,7 @@ export type City = {
   producing: CityProduction;
   hasBought: boolean;
   hasSold: boolean;
+  isDisorder: boolean;
 };
 
 export type CityYield = {
@@ -125,6 +126,7 @@ export const newCity = (owner: number, name: string, x: number, y: number): City
     },
     hasBought: false,
     hasSold: false,
+    isDisorder: false,
   };
 };
 
@@ -286,6 +288,10 @@ export const totalCityYield = (state: GameState, map: GameMap, city: City): City
     cityYield.gold += tradeYield.gold;
     cityYield.beakers += tradeYield.beakers;
   }
+
+  for (const buildingId of city.buildings) {
+    buildings[buildingId].applyCityYield?.(cityYield);
+  }
   return cityYield;
 };
 
@@ -388,13 +394,7 @@ export const cityHappinessBase = (state: GameState, city: City): Happiness => {
   return happiness;
 };
 
-export const cityHappinessLuxury = (
-  state: GameState,
-  map: GameMap,
-  city: City,
-  cityYield: CityYield,
-  happiness: Happiness
-) => {
+export const cityHappinessLuxury = (city: City, cityYield: CityYield, happiness: Happiness) => {
   happiness.happy = Math.floor(cityYield.luxury * 0.5);
   adjustCitizenHappiness(city, happiness);
 };
@@ -416,7 +416,7 @@ export const cityHappiness = (state: GameState, map: GameMap, city: City): Happi
   const supply = totalCitySupply(state, city);
 
   const happiness = cityHappinessBase(state, city);
-  cityHappinessLuxury(state, map, city, cityYield, happiness);
+  cityHappinessLuxury(city, cityYield, happiness);
   cityHappinessImprovements(state, city, happiness);
   cityHappinessSupply(state, city, supply, happiness);
   return happiness;

@@ -9,7 +9,7 @@ export type UiState = {
 };
 
 let uiState: UiState = {
-  gameState: {} as GameState,
+  gameState: undefined as unknown as GameState,
   selectedCity: undefined,
   isBlinking: false,
   localPlayer: 0,

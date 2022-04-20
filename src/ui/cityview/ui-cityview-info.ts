@@ -92,7 +92,7 @@ const tabs: Record<TabId, UiTab> = {
       // Luxury
       const totalYield = totalCityYield(state, map, city);
       if (totalYield.luxury > 0) {
-        cityHappinessLuxury(state, map, city, totalYield, happiness);
+        cityHappinessLuxury(city, totalYield, happiness);
         renderCitizens(area.x + 5, offsetY, 100, city, happiness);
         renderYield(YieldIcon.Luxury, 1, area.x + area.width - 15, offsetY + 3, 1);
         offsetY += 16;

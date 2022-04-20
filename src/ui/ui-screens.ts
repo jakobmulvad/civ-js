@@ -1,12 +1,14 @@
 import { KeyCode } from '../key-codes';
 import { UiScreen } from './ui-controller';
 import { pushUiAction } from './ui-action-queue';
-import { unitInfoWindow } from './ui-worldview-unit-info';
-import { empireInfoWindow } from './ui-worldview-empire-info';
-import { minimapWindow } from './ui-worldview-minimap';
-import { centerViewport, ensureSelectedUnitIsInViewport, mapWindow } from './ui-worldview-map';
+import { empireInfoWindow } from './worldview/ui-worldview-empire-info';
 import { getUiState } from './ui-state';
 import { getTerrainAt } from '../logic/map';
+import { centerViewport, ensureSelectedUnitIsInViewport, mapWindow } from './worldview/ui-worldview-map';
+import { clearScreenWindow } from './components/ui-clear-screen';
+import { menuWindow } from './worldview/ui-worldview-menu';
+import { unitInfoWindow } from './worldview/ui-worldview-unit-info';
+import { minimapWindow } from './worldview/ui-worldview-minimap';
 
 export const uiWorldScreen: UiScreen = {
   onKey: (keyCode, shift) => {
@@ -112,5 +114,5 @@ export const uiWorldScreen: UiScreen = {
       }
     }
   },
-  windows: [unitInfoWindow, empireInfoWindow, minimapWindow, mapWindow],
+  windows: [clearScreenWindow, menuWindow, unitInfoWindow, empireInfoWindow, minimapWindow, mapWindow],
 };

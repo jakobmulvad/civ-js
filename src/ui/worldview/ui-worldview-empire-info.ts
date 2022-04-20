@@ -1,12 +1,12 @@
-import { fonts } from '../fonts';
-import { addGameEventListener } from '../game-event';
-import { Rect } from '../helpers';
-import { numberFormatter } from '../logic/city';
-import { cityPopulation, turnToYear } from '../logic/formulas';
-import { palette } from '../palette';
-import { renderGrayBox, renderSprite, renderText } from '../renderer';
-import { UiWindow } from './ui-controller';
-import { UiState } from './ui-state';
+import { fonts } from '../../fonts';
+import { addGameEventListener } from '../../game-event';
+import { Rect } from '../../helpers';
+import { numberFormatter } from '../../logic/city';
+import { cityPopulation, turnToYear } from '../../logic/formulas';
+import { palette } from '../../palette';
+import { renderGrayBox, renderSprite, renderText } from '../../renderer';
+import { UiWindow } from '../ui-controller';
+import { UiState } from '../ui-state';
 
 const area: Rect = { x: 0, y: 58, width: 80, height: 39 };
 

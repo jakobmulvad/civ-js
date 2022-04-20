@@ -8,9 +8,14 @@ import { americans } from './logic/civilizations';
 import { popUiAction } from './ui/ui-action-queue';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
-import { initUi, updateUiState } from './ui/ui-state';
+import { getUiState, initUi, updateUiState } from './ui/ui-state';
 import { triggerGameEvent } from './game-event';
-import { animateCombat, animateUnitMoved, centerViewport, ensureSelectedUnitIsInViewport } from './ui/ui-worldview-map';
+import {
+  animateCombat,
+  animateUnitMoved,
+  centerViewport,
+  ensureSelectedUnitIsInViewport,
+} from './ui/worldview/ui-worldview-map';
 import { executeAction, newGame } from './logic/game-rules/civ-game';
 import { UnitPrototypeId, unitPrototypeMap } from './logic/units';
 import { StartTurnResultEvent } from './logic/action-result';
@@ -22,19 +27,19 @@ import { showCityScreen } from './ui/cityview/ui-city-screen';
 import { Advisors } from './logic/advisors';
 import { spawnUnitForPlayer } from './logic/game-rules/civ-game-units';
 
-let state: GameState;
 const localPlayer = 0; // todo don't use hardcoded index for local player
 
 export const startGame = async () => {
   const earthTemplate = await loadJson<MapTemplate>('/assets/earth.json');
 
-  state = newGame(
+  const state = newGame(
     /*generateMapTemplate({
       temperature: Temperature.Cool,
     })*/
     earthTemplate,
     [americans]
   );
+  updateUiState('gameState', state);
   state.players[localPlayer].controller = PlayerController.LocalHuman;
   state.players[localPlayer].gold = 10000;
 
@@ -57,12 +62,12 @@ export const startGame = async () => {
     type: CityProductionType.Building,
     id: BuildingId.Temple,
   };
+  /*spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
-  spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
-  spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
+  spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);*/
   spawnUnitForPlayer(state, 0, UnitPrototypeId.Musketeers, 11, 16, 0);
 
   /*const c = newCity(0, 'Enemy', 12, 15);
@@ -98,7 +103,6 @@ const processStartTurnEvents = async (events: StartTurnResultEvent[]) => {
           city: event.city,
           headline: [`${event.city.name} builds`, `${event.building.name}.`],
         });
-        await showCityScreen(event.city);
         break;
 
       case 'PopulationDecrease':
@@ -106,6 +110,32 @@ const processStartTurnEvents = async (events: StartTurnResultEvent[]) => {
           advisor: Advisors.Domestic,
           body: ['Population decrease', `in ${event.city.name}`],
         });
+        break;
+
+      case 'CivilDisorder':
+        await showAdvisorModal({
+          advisor: Advisors.Domestic,
+          body: ['Civil Disorder in', `${event.city.name}! Mayor`, 'flees in panic.'],
+        });
+        break;
+
+      case 'OrderRestored':
+        await showAdvisorModal({
+          advisor: Advisors.Domestic,
+          body: ['Order restored', `in ${event.city.name}.`],
+        });
+        break;
+
+      case 'CantMaintainBuilding':
+        await showAdvisorModal({
+          advisor: Advisors.Domestic,
+          body: [event.city.name, "can't maintain", `${event.building.name}.`],
+        });
+        break;
+
+      case 'ZoomToCity':
+        await showCityScreen(event.city);
+        break;
     }
 
     // clear UI between events
@@ -118,6 +148,8 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
   if (!action) {
     return;
   }
+
+  const state = getUiState().gameState;
 
   const result = executeAction(state, action);
   triggerGameEvent('GameStateUpdated');
@@ -151,6 +183,7 @@ const handleAction = async (action: Action | undefined): Promise<void> => {
 };
 
 const logicFrame = (time: number) => {
+  const state = getUiState().gameState as GameState | undefined;
   if (!state) {
     requestAnimationFrame(logicFrame);
     return;

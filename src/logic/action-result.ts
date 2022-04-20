@@ -35,18 +35,18 @@ export type ActionFailedResult = {
 
 export type StartTurnResultEvent =
   | {
-      type: 'PopulationDecrease';
+      type: 'PopulationDecrease' | 'CivilDisorder' | 'OrderRestored' | 'ZoomToCity';
       city: City;
+    }
+  | {
+      type: 'CantMaintainBuilding' | 'CityCompletedBuilding';
+      city: City;
+      building: Building;
     }
   | {
       type: 'CannotSupportUnit';
       unit: Unit;
       city: City;
-    }
-  | {
-      type: 'CityCompletedBuilding';
-      city: City;
-      building: Building;
     };
 
 export type StartTurnResult = {

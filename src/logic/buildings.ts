@@ -1,5 +1,5 @@
 import { Sprite } from '../assets';
-import { City, Happiness } from './city';
+import { City, CityYield, Happiness } from './city';
 import { GameState } from './game-state';
 
 export enum BuildingId {
@@ -15,6 +15,7 @@ export type Building = {
   cost: number;
   maintenance: number;
   applyHappiness?: (state: GameState, city: City, happiness: Happiness) => void;
+  applyCityYield?: (cityYield: CityYield) => void;
   sprite: Sprite;
 };
 
@@ -34,7 +35,7 @@ export const buildings: Record<BuildingId, Building> = {
   [BuildingId.Barracks]: {
     name: 'Barracks',
     cost: 40,
-    maintenance: 0,
+    maintenance: 2,
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,
@@ -74,6 +75,10 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Marketplace',
     cost: 80,
     maintenance: 1,
+    applyCityYield: (cityYield: CityYield) => {
+      cityYield.luxury = Math.floor(cityYield.luxury * 1.5);
+      cityYield.gold = Math.floor(cityYield.gold * 1.5);
+    },
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,

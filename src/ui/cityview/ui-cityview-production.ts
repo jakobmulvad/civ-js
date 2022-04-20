@@ -1,6 +1,6 @@
 import { fonts } from '../../fonts';
 import { addGameEventListener } from '../../game-event';
-import { incrementPerIcon, isInside, Rect } from '../../helpers';
+import { clamp, incrementPerIcon, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { Building, BuildingId, buildings } from '../../logic/buildings';
 import {
@@ -56,16 +56,17 @@ const change = () => {
   }
   const shieldYield = totalCityYield(gameState, gameState.players[selectedCity.owner].map, selectedCity).shields;
 
+  const turns = (cost: number) => clamp(1, Math.ceil((cost - selectedCity.shields) / shieldYield), cost);
+
   // Add units
   const unitPrototypes = Object.entries(unitPrototypeMap);
   const unitOptions: UiSelectValuePair<CityProduction>[] = unitPrototypes.map(([key, proto]) => {
-    const turns = Math.min(proto.cost, Math.ceil((proto.cost - selectedCity.shields) / shieldYield));
     return {
       value: {
         type: CityProductionType.Unit,
         id: key as UnitPrototypeId,
       },
-      label: `${proto.name} (${turns} turns, ADM:${proto.attack}/${proto.defense}/${proto.moves})`,
+      label: `${proto.name} (${turns(proto.cost)} turns, ADM:${proto.attack}/${proto.defense}/${proto.moves})`,
     };
   });
 
@@ -74,13 +75,12 @@ const change = () => {
   const buildingOptions: UiSelectValuePair<CityProduction>[] = buildingEntries
     .filter(([key]) => !selectedCity.buildings.includes(key))
     .map(([key, building]) => {
-      const turns = Math.min(building.cost, Math.ceil((building.cost - selectedCity.shields) / shieldYield));
       return {
         value: {
           type: CityProductionType.Building,
           id: key,
         },
-        label: `${building.name} (${turns} turns)`,
+        label: `${building.name} (${turns(building.cost)} turns)`,
       };
     });
 

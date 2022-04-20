@@ -534,7 +534,12 @@ export const renderCity = (
   }
 
   screenCtx.putImageData(imageData, screenX, screenY, 1, 1, 14, 14);
-  renderText(fonts.main, city.size.toString(), screenX + 9, screenY + 5, palette.black, true);
+
+  if (city.isDisorder) {
+    screenCtx.drawImage(sp257.canvas, Citizens.UnhappyMale * 8, 8 * 16, 8, 15, screenX + 5, screenY + 2, 8, 15);
+  } else {
+    renderText(fonts.main, city.size.toString(), screenX + 9, screenY + 5, palette.black, true);
+  }
 };
 
 export const renderText = (

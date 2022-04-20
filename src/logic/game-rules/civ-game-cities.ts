@@ -1,11 +1,12 @@
 import { CityAction } from '../action';
 import { ActionResult, StartTurnResultEvent } from '../action-result';
-import { buildings } from '../buildings';
+import { BuildingId, buildings } from '../buildings';
 import {
   bestWorkableTiles,
   buyCost,
   calculateCitizens,
   City,
+  cityHappiness,
   CityProductionType,
   cityUnits,
   getBlockedWorkableTiles,
@@ -140,6 +141,7 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
 export const processCity = (state: GameState, city: City): StartTurnResultEvent[] => {
   const result: StartTurnResultEvent[] = [];
   const player = state.players[city.owner];
+  let zoomToCity = false;
 
   // If enemy units moved on a worked tile, stop working it
   const occupiedTiles = getBlockedWorkableTiles(state, city);
@@ -185,9 +187,25 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
     increaseCityPopulation(state, city);
   }
 
-  city.shields += cityYield.shields;
+  for (const id of city.buildings) {
+    player.gold -= buildings[id].maintenance;
+  }
+
+  if (player.gold < 0) {
+    // We are broke! sell a building
+    const id = city.buildings.pop() as BuildingId;
+    const building = buildings[id];
+    player.gold += sellPrice(building);
+    result.push({ type: 'CantMaintainBuilding', city, building });
+  }
 
   const cost = getProductionCost(city.producing);
+  const wasDisorder = city.isDisorder;
+  if (!wasDisorder) {
+    city.shields += cityYield.shields;
+    player.gold += cityYield.gold;
+    player.beakers += cityYield.beakers;
+  }
 
   if (city.shields >= cost) {
     // Production done!
@@ -208,6 +226,7 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
         }
         city.shields = 0;
         city.buildings.push(city.producing.id);
+        zoomToCity = true;
         result.push({
           type: 'CityCompletedBuilding',
           city,
@@ -217,10 +236,27 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
     }
   }
 
-  player.gold += cityYield.gold;
-  player.beakers += cityYield.beakers;
+  const happiness = cityHappiness(state, state.masterMap, city);
+  if (happiness.unhappy > happiness.happy) {
+    if (wasDisorder) {
+      // TODO: Government collapse?
+    }
+    city.isDisorder = true;
+    result.push({ type: 'CivilDisorder', city });
+    zoomToCity = zoomToCity || !wasDisorder;
+  } else {
+    if (city.isDisorder) {
+      city.isDisorder = false;
+      result.push({ type: 'OrderRestored', city });
+    }
+  }
+
   city.hasBought = false;
   city.hasSold = false;
+
+  if (zoomToCity) {
+    result.push({ type: 'ZoomToCity', city });
+  }
 
   return result;
 };

@@ -1,13 +1,13 @@
-import { fonts } from '../fonts';
-import { addGameEventListener } from '../game-event';
-import { Rect } from '../helpers';
-import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit, homeCityName } from '../logic/game-state';
-import { terrainMap } from '../logic/map';
-import { palette } from '../palette';
-import { renderGrayBox, renderText, renderTextLines } from '../renderer';
-import { UiWindow } from './ui-controller';
-import { pushUiAction } from './ui-action-queue';
-import { getUiState, UiState } from './ui-state';
+import { fonts } from '../../fonts';
+import { addGameEventListener } from '../../game-event';
+import { Rect } from '../../helpers';
+import { getPrototype, getSelectedUnitForPlayer, getTileAtUnit, homeCityName } from '../../logic/game-state';
+import { terrainMap } from '../../logic/map';
+import { palette } from '../../palette';
+import { renderGrayBox, renderText, renderTextLines } from '../../renderer';
+import { UiWindow } from '../ui-controller';
+import { pushUiAction } from '../ui-action-queue';
+import { getUiState, UiState } from '../ui-state';
 
 const area: Rect = { x: 0, y: 97, width: 80, height: 103 };
 

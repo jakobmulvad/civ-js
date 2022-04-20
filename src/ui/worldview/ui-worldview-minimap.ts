@@ -1,8 +1,8 @@
-import { addGameEventListener } from '../game-event';
-import { Rect } from '../helpers';
-import { renderMinimap } from '../renderer';
-import { UiWindow } from './ui-controller';
-import { getUiState } from './ui-state';
+import { addGameEventListener } from '../../game-event';
+import { Rect } from '../../helpers';
+import { renderMinimap } from '../../renderer';
+import { UiWindow } from '../ui-controller';
+import { getUiState } from '../ui-state';
 import { centerViewport, mapViewport } from './ui-worldview-map';
 
 const area: Rect = {

@@ -38,6 +38,7 @@ export const modalKeyHandler = (keyCode: KeyCode) => {
 let uiStack: UiScreen[] = [];
 let isDirty = true; // force rerender?
 let mouseLock: UiWindow | undefined = undefined;
+export const fullscreenArea = { x: 0, y: 0, width: 320, height: 200 };
 
 export const pushUiScreen = (screen: UiScreen) => {
   uiStack.push(screen);

@@ -9,7 +9,7 @@ import {
   renderText,
   renderTextLines,
 } from '../../renderer';
-import { modalKeyHandler, pushUiScreen, UiScreen, UiWindow } from '../ui-controller';
+import { fullscreenArea, modalKeyHandler, popUiScreen, pushUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
 export type UiAdvisorModalConfig = {
   advisor: Advisors;
@@ -22,21 +22,16 @@ export const showAdvisorModal = (config: UiAdvisorModalConfig): Promise<void> =>
     const { advisor, body, emphasis } = config;
     const window: UiWindow = {
       isDirty: true,
-      area: {
-        x: 0,
-        y: 0,
-        width: 320,
-        height: 200,
-      },
+      area: fullscreenArea,
       onRender: (state) => {
         const { localPlayer, gameState } = state;
 
+        const title = `${advisor} Advisor:`;
         const portrait = advisorPortraitSprite(advisor, gameState.players[localPlayer].government, Era.Ancient);
-        const maxWidth = Math.max(...body.map((s) => measureText(fonts.main, s)));
+        const maxWidth = Math.max(measureText(fonts.main, title), ...body.map((s) => measureText(fonts.main, s)));
         renderGrayBoxWithBorder(58, 72, portrait.width + maxWidth + 12, 64);
         renderSprite(portrait, 60, 74);
 
-        const title = `${advisor} Advisor:`;
         renderText(fonts.main, title, 104, 76, palette.white);
         renderHorizontalLine(104, 83, measureText(fonts.main, title), palette.cyan);
 
@@ -47,6 +42,9 @@ export const showAdvisorModal = (config: UiAdvisorModalConfig): Promise<void> =>
           renderSelectionBox(102, offset, maxWidth + 5, 8);
           renderText(fonts.main, emphasis, 110, offset + 1, palette.black);
         }
+      },
+      onClick: () => {
+        popUiScreen();
       },
     };
     const screen: UiScreen = {

@@ -1,16 +1,16 @@
-import { startAnimation } from '../animation';
-import { getImageAsset } from '../assets';
-import { addGameEventListener, triggerGameEvent } from '../game-event';
-import { Rect } from '../helpers';
-import { UnitCombatResult, UnitMoveResult } from '../logic/action-result';
-import { getCityAt } from '../logic/city';
-import { getSelectedUnitForPlayer, getUnitsAt } from '../logic/game-state';
-import { wrapXAxis } from '../logic/map';
-import { Unit } from '../logic/units';
-import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../renderer';
-import { showCityScreen } from './cityview/ui-city-screen';
-import { UiWindow } from './ui-controller';
-import { getUiState } from './ui-state';
+import { startAnimation } from '../../animation';
+import { getImageAsset } from '../../assets';
+import { addGameEventListener, triggerGameEvent } from '../../game-event';
+import { Rect } from '../../helpers';
+import { UnitCombatResult, UnitMoveResult } from '../../logic/action-result';
+import { getCityAt } from '../../logic/city';
+import { getSelectedUnitForPlayer, getUnitsAt } from '../../logic/game-state';
+import { wrapXAxis } from '../../logic/map';
+import { Unit } from '../../logic/units';
+import { renderCity, renderSprite, renderTileTerrain, renderUnit } from '../../renderer';
+import { showCityScreen } from '../cityview/ui-city-screen';
+import { UiWindow } from '../ui-controller';
+import { getUiState } from '../ui-state';
 
 export const mapViewport: Rect = {
   x: 0,

@@ -4,7 +4,7 @@ import { City } from '../../logic/city';
 import { turnToYear } from '../../logic/formulas';
 import { palette } from '../../palette';
 import { renderNewspaper, renderText, renderTextLines } from '../../renderer';
-import { modalKeyHandler, pushUiScreen, UiScreen, UiWindow } from '../ui-controller';
+import { fullscreenArea, modalKeyHandler, popUiScreen, pushUiScreen, UiScreen, UiWindow } from '../ui-controller';
 import { UiState } from '../ui-state';
 
 const otherStories = [
@@ -52,6 +52,7 @@ export const showNewspaper = (config: NewspaperConfig): Promise<void> => {
     const { city, headline } = config;
     const window: UiWindow = {
       isDirty: false,
+      area: fullscreenArea,
       onRender: (state: UiState) => {
         renderNewspaper();
 
@@ -69,6 +70,9 @@ export const showNewspaper = (config: NewspaperConfig): Promise<void> => {
         renderText(fonts.main, '10 cents', 272, 28, palette.black);
 
         renderTextLines(fonts.serifLarge, headline, 16, 40, palette.black);
+      },
+      onClick: () => {
+        popUiScreen();
       },
     };
 
