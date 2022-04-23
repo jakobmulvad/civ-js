@@ -550,6 +550,9 @@ export const renderText = (
   color: [number, number, number],
   center?: boolean
 ): number => {
+  if (!text) {
+    return x;
+  }
   const { width, height, offset, kerning } = font;
   const textLength = measureText(font, text);
 

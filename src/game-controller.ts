@@ -21,7 +21,7 @@ import { UnitPrototypeId, unitPrototypeMap } from './logic/units';
 import { StartTurnResultEvent } from './logic/action-result';
 import { showAdvisorModal } from './ui/components/ui-advisor-modal';
 import { calculateCitizens, CityProductionType, newCity, optimizeWorkedTiles } from './logic/city';
-import { BuildingId } from './logic/buildings';
+import { BuildingId, buildings } from './logic/buildings';
 import { showNewspaper } from './ui/components/ui-newspaper';
 import { showCityScreen } from './ui/cityview/ui-city-screen';
 import { Advisors } from './logic/advisors';
@@ -77,7 +77,7 @@ export const startGame = async () => {
 
   spawnUnitForPlayer(state, 1, UnitPrototypeId.Musketeers, 11, 16);*/
 
-  void showCityScreen(city);
+  //void showCityScreen(city);
 
   const selectedUnit = getSelectedUnitForPlayer(state, localPlayer);
   if (selectedUnit) {
@@ -98,11 +98,25 @@ const processStartTurnEvents = async (events: StartTurnResultEvent[]) => {
         break;
       }
 
-      case 'CityCompletedBuilding':
-        await showNewspaper({
-          city: event.city,
-          headline: [`${event.city.name} builds`, `${event.building.name}.`],
-        });
+      case 'CityCompletedProduction':
+        if (event.production.type === CityProductionType.Unit) {
+          const proto = unitPrototypeMap[event.production.id];
+          if (proto.isCivil) {
+            await showAdvisorModal({
+              advisor: Advisors.Defense,
+              body: [`${event.city.name} produces ${proto.name}.`],
+            });
+            break;
+          }
+        }
+
+        if (event.production.type === CityProductionType.Building) {
+          const building = buildings[event.production.id];
+          await showNewspaper({
+            city: event.city,
+            headline: [`${event.city.name} builds`, `${building.name}.`],
+          });
+        }
         break;
 
       case 'PopulationDecrease':

@@ -199,7 +199,6 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
     result.push({ type: 'CantMaintainBuilding', city, building });
   }
 
-  const cost = getProductionCost(city.producing);
   const wasDisorder = city.isDisorder;
   if (!wasDisorder) {
     city.shields += cityYield.shields;
@@ -207,16 +206,21 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
     player.beakers += cityYield.beakers;
   }
 
+  let complete = false;
+  const cost = getProductionCost(city.producing);
   if (city.shields >= cost) {
     // Production done!
     switch (city.producing.type) {
       case CityProductionType.Unit: {
-        city.shields = 0;
         const prototype = unitPrototypeMap[city.producing.id];
         if (prototype.isBuilder) {
           decreaseCityPopulation(state, city);
         }
         spawnUnitForPlayer(state, city.owner, city.producing.id, city.x, city.y, player.cities.indexOf(city));
+        if (prototype.isCivil) {
+          zoomToCity = true;
+        }
+        complete = true;
         break;
       }
 
@@ -224,15 +228,19 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
         if (city.buildings.includes(city.producing.id)) {
           break;
         }
-        city.shields = 0;
         city.buildings.push(city.producing.id);
         zoomToCity = true;
-        result.push({
-          type: 'CityCompletedBuilding',
-          city,
-          building: buildings[city.producing.id],
-        });
+        complete = true;
       }
+    }
+
+    if (complete) {
+      city.shields = 0;
+      result.push({
+        type: 'CityCompletedProduction',
+        city,
+        production: city.producing,
+      });
     }
   }
 

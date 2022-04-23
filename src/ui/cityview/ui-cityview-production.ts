@@ -146,7 +146,7 @@ export const cityProductionWindow: UiWindow = {
       return;
     }
     const cost = getProductionCost(selectedCity.producing);
-    const shieldsPerRow = 10 * Math.ceil(cost / 100);
+    const shieldsPerRow = 10 * Math.ceil(Math.max(cost, selectedCity.shields) / 100);
     const rows = Math.ceil(cost / shieldsPerRow);
     const inc = incrementPerIcon(shieldsPerRow, area.width);
 

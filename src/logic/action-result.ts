@@ -1,5 +1,5 @@
 import { Building } from './buildings';
-import { City } from './city';
+import { City, CityProduction } from './city';
 import { Unit } from './units';
 
 export type UnitMoveResult = {
@@ -39,7 +39,12 @@ export type StartTurnResultEvent =
       city: City;
     }
   | {
-      type: 'CantMaintainBuilding' | 'CityCompletedBuilding';
+      type: 'CityCompletedProduction';
+      production: CityProduction;
+      city: City;
+    }
+  | {
+      type: 'CantMaintainBuilding';
       city: City;
       building: Building;
     }

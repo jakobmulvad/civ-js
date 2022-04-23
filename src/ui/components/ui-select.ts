@@ -3,7 +3,7 @@ import { clamp, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { palette } from '../../palette';
 import { renderGrayBoxWithBorder, renderSelectionBox, renderText } from '../../renderer';
-import { popUiScreen, UiScreen, UiWindow } from '../ui-controller';
+import { popUiScreen, pushUiScreen, UiScreen, UiWindow } from '../ui-controller';
 
 export type UiSelectValuePair<T = any> = {
   value: T;
@@ -15,7 +15,7 @@ export type UiSelectOption<T = any> = UiSelectValuePair<T> | string | number;
 export type UiSelectConfig<T = any> = {
   x: number;
   y: number;
-  title: string | string[];
+  title?: string | string[];
   options?: UiSelectOption<T>[];
   onSelect?: (value: T) => void;
   onClose?: () => void;
@@ -35,12 +35,13 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
   const font = config.font ?? fonts.main;
   let selectedIndex = Math.max(0, config.selectedIndex ?? 0);
 
-  const titles = Array.isArray(config.title) ? config.title : [config.title];
+  const title = config.title ?? [];
+  const titles = Array.isArray(title) ? title : [title];
 
   let maxLength = 0;
   let height = 0;
-  for (const title of titles) {
-    maxLength = Math.max(maxLength, measureText(font, title));
+  for (const t of titles) {
+    maxLength = Math.max(maxLength, measureText(font, t));
     height += font.height;
   }
   if (options) {
@@ -94,13 +95,12 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
 
       const option = options[selectedIndex];
 
+      popUiScreen();
       if (typeof option === 'object') {
         onSelect?.(option.value);
       } else {
         onSelect?.(option);
       }
-
-      popUiScreen();
     },
     onMouseDrag: (x, y) => {
       if (!isInside(boxRect, x, y) || !options) {
@@ -123,8 +123,8 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
           case KeyCode.Escape:
           case KeyCode.NumpadEnter:
           case KeyCode.Space:
-            onClose?.();
             popUiScreen();
+            onClose?.();
             break;
         }
         return;
@@ -144,12 +144,12 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
         case KeyCode.NumpadEnter: {
           const option = options[selectedIndex];
 
+          popUiScreen();
           if (typeof option === 'object') {
             onSelect?.(option.value);
           } else {
             onSelect?.(option);
           }
-          popUiScreen();
           break;
         }
         case KeyCode.Escape:
@@ -159,4 +159,9 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
       }
     },
   };
+};
+
+export const showSelect = (config: UiSelectConfig) => {
+  const select = newSelect(config);
+  pushUiScreen(select);
 };

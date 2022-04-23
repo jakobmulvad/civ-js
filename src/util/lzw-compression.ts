@@ -1,5 +1,9 @@
 // Source (with slight optimizations on my end): https://stackoverflow.com/questions/294297/javascript-implementation-of-gzip
 
+// I tried using "real" compression algorithms like gzip and deflate and got another 50% reduction in size
+// but I don't feel like the tradeoff of a vastly more complex algorithm is worth it.
+// LZW gives us around 97% reduction in size of the stringified game state which is fine (~500k -> ~16k)
+
 export const lzwEncode = (str: string): string => {
   const dict: Record<string, number | undefined> = {};
   let currChar;

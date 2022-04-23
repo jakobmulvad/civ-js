@@ -155,6 +155,11 @@ export const unitSupply = (state: GameState, unit: Unit): UnitSupply => {
     result.shields = 1;
   }
 
+  if (proto.isCivil) {
+    // Civilians does not cause unhappiness
+    return result;
+  }
+
   // Unhappy
   // TODO: Account for womens suffrage
   if (unit.x !== homeCity.x || unit.y !== homeCity.y) {

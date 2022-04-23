@@ -130,10 +130,10 @@ export const terrainMap: Record<TerrainId, Terrain> = {
     movementCost: 1,
     canIrrigate: true,
     yield: {
-      food: 4,
+      food: 2,
     },
     specialYield: {
-      food: 4,
+      food: 2,
       shields: 1,
     },
     roadYield: 1,

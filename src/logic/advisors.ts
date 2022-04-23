@@ -5,14 +5,14 @@ export enum Advisors {
   Defense = 'Defense',
   Domestic = 'Domestic',
   Foreign = 'Foreign',
-  Scientific = 'Scientific',
+  Science = 'Science',
 }
 
 export const spriteOffset: Record<Advisors, number> = {
   [Advisors.Defense]: 0,
   [Advisors.Domestic]: 1,
   [Advisors.Foreign]: 2,
-  [Advisors.Scientific]: 3,
+  [Advisors.Science]: 3,
 };
 
 export enum Era {

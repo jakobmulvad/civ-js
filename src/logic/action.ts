@@ -14,7 +14,7 @@ export type ActionWithCity = {
 } & ActionWithPlayer;
 
 export type PlayerAction = {
-  type: 'EndTurn';
+  type: 'EndTurn' | 'Revolution';
 } & ActionWithPlayer;
 
 export type UnitAction = {
