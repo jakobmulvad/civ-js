@@ -30,10 +30,14 @@ export type ActionFailedResult = {
     | 'UnitNotBuilder'
     | 'NotEnoughGold'
     | 'CityAllreadySold'
-    | 'CityCannotChangeProductionAfterBuy';
+    | 'CityCannotChangeProductionAfterBuy'
+    | 'GovernmentIntact'
+    | 'StillRevolting'
+    | 'InvalidRate';
 };
 
 export type StartTurnResultEvent =
+  | { type: 'EstablishGovernment' }
   | {
       type: 'PopulationDecrease' | 'CivilDisorder' | 'OrderRestored' | 'ZoomToCity';
       city: City;

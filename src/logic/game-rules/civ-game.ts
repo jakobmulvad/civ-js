@@ -42,6 +42,10 @@ const startTurn = (state: GameState): StartTurnResult => {
     result.events = [...result.events, ...processUnit(state, unit)];
   }
 
+  if (player.government === GovernmentId.Anarchy && state.turn % 4 === 0) {
+    result.events.push({ type: 'EstablishGovernment' });
+  }
+
   selectNextUnit(state);
   return result;
 };
@@ -49,24 +53,58 @@ const startTurn = (state: GameState): StartTurnResult => {
 export const executeAction = (state: GameState, action: Action): ActionResult => {
   console.log('Executing action', action);
 
-  if (action.type === 'EndTurn') {
-    validatePlayerAction(state, action);
-    state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
-
-    if (state.playerInTurn === 0) {
-      // New turn
-      state.turn++;
-    }
-
-    return startTurn(state);
-  }
-
   if ('unit' in action) {
     return executeUnitAction(state, action);
   }
 
   if ('city' in action) {
     return executeCityAction(state, action);
+  }
+
+  validatePlayerAction(state, action);
+  const player = state.players[action.player];
+
+  // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+  switch (action.type) {
+    case 'EndTurn':
+      state.playerInTurn = (state.playerInTurn + 1) % state.players.length;
+
+      if (state.playerInTurn === 0) {
+        // New turn
+        state.turn++;
+      }
+
+      return startTurn(state);
+
+    case 'Revolution':
+      player.government = GovernmentId.Anarchy;
+      break;
+
+    case 'EstablishGovernment':
+      if (player.government !== GovernmentId.Anarchy) {
+        return { type: 'ActionFailed', reason: 'GovernmentIntact' };
+      }
+
+      if (state.turn % 4 !== 0) {
+        // Government not in anarchy or revolt is still ongoing
+        return { type: 'ActionFailed', reason: 'StillRevolting' };
+      }
+      player.government = action.government;
+      break;
+
+    case 'SetTaxRate':
+      if (action.rate < 0 || action.rate > 10 - player.luxuryRate) {
+        return { type: 'ActionFailed', reason: 'InvalidRate' };
+      }
+      player.taxRate = action.rate;
+      break;
+
+    case 'SetLuxuryRate':
+      if (action.rate < 0 || action.rate > 10 - player.taxRate) {
+        return { type: 'ActionFailed', reason: 'InvalidRate' };
+      }
+      player.luxuryRate = action.rate;
+      break;
   }
 };
 

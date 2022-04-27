@@ -26,7 +26,7 @@ export const empireInfoWindow: UiWindow = {
     renderSprite({ asset: 'sp299.pic.png', x: 20 * 8, y: 15 * 8, width: 8, height: 8 }, textOffset + 2, 80); // todo: change light bulb based on research progress
     renderText(
       fonts.main,
-      `${player.gold}$ ${player.luxuryRate}.${scienceRate}.${player.taxRate}`,
+      `${player.gold}$ ${player.luxuryRate}.${player.taxRate}.${scienceRate}`,
       2,
       89,
       palette.black

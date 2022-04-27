@@ -43,7 +43,7 @@ const newspaperName = (cityName: string) => {
 };
 
 export type NewspaperConfig = {
-  city: City;
+  city?: City;
   headline: string[];
 };
 
@@ -63,7 +63,7 @@ export const showNewspaper = (config: NewspaperConfig): Promise<void> => {
         renderText(fonts.serif, attention, 272, 3, palette.black);
 
         renderText(fonts.serifTall, ',-.', 8, 10, palette.black);
-        renderText(fonts.serifTall, newspaperName(city.name), 160, 10, palette.black, true);
+        renderText(fonts.serifTall, newspaperName(city?.name ?? 'NONE'), 160, 10, palette.black, true);
         renderText(fonts.serifTall, ',-.', 268, 10, palette.black);
 
         renderText(fonts.main, `January 1, ${turnToYear(state.gameState.turn)}`, 8, 28, palette.black);

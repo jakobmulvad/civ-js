@@ -21,6 +21,7 @@ export type UiSelectConfig<T = any> = {
   onClose?: () => void;
   font?: Font;
   selectedIndex?: number;
+  bullet?: string;
 };
 
 const getOptionLabel = (option: UiSelectOption) => {
@@ -31,7 +32,7 @@ const getOptionLabel = (option: UiSelectOption) => {
 };
 
 export const newSelect = (config: UiSelectConfig): UiScreen => {
-  const { x, y, options, onSelect, onClose } = config;
+  const { x, y, options, bullet, onSelect, onClose } = config;
   const font = config.font ?? fonts.main;
   let selectedIndex = Math.max(0, config.selectedIndex ?? 0);
 
@@ -78,8 +79,12 @@ export const newSelect = (config: UiSelectConfig): UiScreen => {
           boxRect.width - 6,
           font.height
         );
+        const xOffset = bullet ? x + 14 : x + 10;
         for (let i = 0; i < options.length; i++) {
-          renderText(font, getOptionLabel(options[i]), x + 10, yOffset + font.height * i, palette.black);
+          if (bullet) {
+            renderText(font, bullet, x + 4, yOffset + font.height * i, palette.black);
+          }
+          renderText(font, getOptionLabel(options[i]), xOffset, yOffset + font.height * i, palette.black);
         }
       }
     },

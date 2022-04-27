@@ -7,8 +7,9 @@ import { lzwDecode, lzwEncode } from '../../util/lzw-compression';
 import { showAdvisorModal } from '../components/ui-advisor-modal';
 import { uiRender, UiWindow } from '../ui-controller';
 import { getUiState, updateUiState } from '../ui-state';
-import { showSelect, UiSelectValuePair } from '../components/ui-select';
+import { showSelect, UiSelectOption, UiSelectValuePair } from '../components/ui-select';
 import { pushUiAction } from '../ui-action-queue';
+import { showNewspaper } from '../components/ui-newspaper';
 
 enum MenuKey {
   Void,
@@ -68,6 +69,46 @@ const menus: Menu[] = [
   },
 ];
 
+const taxRate = () => {
+  const { gameState, localPlayer } = getUiState();
+  const player = gameState.players[localPlayer];
+  const options: UiSelectOption<number>[] = [];
+
+  for (let i = 0; i <= 10 - player.luxuryRate; i++) {
+    options.push({ label: `${i * 10}% Tax, (${(10 - player.luxuryRate - i) * 10}% Science)`, value: i });
+  }
+
+  showSelect({
+    x: 100,
+    y: 80,
+    options,
+    selectedIndex: player.taxRate,
+    onSelect: (rate: number) => {
+      pushUiAction({ type: 'SetTaxRate', player: localPlayer, rate });
+    },
+  });
+};
+
+const luxuryRate = () => {
+  const { gameState, localPlayer } = getUiState();
+  const player = gameState.players[localPlayer];
+  const options: UiSelectOption<number>[] = [];
+
+  for (let i = 0; i <= 10 - player.taxRate; i++) {
+    options.push({ label: `${i * 10}% Luxuries, (${(10 - player.taxRate - i) * 10}% Science)`, value: i });
+  }
+
+  showSelect({
+    x: 100,
+    y: 80,
+    options,
+    selectedIndex: player.taxRate,
+    onSelect: (rate: number) => {
+      pushUiAction({ type: 'SetLuxuryRate', player: localPlayer, rate });
+    },
+  });
+};
+
 const loadGame = () => {
   const compressed = localStorage.getItem('CIV_GAME');
   if (!compressed) {
@@ -111,15 +152,25 @@ const revolution = () => {
     x: 65,
     y: 80,
     title: 'Are you sure you want a REVOLUTION?',
+    bullet: '_',
     options: [
       { value: 'NO', label: 'No thanks.' },
       { value: 'YES', label: 'Yes, we need a new government.' },
     ],
     onSelect: (val) => {
-      console.log(val);
-      if (val === 'YES') {
-        pushUiAction({ type: 'Revolution', player: getUiState().localPlayer });
+      if (val !== 'YES') {
+        return;
       }
+      const { gameState, localPlayer } = getUiState();
+      const player = gameState.players[localPlayer];
+      const civ = player.civ;
+      const [city] = player.cities;
+
+      pushUiAction({ type: 'Revolution', player: getUiState().localPlayer });
+      void showNewspaper({
+        city: city,
+        headline: ['The ' + civ.namePlural + ' are', 'revolting! Citizens', 'demand new govt.'],
+      });
     },
   });
 };
@@ -168,6 +219,14 @@ export const menuWindow: UiWindow = {
           case MenuKey.Revolution:
             uiRender();
             revolution();
+            break;
+          case MenuKey.TaxRate:
+            uiRender();
+            taxRate();
+            break;
+          case MenuKey.LuxuriesRate:
+            uiRender();
+            luxuryRate();
             break;
         }
       },

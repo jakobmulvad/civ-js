@@ -5,7 +5,7 @@ import { clearUi, pushUiScreen, uiRender } from './ui/ui-controller';
 import { uiWorldScreen } from './ui/ui-screens';
 import { loadJson } from './assets';
 import { americans } from './logic/civilizations';
-import { popUiAction } from './ui/ui-action-queue';
+import { popUiAction, pushUiAction } from './ui/ui-action-queue';
 import { aiTick } from './logic/ai';
 import { Action } from './logic/action';
 import { getUiState, initUi, updateUiState } from './ui/ui-state';
@@ -26,6 +26,8 @@ import { showNewspaper } from './ui/components/ui-newspaper';
 import { showCityScreen } from './ui/cityview/ui-city-screen';
 import { Advisors } from './logic/advisors';
 import { spawnUnitForPlayer } from './logic/game-rules/civ-game-units';
+import { showSelect } from './ui/components/ui-select';
+import { GovernmentId, governments } from './logic/government';
 
 const localPlayer = 0; // todo don't use hardcoded index for local player
 
@@ -150,6 +152,45 @@ const processStartTurnEvents = async (events: StartTurnResultEvent[]) => {
       case 'ZoomToCity':
         await showCityScreen(event.city);
         break;
+
+      case 'EstablishGovernment': {
+        const { gameState } = getUiState();
+        const newGovernment = await new Promise<GovernmentId>((res) => {
+          const options = Object.entries(governments)
+            .filter(([key]) => key !== GovernmentId.Anarchy)
+            .map(([key, value]) => {
+              return {
+                label: value.name,
+                value: key,
+              };
+            });
+
+          const onSelect = (government: GovernmentId) => {
+            pushUiAction({ type: 'EstablishGovernment', player: localPlayer, government });
+            res(government);
+          };
+
+          showSelect({
+            x: 100,
+            y: 64,
+            title: ['Select type of', 'Government...'],
+            options,
+            onClose: () => onSelect(GovernmentId.Despotism),
+            onSelect: (val: GovernmentId) => onSelect(val),
+          });
+        });
+
+        const player = gameState.players[localPlayer];
+        const [city] = player.cities;
+
+        await showNewspaper({
+          city,
+          headline: [player.civ.name + ' government', 'changed to ' + governments[newGovernment].name + '!'],
+        });
+        // TODO: Add cabinet UI
+
+        break;
+      }
     }
 
     // clear UI between events
