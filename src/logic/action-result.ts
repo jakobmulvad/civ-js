@@ -31,6 +31,7 @@ export type ActionFailedResult = {
     | 'NotEnoughGold'
     | 'CityAllreadySold'
     | 'CityCannotChangeProductionAfterBuy'
+    | 'CityCannotChangeProductionMissingRequiredTech'
     | 'GovernmentIntact'
     | 'StillRevolting'
     | 'InvalidRate';

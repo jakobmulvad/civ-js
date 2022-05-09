@@ -1,3 +1,5 @@
+import { AdvanceId } from './advances';
+
 export enum UnitPrototypeId {
   Settlers = 'settlers',
   Militia = 'militia',
@@ -62,6 +64,8 @@ export type UnitPrototype = {
   airTransport?: number;
   visibleRange?: number;
   stealth?: boolean;
+  requires?: AdvanceId;
+  obsoleteBy?: AdvanceId;
 };
 
 export type Unit = {
@@ -125,6 +129,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 10,
     type: UnitType.Land,
+    obsoleteBy: AdvanceId.Gunpowder,
   },
   [UnitPrototypeId.Phalanx]: {
     name: 'Phalanx',
@@ -133,6 +138,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 20,
     type: UnitType.Land,
+    requires: AdvanceId.BronzeWorking,
+    obsoleteBy: AdvanceId.Gunpowder,
   },
   [UnitPrototypeId.Legion]: {
     name: 'Legion',
@@ -141,6 +148,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 20,
     type: UnitType.Land,
+    requires: AdvanceId.IronWorking,
+    obsoleteBy: AdvanceId.Conscription,
   },
   [UnitPrototypeId.Musketeers]: {
     name: 'Musketeers',
@@ -149,6 +158,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 30,
     type: UnitType.Land,
+    requires: AdvanceId.Gunpowder,
+    obsoleteBy: AdvanceId.Conscription,
   },
   [UnitPrototypeId.Riflemen]: {
     name: 'Riflemen',
@@ -157,6 +168,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 30,
     type: UnitType.Land,
+    requires: AdvanceId.Conscription,
   },
   [UnitPrototypeId.Cavalry]: {
     name: 'Cavalry',
@@ -165,6 +177,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 2,
     cost: 20,
     type: UnitType.Land,
+    requires: AdvanceId.HorsebackRiding,
+    obsoleteBy: AdvanceId.Conscription,
   },
   [UnitPrototypeId.Knight]: {
     name: 'Knight',
@@ -173,6 +187,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 2,
     cost: 40,
     type: UnitType.Land,
+    requires: AdvanceId.Chivalry,
+    obsoleteBy: AdvanceId.Automobile,
   },
   [UnitPrototypeId.Catapult]: {
     name: 'Catapult',
@@ -181,6 +197,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 40,
     type: UnitType.Land,
+    requires: AdvanceId.Mathematics,
+    obsoleteBy: AdvanceId.Metallurgy,
   },
   [UnitPrototypeId.Cannon]: {
     name: 'Cannon',
@@ -189,6 +207,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 1,
     cost: 40,
     type: UnitType.Land,
+    requires: AdvanceId.Metallurgy,
+    obsoleteBy: AdvanceId.Robotics,
   },
   [UnitPrototypeId.Chariot]: {
     name: 'Chariot',
@@ -197,6 +217,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 2,
     cost: 40,
     type: UnitType.Land,
+    requires: AdvanceId.TheWheel,
+    obsoleteBy: AdvanceId.Chivalry,
   },
   [UnitPrototypeId.Armor]: {
     name: 'Armor',
@@ -205,6 +227,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 3,
     cost: 80,
     type: UnitType.Land,
+    requires: AdvanceId.Automobile,
   },
   [UnitPrototypeId.MechInf]: {
     name: 'Mech. Inf.',
@@ -213,15 +236,17 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 3,
     cost: 50,
     type: UnitType.Land,
+    requires: AdvanceId.LaborUnion,
   },
   [UnitPrototypeId.Artillery]: {
-    name: 'Mech. Inf.',
+    name: 'Artillery',
     attack: 12,
     defense: 2,
     moves: 2,
     cost: 60,
     ignoreCitywall: true,
     type: UnitType.Land,
+    requires: AdvanceId.Robotics,
   },
   [UnitPrototypeId.Fighter]: {
     name: 'Fighter',
@@ -230,6 +255,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 10,
     cost: 60,
     type: UnitType.Air,
+    requires: AdvanceId.Flight,
   },
   [UnitPrototypeId.Bomber]: {
     name: 'Bomber',
@@ -239,6 +265,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 120,
     ignoreCitywall: true,
     type: UnitType.Air,
+    requires: AdvanceId.AdvancedFlight,
   },
   [UnitPrototypeId.Trireme]: {
     name: 'Trireme',
@@ -248,6 +275,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 40,
     landTransport: 2,
     type: UnitType.Sea,
+    requires: AdvanceId.MapMaking,
+    obsoleteBy: AdvanceId.Navigation,
   },
   [UnitPrototypeId.Sail]: {
     name: 'Sail',
@@ -257,6 +286,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 40,
     landTransport: 3,
     type: UnitType.Sea,
+    requires: AdvanceId.Navigation,
+    obsoleteBy: AdvanceId.Magnatism,
   },
   [UnitPrototypeId.Frigate]: {
     name: 'Frigate',
@@ -266,6 +297,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 40,
     landTransport: 4,
     type: UnitType.Sea,
+    requires: AdvanceId.Magnatism,
+    obsoleteBy: AdvanceId.Combustion,
   },
   [UnitPrototypeId.Ironclad]: {
     name: 'Ironclad',
@@ -274,6 +307,8 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     moves: 4,
     cost: 60,
     type: UnitType.Sea,
+    requires: AdvanceId.SteamEngine,
+    obsoleteBy: AdvanceId.Combustion,
   },
   [UnitPrototypeId.Cruiser]: {
     name: 'Cruiser',
@@ -283,15 +318,17 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 80,
     visibleRange: 2,
     type: UnitType.Sea,
+    requires: AdvanceId.Combustion,
   },
   [UnitPrototypeId.Battleship]: {
-    name: 'Cruiser',
+    name: 'Battleship',
     attack: 18,
     defense: 12,
     moves: 4,
     cost: 160,
     visibleRange: 2,
     type: UnitType.Sea,
+    requires: AdvanceId.Steel,
   },
   [UnitPrototypeId.Submarine]: {
     name: 'Submarine',
@@ -302,6 +339,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     visibleRange: 2,
     stealth: true,
     type: UnitType.Sea,
+    requires: AdvanceId.MassProduction,
   },
   [UnitPrototypeId.Carrier]: {
     name: 'Carrier',
@@ -312,6 +350,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     visibleRange: 2,
     airTransport: 8,
     type: UnitType.Sea,
+    requires: AdvanceId.AdvancedFlight,
   },
   [UnitPrototypeId.Transport]: {
     name: 'Transport',
@@ -322,6 +361,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     landTransport: 8,
     isCivil: true,
     type: UnitType.Sea,
+    requires: AdvanceId.Industrialization,
   },
   [UnitPrototypeId.Nuclear]: {
     name: 'Nuclear',
@@ -331,6 +371,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 160,
     stealth: true,
     type: UnitType.Air,
+    requires: AdvanceId.Rocketry,
   },
   [UnitPrototypeId.Diplomat]: {
     name: 'Diplomat',
@@ -340,6 +381,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 30,
     isCivil: true,
     type: UnitType.Land,
+    requires: AdvanceId.Writing,
   },
   [UnitPrototypeId.Caravan]: {
     name: 'Caravan',
@@ -349,6 +391,7 @@ export const unitPrototypeMap: Record<UnitPrototypeId, UnitPrototype> = {
     cost: 50,
     isCivil: true,
     type: UnitType.Land,
+    requires: AdvanceId.Trade,
   },
 };
 

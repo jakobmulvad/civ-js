@@ -310,28 +310,19 @@ export const cityYieldFromTiles = (map: GameMap, city: City, government: Governm
   }, centerYield);
 };
 
-export const getProductionCost = (production: CityProduction) => {
+export const getProductionObject = (production: CityProduction) => {
   switch (production.type) {
     case CityProductionType.Unit:
-      return unitPrototypeMap[production.id].cost;
+      return unitPrototypeMap[production.id];
     case CityProductionType.Building:
-      return buildings[production.id].cost;
-  }
-};
-
-export const getProductionName = (production: CityProduction) => {
-  switch (production.type) {
-    case CityProductionType.Unit:
-      return unitPrototypeMap[production.id].name;
-    case CityProductionType.Building:
-      return buildings[production.id].name;
+      return buildings[production.id];
   }
 };
 
 // source: https://forums.civfanatics.com/threads/buy-unit-building-wonder-price.576026/#post-14490920
 export const buyCost = (production: CityProduction, shields: number) => {
   const multiplier = 2 - Math.sign(shields);
-  const cost = getProductionCost(production);
+  const cost = getProductionObject(production).cost;
   switch (production.type) {
     case CityProductionType.Unit: {
       const remaining = Math.max(0, (cost - shields) / 10);

@@ -3,15 +3,8 @@ import { addGameEventListener } from '../../game-event';
 import { clamp, incrementPerIcon, isInside, Rect } from '../../helpers';
 import { KeyCode } from '../../key-codes';
 import { Building, BuildingId, buildings } from '../../logic/buildings';
-import {
-  buyCost,
-  CityProduction,
-  CityProductionType,
-  getProductionCost,
-  getProductionName,
-  totalCityYield,
-} from '../../logic/city';
-import { UnitPrototypeId, unitPrototypeMap } from '../../logic/units';
+import { buyCost, CityProduction, CityProductionType, getProductionObject, totalCityYield } from '../../logic/city';
+import { UnitPrototype, UnitPrototypeId, unitPrototypeMap } from '../../logic/units';
 import { palette } from '../../palette';
 import {
   renderBlueBox,
@@ -54,26 +47,45 @@ const change = () => {
   if (!selectedCity || selectedCity.hasBought) {
     return;
   }
+  const player = gameState.players[localPlayer];
   const shieldYield = totalCityYield(gameState, gameState.players[selectedCity.owner].map, selectedCity).shields;
 
   const turns = (cost: number) => clamp(1, Math.ceil((cost - selectedCity.shields) / shieldYield), cost);
 
   // Add units
-  const unitPrototypes = Object.entries(unitPrototypeMap);
-  const unitOptions: UiSelectValuePair<CityProduction>[] = unitPrototypes.map(([key, proto]) => {
-    return {
-      value: {
-        type: CityProductionType.Unit,
-        id: key as UnitPrototypeId,
-      },
-      label: `${proto.name} (${turns(proto.cost)} turns, ADM:${proto.attack}/${proto.defense}/${proto.moves})`,
-    };
-  });
+  const unitPrototypes = Object.entries(unitPrototypeMap) as [UnitPrototypeId, UnitPrototype][];
+  const unitOptions: UiSelectValuePair<CityProduction>[] = unitPrototypes
+    .filter(([, unitProto]) => {
+      if (unitProto.requires && !player.advances.includes(unitProto.requires)) {
+        return false;
+      }
+      if (unitProto.obsoleteBy && player.advances.includes(unitProto.obsoleteBy)) {
+        return false;
+      }
+      return true;
+    })
+    .map(([key, proto]) => {
+      return {
+        value: {
+          type: CityProductionType.Unit,
+          id: key,
+        },
+        label: `${proto.name} (${turns(proto.cost)} turns, ADM:${proto.attack}/${proto.defense}/${proto.moves})`,
+      };
+    });
 
   // Add buildings
   const buildingEntries = Object.entries(buildings) as [BuildingId, Building][];
   const buildingOptions: UiSelectValuePair<CityProduction>[] = buildingEntries
-    .filter(([key]) => !selectedCity.buildings.includes(key))
+    .filter(([key, building]) => {
+      if (selectedCity.buildings.includes(key)) {
+        return false;
+      }
+      if (building.requires && !player.advances.includes(building.requires)) {
+        return false;
+      }
+      return true;
+    })
     .map(([key, building]) => {
       return {
         value: {
@@ -95,6 +107,7 @@ const change = () => {
     selectedIndex,
     title: `What shall we build in ${selectedCity.name}?`,
     options,
+    font: options.length > 10 ? fonts.mainSmall : fonts.main,
     onSelect: (value) => {
       pushUiAction({
         type: 'CityChangeProduction',
@@ -115,7 +128,7 @@ const buy = () => {
   const cityIndex = gameState.players[localPlayer].cities.indexOf(selectedCity);
 
   const cost = buyCost(selectedCity.producing, selectedCity.shields);
-  const name = getProductionName(selectedCity.producing);
+  const name = getProductionObject(selectedCity.producing).name;
   const treasury = gameState.players[localPlayer].gold;
 
   const select = newSelect({
@@ -145,7 +158,7 @@ export const cityProductionWindow: UiWindow = {
     if (!selectedCity) {
       return;
     }
-    const cost = getProductionCost(selectedCity.producing);
+    const cost = getProductionObject(selectedCity.producing).cost;
     const shieldsPerRow = 10 * Math.ceil(Math.max(cost, selectedCity.shields) / 100);
     const rows = Math.ceil(cost / shieldsPerRow);
     const inc = incrementPerIcon(shieldsPerRow, area.width);

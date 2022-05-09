@@ -143,6 +143,7 @@ export const newGame = (mapTemplate: MapTemplate, civs: Civilization[]): GameSta
     taxRate: 5,
     luxuryRate: 5,
     government: GovernmentId.Democracy,
+    advances: [],
   }));
 
   const state: GameState = {

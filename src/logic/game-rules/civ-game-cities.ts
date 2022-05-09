@@ -10,7 +10,7 @@ import {
   CityProductionType,
   cityUnits,
   getBlockedWorkableTiles,
-  getProductionCost,
+  getProductionObject,
   optimizeWorkedTiles,
   sellPrice,
   Specialists,
@@ -104,6 +104,16 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
           reason: 'CityCannotChangeProductionAfterBuy',
         };
       }
+
+      const requiredTech = getProductionObject(action.production).requires;
+
+      if (requiredTech && !player.advances.includes(requiredTech)) {
+        return {
+          type: 'ActionFailed',
+          reason: 'CityCannotChangeProductionMissingRequiredTech',
+        };
+      }
+
       city.producing = action.production;
       break;
     }
@@ -117,7 +127,7 @@ export const executeCityAction = (state: GameState, action: CityAction): ActionR
         };
       }
       player.gold -= price;
-      city.shields = getProductionCost(city.producing);
+      city.shields = getProductionObject(city.producing).cost;
       city.hasBought = true;
       break;
     }
@@ -207,7 +217,7 @@ export const processCity = (state: GameState, city: City): StartTurnResultEvent[
   }
 
   let complete = false;
-  const cost = getProductionCost(city.producing);
+  const cost = getProductionObject(city.producing).cost;
   if (city.shields >= cost) {
     // Production done!
     switch (city.producing.type) {

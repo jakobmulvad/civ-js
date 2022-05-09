@@ -1,4 +1,5 @@
 import { Sprite } from '../assets';
+import { AdvanceId } from './advances';
 import { City, CityYield, Happiness } from './city';
 import { GameState } from './game-state';
 
@@ -17,6 +18,7 @@ export type Building = {
   applyHappiness?: (state: GameState, city: City, happiness: Happiness) => void;
   applyCityYield?: (cityYield: CityYield) => void;
   sprite: Sprite;
+  requires?: AdvanceId;
 };
 
 export const buildings: Record<BuildingId, Building> = {
@@ -24,6 +26,7 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Palace',
     cost: 200,
     maintenance: 0,
+    requires: AdvanceId.Masonry,
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,
@@ -48,6 +51,7 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Granary',
     cost: 60,
     maintenance: 1,
+    requires: AdvanceId.Pottery,
     sprite: {
       asset: 'sp299.pic.png',
       x: 20 * 8 + 1,
@@ -60,6 +64,7 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Temple',
     cost: 40,
     maintenance: 1,
+    requires: AdvanceId.CeremonialBurial,
     applyHappiness: (state: GameState, city: City, happiness: Happiness) => {
       happiness.unhappy--;
     },
@@ -75,6 +80,7 @@ export const buildings: Record<BuildingId, Building> = {
     name: 'Marketplace',
     cost: 80,
     maintenance: 1,
+    requires: AdvanceId.Currency,
     applyCityYield: (cityYield: CityYield) => {
       cityYield.luxury = Math.floor(cityYield.luxury * 1.5);
       cityYield.gold = Math.floor(cityYield.gold * 1.5);

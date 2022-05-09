@@ -9,7 +9,7 @@ export enum AdvanceId {
   BronzeWorking = 'bronzeworking',
   CeremonialBurial = 'ceremonialburial',
   Chemestry = 'chemestry',
-  Chivalry = 'Chivalry',
+  Chivalry = 'chivalry',
   CodeOfLaws = 'codeoflaws',
   Combustion = 'combustion',
   Communism = 'communism',

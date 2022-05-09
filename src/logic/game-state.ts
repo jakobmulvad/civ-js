@@ -1,3 +1,4 @@
+import { AdvanceId } from './advances';
 import { City, cityUnits } from './city';
 import { Civilization } from './civilizations';
 import { Difficulty } from './diffculty';
@@ -23,6 +24,7 @@ export type PlayerState = {
   taxRate: number; // 0...10
   luxuryRate: number; // 0...10
   government: GovernmentId;
+  advances: AdvanceId[];
 };
 
 export type GameState = {
